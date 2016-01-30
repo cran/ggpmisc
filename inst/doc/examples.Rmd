@@ -1,0 +1,313 @@
+---
+title: "`ggpmisc` `r packageVersion('ggpmisc')`<br>Additional examples"
+author: "Pedro J. Aphalo"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Additional Examples}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include=FALSE, echo=FALSE}
+library(knitr)
+opts_chunk$set(fig.path = 'figure/pos-', fig.align = 'center', fig.show = 'hold',
+               fig.width = 7, fig.height = 4)
+options(warnPartialMatchArgs = FALSE)
+```
+
+## Preliminaries
+
+```{r}
+library(ggplot2)
+library(ggpmisc)
+library(xts)
+library(lubridate)
+```
+
+## `try_data_frame()`
+
+### Time series
+
+Several different formats for storing time series data are used in R. Here we use in the examples objects of class `ts` but several other classes are supported as `try.xts()` is used internally. The first example is a quarterly series.
+
+```{r}
+class(austres)
+austres.df <- try_data_frame(austres)
+class(austres.df)
+lapply(austres.df, "class")
+head(austres.df, 4)
+```
+
+The next chunk demonstrates that numeric times are expressed as decimal years in the returned data frame.
+
+```{r}
+austres.df <- try_data_frame(austres, as.numeric = TRUE)
+lapply(austres.df, "class")
+head(austres.df, 4)
+```
+
+This second example is for a series of yearly values.
+
+```{r}
+class(lynx)
+lynx.df <- try_data_frame(lynx)
+class(lynx.df)
+lapply(lynx.df, "class")
+head(lynx.df, 3)
+```
+
+Above there is a small rounding error of 1 s for these old dates. We can correct this by rounding to year.
+
+```{r}
+lynx.df <- try_data_frame(lynx, "year")
+head(lynx.df, 3)
+```
+
+In addition we can convert the POSIXct values into numeric values in calendar years plus a decimal fraction.
+
+```{r}
+lynx_n.df <- try_data_frame(lynx, "year", as.numeric = TRUE)
+lapply(lynx_n.df, "class")
+head(lynx_n.df, 3)
+```
+
+### Other classes
+
+`try_data_frame()` attempts to handle gracefully objects that are not time series.
+
+```{r}
+try_data_frame(1:5)
+```
+
+```{r}
+try_data_frame(letters[1:5])
+```
+
+```{r}
+try_data_frame(factor(letters[1:5]))
+```
+
+```{r}
+try_data_frame(list(x = rep(1,5), y = 1:5))
+```
+
+```{r}
+try_data_frame(data.frame(x = rep(1,5), y = 1:5))
+```
+
+```{r}
+try_data_frame(matrix(1:10, ncol = 2))
+```
+
+## `stat_peaks()` and `stat_valleys()`
+
+Using POSIXct for `time` and the default formatting of labels.
+
+```{r}
+ggplot(lynx.df, aes(time, V.lynx)) + geom_line() + 
+  stat_peaks(colour = "red") +
+  stat_peaks(geom = "text", colour = "red", vjust = -0.5) +
+  ylim(-100, 7300)
+```
+
+Using numeric values for `time` and the default formatting of labels.
+
+```{r}
+ggplot(lynx_n.df, aes(time, V.lynx)) + geom_line() + 
+  stat_peaks(colour = "red") +
+  stat_peaks(geom = "text", colour = "red", vjust = -0.5) +
+  ylim(-100, 7300)
+```
+
+Using POSIXct for `time` but supplying a format string. In addition marking both peaks and valleys.
+
+```{r}
+ggplot(lynx.df, aes(time, V.lynx)) + geom_line() + 
+  stat_peaks(colour = "red") +
+  stat_peaks(geom = "text", colour = "red", vjust = -0.5, x.label.fmt = "%Y") +
+  stat_valleys(colour = "blue") +
+  stat_valleys(geom = "text", colour = "blue", vjust = 1.5, x.label.fmt = "%Y") +
+  ylim(-100, 7300)
+```
+
+Using numeric for `time` but supplying a format string. In addition marking both peaks and valleys.
+
+```{r}
+ggplot(lynx_n.df, aes(time, V.lynx)) + geom_line() + 
+  stat_peaks(colour = "red") +
+  stat_peaks(geom = "text", colour = "red", vjust = -0.5, x.label.fmt = "%4.0f") +
+  stat_valleys(colour = "blue") +
+  stat_valleys(geom = "text", colour = "blue", vjust = 1.5, x.label.fmt = "%4.0f") +
+  ylim(-100, 7300)
+```
+
+Rotating the labels.
+
+```{r}
+ggplot(lynx.df, aes(time, V.lynx)) + geom_line() + 
+  stat_peaks(colour = "red") +
+  stat_peaks(geom = "text", colour = "red", angle = 66,
+             hjust = -0.1, x.label.fmt = "%Y") +
+  ylim(NA, 7300)
+```
+
+Using `geom_rug` for the peaks and valleys.
+
+```{r}
+ggplot(lynx.df, aes(time, V.lynx)) + geom_line() + 
+  stat_peaks(colour = "red") +
+  stat_peaks(geom = "rug", colour = "red") +
+  stat_valleys(colour = "blue") +
+  stat_valleys(geom = "rug", colour = "blue")
+```
+
+## `stat_poly_eq()`
+
+We generate some artificial data.
+
+```{r}
+set.seed(4321)
+# generate artificial data
+x <- 1:100
+y <- (x + x^2 + x^3) + rnorm(length(x), mean = 0, sd = mean(x^3) / 4)
+my.data <- data.frame(x, y, group = c("A", "B"), y2 = y * c(0.5,2))
+
+```
+
+First one example using defaults.
+
+```{r}
+formula <- y ~ poly(x, 3, raw = TRUE)
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = formula) +
+  stat_poly_eq(formula = formula, parse = TRUE)
+```
+
+`stat_poly_eq()` makes available three different labels in the returned data frame. One of these is used by default, but `aes()` can be used to select a different one. 
+
+```{r}
+formula <- y ~ poly(x, 3, raw = TRUE)
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = formula) +
+  stat_poly_eq(aes(label = ..adj.rr.label..), formula = formula, 
+               parse = TRUE)
+```
+
+
+```{r}
+formula <- y ~ poly(x, 3, raw = TRUE)
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = formula) +
+  stat_poly_eq(aes(label = ..eq.label..), formula = formula, 
+               parse = TRUE)
+```
+
+
+Within `aes()` it is possible to _compute_ new labels based on those returned plus "arbitrary" text. The supplied labels are meant to be _parsed_ into expressions, so any text added should be valid for a string that will be parsed.
+
+```{r}
+formula <- y ~ poly(x, 3, raw = TRUE)
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = formula) +
+  stat_poly_eq(aes(label =  paste(..eq.label.., ..adj.rr.label.., sep = "~~~~")),
+               formula = formula, parse = TRUE)
+```
+
+A couple of additional examples of polynomials of different orders, and specified in different ways.
+
+Higher order polynomial.
+
+```{r}
+formula <- y ~ poly(x, 5, raw = TRUE)
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = formula) +
+  stat_poly_eq(aes(label = ..eq.label..), formula = formula, parse = TRUE)
+```
+
+Intercept forced to zero.
+
+```{r}
+formula <- y ~ x + I(x^2) + I(x^3) - 1
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = formula) +
+  stat_poly_eq(aes(label = ..eq.label..), formula = formula, 
+               parse = TRUE)
+```
+
+We give below several examples to demonstrate how other components of the `ggplot` object affect the behaviour of this statistic.
+
+Facets work as expected either with fixed or free scales. Although bellow we had to adjust the size of the font used for the equation.
+
+```{r}
+formula <- y ~ poly(x, 3, raw = TRUE)
+ggplot(my.data, aes(x, y2)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = formula) +
+  stat_poly_eq(aes(label = ..eq.label..), size = rel(2.8),
+               formula = formula, parse = TRUE) +
+  facet_wrap(~group)
+```
+
+```{r}
+formula <- y ~ poly(x, 3, raw = TRUE)
+ggplot(my.data, aes(x, y2)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = formula) +
+  stat_poly_eq(aes(label = ..eq.label..), size = rel(2.8),
+               formula = formula, parse = TRUE) +
+  facet_wrap(~group, scales = "free_y")
+```
+
+Grouping, in this example using colour aesthetic also works as expected.
+
+```{r}
+formula <- y ~ poly(x, 3, raw = TRUE)
+ggplot(my.data, aes(x, y2, colour = group)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = formula) +
+  stat_poly_eq(aes(label = ..eq.label..), vjust = c(-8, 0),
+               formula = formula, parse = TRUE) +
+  theme_bw()
+```
+
+## `stat_debug()`
+
+These stats are very simple and simply echo to labels on the plot itself a summary of the data received by the compute functions. 
+
+In the absence of facets or groups we get just one label.
+
+```{r}
+ggplot(my.data, aes(x, y)) + geom_point() + stat_debug_group()
+```
+
+```{r}
+ggplot(my.data, aes(x, y)) + geom_point() + stat_debug_panel()
+```
+
+In the case of grouping if the groups do not have very different centres in the x y space tweaking of positions can be needed to avoid overlaps.
+
+```{r}
+ggplot(my.data, aes(x, y, colour = group)) + geom_point() + 
+  stat_debug_group(vjust = c(-0.5,1.5))
+```
+
+Without facets, we still have only one panel.
+
+```{r}
+ggplot(my.data, aes(x, y, colour = group)) + geom_point() + 
+  stat_debug_panel()
+```
+
+The text would be similar, except for the column named after the aesthetic, for other aesthetics used for grouping, but the labels will visually differ only if the geom used for the debug stat is affected by them.
+
+```{r}
+ggplot(my.data, aes(x, y, shape = group)) + geom_point() + 
+  stat_debug_group(vjust = c(-0.5,1.5))
+```

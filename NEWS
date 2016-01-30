@@ -1,0 +1,42 @@
+ggpmisc 0.2.5
+=============
+
+Remove one example to remove a package dependency.
+
+ggpmisc 0.2.4
+=============
+
+Improve handling of time zones in try_data_frame().
+Revise documentation and vignette.
+
+ggpmisc 0.2.3
+=============
+
+stat_poly_eq() changed to include the lhs (left hand side) of the equation by
+default.
+
+ggpmisc 0.2.2
+=============
+
+Add function try_data_frame() to convert R objects including time series
+objects of all classes accepted by try.xts() into data frames suitable for
+plotting with ggplot().
+
+Update stat_peaks() and stat_valleys() to work correctly when the x aesthetic
+uses a Date or Datetime continuous scale such as ggplot() sets automatically
+for POSIXct variables mapped to the x aesthetic.
+
+ggpmisc 0.2.1
+=============
+
+Rename stat_debug() as stat_debug_group() and add stat_debug_panel().
+Add stat_peaks() and stat_valleys() (these are simpler versions of
+ggspectra::stat_peaks() and ggspectra::stat_valleys() for use with any
+numerical data (rather than light spectra).
+
+ggpmisc 0.1.0
+=============
+
+First version.
+Add stat_poly_eq()
+Add stat_debug()
