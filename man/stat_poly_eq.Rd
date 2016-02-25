@@ -5,8 +5,9 @@
 \title{Add a curve from a fitted linear model and a label to a plot.}
 \usage{
 stat_poly_eq(mapping = NULL, data = NULL, geom = "text", formula = NULL,
-  eq.with.lhs = TRUE, position = "identity", na.rm = FALSE,
-  show.legend = FALSE, inherit.aes = TRUE, ...)
+  eq.with.lhs = "italic(y)~`=`~", eq.x.rhs = "~italic(x)",
+  position = "identity", na.rm = FALSE, show.legend = FALSE,
+  inherit.aes = TRUE, ...)
 }
 \arguments{
 \item{mapping}{The aesthetic mapping, usually constructed with
@@ -20,8 +21,12 @@ the plot defaults.}
 
 \item{formula}{a formula object}
 
-\item{eq.with.lhs}{logical indicating whether lhs of equation is to be
-included in label.}
+\item{eq.with.lhs}{If \code{character} the string is pasted to the front
+of the equation label before parsing or a \code{logical} (see note).}
+
+\item{eq.x.rhs}{\code{character} this string will be used as replacement
+for \code{"x"} in the model equation when generating the label before
+parsing it.}
 
 \item{position}{The position adjustment to use for overlapping points on this
 layer}
@@ -43,8 +48,8 @@ can include aesthetics whose values you want to set, not map. See
 \code{\link[ggplot2]{layer}} for more details.}
 }
 \description{
-\code{stat_poly_eq} fits a polynomial and generates a label with an equation
-and/or coefficient of determination (R^2).
+\code{stat_poly_eq} fits a polynomial and generates a label with
+  an equation and/or coefficient of determination (R^2).
 }
 \details{
 This stat can be used to automatically annotate a plot with R^2,
@@ -61,6 +66,13 @@ annotation. This stat only generates the label, the predicted values need
 to be sepearately added to the plot, so to make sure that the same model
 formula is used in all steps it is best to save the formula as an object
 and supply this object as argument to the different statistics.
+}
+\note{
+For backward compatibility a logical is accepted as argument for
+  \code{eq.with.lhs}, giving the same output than the current default
+  character value. By default "x" is retained as independent variable as
+  this is the name of the aesthetic. However, it can be substituted by
+  providing a suitable replacement character string through \code{eq.x.rhs}.
 }
 \section{Computed variables}{
 

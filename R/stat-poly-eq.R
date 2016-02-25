@@ -1,7 +1,7 @@
-#' @title Add a curve from a fitted linear model and a label to a plot.
+#' Add a curve from a fitted linear model and a label to a plot.
 #'
-#' @description \code{stat_poly_eq} fits a polynomial and generates a label with an equation
-#' and/or coefficient of determination (R^2).
+#' \code{stat_poly_eq} fits a polynomial and generates a label with
+#'   an equation and/or coefficient of determination (R^2).
 #'
 #' @param mapping The aesthetic mapping, usually constructed with
 #'   \code{\link[ggplot2]{aes}} or \code{\link[ggplot2]{aes_string}}. Only needs
@@ -24,8 +24,17 @@
 #' @param na.rm	a logical indicating whether NA values should be stripped
 #'   before the computation proceeds.
 #' @param formula a formula object
-#' @param eq.with.lhs logical indicating whether lhs of equation is to be
-#'   included in label.
+#' @param eq.with.lhs If \code{character} the string is pasted to the front
+#'   of the equation label before parsing or a \code{logical} (see note).
+#' @param eq.x.rhs \code{character} this string will be used as replacement
+#'   for \code{"x"} in the model equation when generating the label before
+#'   parsing it.
+#'
+#' @note For backward compatibility a logical is accepted as argument for
+#'   \code{eq.with.lhs}, giving the same output than the current default
+#'   character value. By default "x" is retained as independent variable as
+#'   this is the name of the aesthetic. However, it can be substituted by
+#'   providing a suitable replacement character string through \code{eq.x.rhs}.
 #'
 #' @details This stat can be used to automatically annotate a plot with R^2,
 #' adjusted R^2 or the fitted model equation. It supports only linear models
@@ -70,17 +79,62 @@
 #' @export
 #'
 stat_poly_eq <- function(mapping = NULL, data = NULL, geom = "text",
-                         formula = NULL, eq.with.lhs = TRUE,
+                         formula = NULL,
+                         eq.with.lhs = "italic(y)~`=`~",
+                         eq.x.rhs = "~italic(x)",
                          position = "identity",
                          na.rm = FALSE, show.legend = FALSE,
                          inherit.aes = TRUE, ...) {
   ggplot2::layer(
     stat = StatPolyEq, data = data, mapping = mapping, geom = geom,
     position = position, show.legend = show.legend, inherit.aes = inherit.aes,
-    params = list(formula = formula, eq.with.lhs = eq.with.lhs,
+    params = list(formula = formula,
+                  eq.with.lhs = eq.with.lhs,
+                  eq.x.rhs = eq.x.rhs,
                   na.rm = na.rm,
                   ...)
   )
+}
+
+# Define here to avoid a note in check as the import from 'polynom' is not seen
+# when the function is defined in-line in the ggproto object.
+#' @rdname ggpmisc-ggproto
+#'
+#' @format NULL
+#' @usage NULL
+#'
+poly_eq_compute_group_fun <- function(data,
+                                     scales,
+                                     formula,
+                                     eq.with.lhs,
+                                     eq.x.rhs) {
+  mf <- stats::lm(formula, data)
+  coefs <- stats::coef(mf)
+  formula.rhs.chr <- as.character(formula)[3]
+  if (grepl("-1", formula.rhs.chr) || grepl("- 1", formula.rhs.chr)) {
+    coefs <- c(0, coefs)
+  }
+  rr <- summary(mf)$r.squared
+  adj.rr <- summary(mf)$adj.r.squared
+  eq.char <- as.character(signif(polynom::as.polynomial(coefs), 3))
+  if (is.character(eq.with.lhs)) {
+    lhs <- eq.with.lhs
+    eq.with.lhs <- TRUE
+  } else if (eq.with.lhs) {
+    lhs <- "italic(y)~`=`~"
+  }
+  if (eq.with.lhs) {
+    eq.char <- paste(lhs, eq.char, sep = "")
+  }
+  rr.char <- format(rr, digits = 2)
+  adj.rr.char <- format(adj.rr, digits = 2)
+  data.frame(x = min(data$x),
+             y = max(data$y) - 0.1 * diff(range(data$y)),
+             eq.label = gsub("x", eq.x.rhs, eq.char, fixed = TRUE),
+             rr.label = paste("italic(R)^2", rr.char, sep = "~`=`~"),
+             adj.rr.label = paste("italic(R)[adj]^2",
+                                  adj.rr.char, sep = "~`=`~"),
+             hjust = 0)
 }
 
 #' @rdname ggpmisc-ggproto
@@ -89,32 +143,7 @@ stat_poly_eq <- function(mapping = NULL, data = NULL, geom = "text",
 #' @export
 StatPolyEq <-
   ggplot2::ggproto("StatPolyEq", ggplot2::Stat,
-                   compute_group = function(data,
-                                            scales,
-                                            formula,
-                                            eq.with.lhs) {
-                     mf <- lm(formula, data)
-                     coefs <- coef(mf)
-                     formula.rhs.chr <- as.character(formula)[3]
-                     if (grepl("-1", formula.rhs.chr) || grepl("- 1", formula.rhs.chr)) {
-                        coefs <- c(0, coefs)
-                     }
-                     rr <- summary(mf)$r.squared
-                     adj.rr <- summary(mf)$adj.r.squared
-                     eq.char <- as.character(signif(polynom::as.polynomial(coefs), 3))
-                     if (eq.with.lhs) {
-                       eq.char <- paste("italic(y)", eq.char, sep = "~`=`~")
-                     }
-                     rr.char <- format(rr, digits = 2)
-                     adj.rr.char <- format(adj.rr, digits = 2)
-                     data.frame(x = min(data$x),
-                                y = max(data$y) - 0.1 * diff(range(data$y)),
-                                eq.label = gsub("x", "~italic(x)", eq.char, fixed = TRUE),
-                                rr.label = paste("italic(R)^2", rr.char, sep = "~`=`~"),
-                                adj.rr.label = paste("italic(R)[adj]^2",
-                                                     adj.rr.char, sep = "~`=`~"),
-                                hjust = 0)
-                   },
+                   compute_group = poly_eq_compute_group_fun,
                    default_aes =
                      ggplot2::aes(label = ..rr.label.., hjust = ..hjust..),
                    required_aes = c("x", "y")

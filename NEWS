@@ -1,3 +1,9 @@
+ggpmisc 0.2.6
+=============
+
+Add support for user-supplied lhs and for user-supplied rhs-variable name in
+the equation label in stat_poly_eq().
+
 ggpmisc 0.2.5
 =============
 
