@@ -2,10 +2,11 @@
 % Please edit documentation in R/stat-poly-eq.R
 \name{stat_poly_eq}
 \alias{stat_poly_eq}
-\title{Add a curve from a fitted linear model and a label to a plot.}
+\title{Add a label for a fitted linear model to a plot.}
 \usage{
 stat_poly_eq(mapping = NULL, data = NULL, geom = "text", formula = NULL,
-  eq.with.lhs = "italic(y)~`=`~", eq.x.rhs = "~italic(x)", label.x = NULL,
+  eq.with.lhs = "italic(y)~`=`~", eq.x.rhs = "~italic(x)",
+  label.x.npc = "left", label.y.npc = "top", label.x = NULL,
   label.y = NULL, position = "identity", na.rm = FALSE,
   show.legend = FALSE, inherit.aes = TRUE, ...)
 }
@@ -28,8 +29,12 @@ of the equation label before parsing or a \code{logical} (see note).}
 for \code{"x"} in the model equation when generating the label before
 parsing it.}
 
-\item{label.x, label.y}{\code{numeric} Coordinates to be used in output. If
-too short they will be recycled.}
+\item{label.x.npc, label.y.npc}{\code{numeric} with range 0..1 or character.
+Coordinates to be used for positioning the output, expresed in "normalized
+parent coordinates" or character string. If too short they will be recycled.}
+
+\item{label.x, label.y}{\code{numeric} Coordinates (in data units) to be used
+for absolute positioning of the output. If too short they will be recycled.}
 
 \item{position}{The position adjustment to use for overlapping points on this
 layer}
@@ -51,8 +56,8 @@ can include aesthetics whose values you want to set, not map. See
 \code{\link[ggplot2]{layer}} for more details.}
 }
 \description{
-\code{stat_poly_eq} fits a polynomial and generates a label with
-  an equation and/or coefficient of determination (R^2).
+\code{stat_poly_eq} fits a polynomial and generates several labela with
+  an equation and/or coefficient of determination (R^2) and other estimates.
 }
 \details{
 This stat can be used to automatically annotate a plot with R^2,

@@ -1,7 +1,7 @@
-#' Add a curve from a fitted linear model and a label to a plot.
+#' Add a label for a fitted linear model to a plot.
 #'
-#' \code{stat_poly_eq} fits a polynomial and generates a label with
-#'   an equation and/or coefficient of determination (R^2).
+#' \code{stat_poly_eq} fits a polynomial and generates several labela with
+#'   an equation and/or coefficient of determination (R^2) and other estimates.
 #'
 #' @param mapping The aesthetic mapping, usually constructed with
 #'   \code{\link[ggplot2]{aes}} or \code{\link[ggplot2]{aes_string}}. Only needs
@@ -29,8 +29,11 @@
 #' @param eq.x.rhs \code{character} this string will be used as replacement
 #'   for \code{"x"} in the model equation when generating the label before
 #'   parsing it.
-#' @param label.x,label.y \code{numeric} Coordinates to be used in output. If
-#'   too short they will be recycled.
+#' @param label.x.npc,label.y.npc \code{numeric} with range 0..1 or character.
+#'   Coordinates to be used for positioning the output, expresed in "normalized
+#'   parent coordinates" or character string. If too short they will be recycled.
+#' @param label.x,label.y \code{numeric} Coordinates (in data units) to be used
+#'   for absolute positioning of the output. If too short they will be recycled.
 #'
 #' @note For backward compatibility a logical is accepted as argument for
 #'   \code{eq.with.lhs}, giving the same output than the current default
@@ -86,6 +89,7 @@ stat_poly_eq <- function(mapping = NULL, data = NULL, geom = "text",
                          formula = NULL,
                          eq.with.lhs = "italic(y)~`=`~",
                          eq.x.rhs = "~italic(x)",
+                         label.x.npc = "left", label.y.npc = "top",
                          label.x = NULL, label.y = NULL,
                          position = "identity",
                          na.rm = FALSE, show.legend = FALSE,
@@ -96,6 +100,8 @@ stat_poly_eq <- function(mapping = NULL, data = NULL, geom = "text",
     params = list(formula = formula,
                   eq.with.lhs = eq.with.lhs,
                   eq.x.rhs = eq.x.rhs,
+                  label.x.npc = label.x.npc,
+                  label.y.npc = label.y.npc,
                   label.x = label.x,
                   label.y = label.y,
                   na.rm = na.rm,
@@ -103,8 +109,8 @@ stat_poly_eq <- function(mapping = NULL, data = NULL, geom = "text",
   )
 }
 
-# Define here to avoid a note in check as the import from 'polynom' is not seen
-# when the function is defined in-line in the ggproto object.
+# Defined here to avoid a note in check --as-cran as the import from 'polynom'
+# is not seen when the function is defined in-line in the ggproto object.
 #' @rdname ggpmisc-ggproto
 #'
 #' @format NULL
@@ -115,27 +121,38 @@ poly_eq_compute_group_fun <- function(data,
                                      formula,
                                      eq.with.lhs,
                                      eq.x.rhs,
+                                     label.x.npc,
+                                     label.y.npc,
                                      label.x,
                                      label.y) {
+  if (length(unique(data$x)) < 2) {
+    # Not enough data to perform fit
+    return(data.frame())
+  }
   group.idx <- abs(data$group[1])
-  if (length(label.x) == 0) { # TRUE also for NULL
-    label.x <- min(data$x)
+
+  if (length(label.x.npc) >= group.idx) {
+    label.x.npc <- label.x.npc[group.idx]
   } else {
-    if (length(label.x < group.idx)) {
-      # we simulate recycling
-      label.x <- rep(label.x, length.out = group.idx)
-    }
+    label.x.npc <- label.x.npc[1]
+  }
+  if (length(label.y.npc) >= group.idx) {
+    label.y.npc <- label.y.npc[group.idx]
+  } else {
+    label.y.npc <- label.y.npc[1]
+  }
+
+  if (length(label.x) >= group.idx) {
     label.x <- label.x[group.idx]
-  }
-  if (length(label.y) == 0) { # TRUE also for NULL
-    label.y <- max(data$y) - 0.1 * diff(range(data$y))
   } else {
-    if (length(label.y < group.idx)) {
-      # we simulate recycling
-      label.y <- rep(label.y, length.out = group.idx)
-    }
-    label.y <- label.y[group.idx]
+    label.x <- label.x[1]
   }
+  if (length(label.y) >= group.idx) {
+    label.y <- label.y[group.idx]
+  } else {
+    label.y <- label.y[1]
+  }
+
   mf <- stats::lm(formula, data)
   coefs <- stats::coef(mf)
   formula.rhs.chr <- as.character(formula)[3]
@@ -161,15 +178,72 @@ poly_eq_compute_group_fun <- function(data,
   adj.rr.char <- format(adj.rr, digits = 2)
   AIC.char <- sprintf("%.4g", AIC)
   BIC.char <- sprintf("%.4g", BIC)
-  data.frame(x = label.x,
-             y = label.y,
-             eq.label = gsub("x", eq.x.rhs, eq.char, fixed = TRUE),
+  z <- data.frame(eq.label = gsub("x", eq.x.rhs, eq.char, fixed = TRUE),
              rr.label = paste("italic(R)^2", rr.char, sep = "~`=`~"),
              adj.rr.label = paste("italic(R)[adj]^2",
                                   adj.rr.char, sep = "~`=`~"),
              AIC.label = paste("AIC", AIC.char, sep = "~`=`~"),
-             BIC.label = paste("BIC", BIC.char, sep = "~`=`~"),
-             hjust = 0)
+             BIC.label = paste("BIC", BIC.char, sep = "~`=`~"))
+
+  if (length(label.x) > 0) {
+    z$x <- label.x
+    z$hjust <- 0.5
+  } else if (length(label.x.npc) > 0) {
+    if (is.numeric(label.x.npc)) {
+      if (any(label.x.npc < 0 | label.x.npc > 1)) {
+        warning("'label.x.npc' argument is numeric but outside range 0..1.")
+      }
+      z$x <- scales$x$dimension()[1] + label.x.npc *
+        diff(scales$x$dimension())
+      z$hjust <- 0.5
+    } else if (is.character(label.x.npc)) {
+      if (label.x.npc == "right") {
+        z$x <- scales$x$dimension()[2]
+        z$hjust <- 1
+      } else if (label.x.npc %in% c("center", "centre", "middle")) {
+        z$x <- mean(scales$x$dimension())
+        z$hjust <- 0.5
+      } else if (label.x.npc == "left") {
+        z$x <- scales$x$dimension()[1]
+        z$hjust <- 0
+      } else {
+        stop("'label.x.npc' argument '", label.x.npc, " unsupported")
+      }
+    } else {
+      stop("'label.x.npc' argument is neither numeric nor character")
+    }
+  }
+
+  if (length(label.y) > 0) {
+    z$x <- label.y
+    z$vjust <- 0.5
+  } else if (length(label.y.npc) > 0) {
+    if (is.numeric(label.y.npc)) {
+      if (any(label.y.npc < 0 | label.y.npc > 1)) {
+        warning("'label.y.npc' argument is numeric but outside range 0..1.")
+      }
+      z$y <- scales$y$dimension()[1] + label.y.npc *
+        diff(scales$y$dimension())
+      z$vjust <- 1.4 * group.idx - (0.7 * length(group.idx))
+    } else if (is.character(label.y.npc)) {
+      if (label.y.npc == "bottom") {
+        z$y <- scales$y$dimension()[1]
+        z$vjust <- -1.4 * group.idx
+      } else if (label.y.npc %in% c("center", "centre", "middle")) {
+        z$y <- mean(scales$y$dimension())
+        z$vjust <- 1.4 * group.idx - (0.7 * length(group.idx))
+      } else if (label.y.npc == "top") {
+        z$y <- scales$y$dimension()[2]
+        z$vjust <- 1.4 * group.idx
+      } else {
+        stop("'label.y.npc' argument '", label.y.npc, " unsupported")
+      }
+    } else {
+      stop("'label.y.npc' argument is neither numeric nor character")
+    }
+  }
+
+  z
 }
 
 #' @rdname ggpmisc-ggproto
@@ -180,7 +254,8 @@ StatPolyEq <-
   ggplot2::ggproto("StatPolyEq", ggplot2::Stat,
                    compute_group = poly_eq_compute_group_fun,
                    default_aes =
-                     ggplot2::aes(label = ..rr.label.., hjust = ..hjust..),
+                     ggplot2::aes(label = ..rr.label..,
+                                  hjust = ..hjust.., vjust = ..vjust..),
                    required_aes = c("x", "y")
   )
 
