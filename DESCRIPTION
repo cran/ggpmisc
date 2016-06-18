@@ -1,32 +1,35 @@
 Package: ggpmisc
 Type: Package
 Title: Miscellaneous Extensions to 'ggplot2'
-Version: 0.2.8
-Date: 2016-05-21
+Version: 0.2.9
+Date: 2016-06-16
 Author: Pedro J. Aphalo [aut, cre]
 Maintainer: Pedro J. Aphalo <pedro.aphalo@helsinki.fi>
 Description: Extensions to 'ggplot2' respecting the grammar of graphics
     paradigm. Provides new statistics to locate and tag peaks and valleys in 2D
     plots, a statistics to add a label with the equation of a polynomial fitted
     with lm(), or R^2 or adjusted R^2 or information criteria for any model
-    fitted with function lm(). Provides a function for flexibly converting time
+    fitted with function lm(). Additional statistics give access to functions
+    in package 'broom'. Provides a function for flexibly converting time
     series to data frames suitable for plotting with ggplot(). In addition
-    provides two statistics and two geometry useful for diagnosing what data are
-    passed to compute_group() and compute_panel() functions and to geometries.
+    provides two statistics and two geometries useful for diagnosing what data
+    are passed to compute_group() and compute_panel() functions and to
+    geometries.
 License: GPL (>= 3)
 LazyData: TRUE
 LazyLoad: TRUE
 ByteCompile: TRUE
 Depends: R (>= 3.2.0)
 Imports: ggplot2 (>= 2.1.0), polynom (>= 1.3-8), splus2R (>= 1.2-0),
-        dplyr (>= 0.4.3), xts (>= 0.9-7), zoo (>= 1.7-13), broom (>=
-        0.4.0), lubridate (>= 1.5.6)
-Suggests: tibble (>= 1.0), knitr (>= 1.12.3), rmarkdown (>= 0.9.6)
+        plyr (>= 1.8.3), dplyr (>= 0.4.3), xts (>= 0.9-7), zoo (>=
+        1.7-13), broom (>= 0.4.0), lubridate (>= 1.5.6)
+Suggests: tibble (>= 1.0), knitr (>= 1.12.3), rmarkdown (>= 0.9.6),
+        nlme
 URL: http://www.r4photobiology.info
 BugReports: https://bitbucket.org/aphalo/ggpmisc
 RoxygenNote: 5.0.1
 VignetteBuilder: knitr
 NeedsCompilation: no
-Packaged: 2016-05-21 16:30:59 UTC; aphalo
+Packaged: 2016-06-18 12:20:21 UTC; aphalo
 Repository: CRAN
-Date/Publication: 2016-05-22 09:20:55
+Date/Publication: 2016-06-18 15:15:28

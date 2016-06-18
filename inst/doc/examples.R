@@ -10,6 +10,7 @@ library(ggplot2)
 library(xts)
 library(lubridate)
 library(tibble)
+library(nlme)
 
 ## ------------------------------------------------------------------------
 class(austres)
@@ -376,6 +377,73 @@ ggplot(my.data, aes(x, y, color = group)) +
                    method.args = list(formula = formula))
 
 ## ------------------------------------------------------------------------
+formula <- y ~ x + I(x^2) + I(x^3)
+ggplot(my.data, aes(x, y)) +
+  stat_fit_augment(method = "lm",
+                   method.args = list(formula = formula),
+                   geom = "point",
+                   y.out = ".resid")
+
+## ------------------------------------------------------------------------
+formula <- y ~ x + I(x^2) + I(x^3)
+ggplot(my.data, aes(x, y, color = group)) +
+  stat_fit_augment(method = "lm",
+                   method.args = list(formula = formula),
+                   geom = "point",
+                   y.out = ".std.resid")
+
+## ---- eval=FALSE, echo=FALSE---------------------------------------------
+#  # triggers error
+#  formula <- y ~ x + I(x^2) + I(x^3)
+#  ggplot(my.data, aes(x, y, color = group)) +
+#    stat_panel_fit_augment(method = "lm",
+#                     method.args = list(formula = formula))
+
+## ------------------------------------------------------------------------
+args <- list(formula = y ~ k * e ^ x,
+             start = list(k = 1, e = 2))
+ggplot(mtcars, aes(wt, mpg)) +
+  geom_point() +
+  stat_fit_augment(method = "nls",
+                   method.args = args)
+
+## ------------------------------------------------------------------------
+args <- list(formula = y ~ k * e ^ x,
+             start = list(k = 1, e = 2))
+ggplot(mtcars, aes(wt, mpg)) +
+  stat_fit_augment(method = "nls",
+                   method.args = args,
+                   geom = "point",
+                   y.out = ".resid")
+
+## ------------------------------------------------------------------------
+args <- list(model = y ~ SSlogis(x, Asym, xmid, scal),
+             fixed = Asym + xmid + scal ~1,
+             random = Asym ~1 | group,
+             start = c(Asym = 200, xmid = 725, scal = 350))
+ggplot(Orange, aes(age, circumference, color = Tree)) +
+  geom_point() +
+  stat_fit_augment(method = "nlme",
+                   method.args = args,
+                   augment.args = list(data = quote(data)))
+
+## ---- eval=FALSE, echo=FALSE---------------------------------------------
+#  # triggers error!
+#  args <- list(model = y ~ SSlogis(x, Asym, xmid, scal),
+#               fixed = Asym + xmid + scal ~1,
+#               random = Asym~1 | group,
+#               start = c(Asym = 200, xmid = 725, scal = 350))
+#  ggplot(Orange, aes(age, circumference, colour = Tree)) +
+#    geom_point() +
+#    stat_panel_fit_augment(method = "nlme",
+#                           method.args = args,
+#                           augment.args = list(data = quote(data)),
+#                           y.out = ".fixed",
+#                           geom = "debug",
+#                           summary.fun = as_data_frame,
+#                           summary.fun.args = list(n = 20))
+
+## ------------------------------------------------------------------------
 ggplot(my.data, aes(x, y)) + stat_debug_group()
 
 ## ------------------------------------------------------------------------
@@ -465,17 +533,30 @@ ggplot(my.data, aes(x, y)) +
                      summary.fun.args = list())
 
 ## ------------------------------------------------------------------------
-formula <- y ~ poly(x, 3, raw = TRUE)
-ggplot(my.data, aes(x, y, color = group)) +
+formula <- y ~ x + I(x^2) + I(x^3)
+ggplot(my.data, aes(x, y)) +
   geom_point() +
   stat_fit_augment(method = "lm", 
                    method.args = list(formula = formula),
                    geom = "debug",
-                     summary.fun = as_data_frame, 
-                     summary.fun.args = list(),
+                   summary.fun = tibble::as_data_frame, 
+                   summary.fun.args = list()) +
+  stat_fit_augment(method = "lm", 
+                   method.args = list(formula = formula),
+                   geom = "smooth",
                    aes(y = ...fitted..,
                        ymax = ...fitted.. + ...se.fit.. * 2,
-                       ymin = ...fitted.. - ...se.fit.. * 2))+
+                       ymin = ...fitted.. - ...se.fit.. * 2))
+
+## ------------------------------------------------------------------------
+formula <- y ~ x + I(x^2) + I(x^3)
+ggplot(my.data, aes(x, y2, colour = group)) +
+  geom_point() +
+  stat_fit_augment(method = "lm", 
+                   method.args = list(formula = formula),
+                   geom = "debug",
+                   summary.fun = tibble::as_data_frame, 
+                   summary.fun.args = list()) +
   stat_fit_augment(method = "lm", 
                    method.args = list(formula = formula),
                    geom = "smooth",

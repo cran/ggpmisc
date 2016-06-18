@@ -6,6 +6,7 @@
 \usage{
 stat_fit_augment(mapping = NULL, data = NULL, geom = "smooth",
   method = "lm", method.args = list(formula = y ~ x),
+  augment.args = list(), level = 0.95, y.out = ".fitted",
   position = "identity", na.rm = FALSE, show.legend = FALSE,
   inherit.aes = TRUE, ...)
 }
@@ -23,10 +24,16 @@ the plot defaults.}
 
 \item{method.args}{list of arguments to pass to \code{method}.}
 
+\item{augment.args}{list of arguments to pass to \code{broom:augment}.}
+
+\item{level}{numeric Level of confidence interval to use (0.95 by default)}
+
+\item{y.out}{character (or numeric) index to column to return as \code{y}.}
+
 \item{position}{The position adjustment to use for overlapping points on this
 layer}
 
-\item{na.rm}{a logical indicating whether NA values should be stripped
+\item{na.rm}{logical indicating whether NA values should be stripped
 before the computation proceeds.}
 
 \item{show.legend}{logical. Should this layer be included in the legends?
@@ -43,15 +50,22 @@ can include aesthetics whose values you want to set, not map. See
 \code{\link[ggplot2]{layer}} for more details.}
 }
 \description{
-\code{stat_fit_augment} fits a model and returns a summary "glance" of the
-model's statistics, using package 'broom'.
+\code{stat_fit_augment} fits a model and returns the data augmented with
+information from the fitted model, using package 'broom'.
 }
 \note{
-This statistic does not do much at the moment. Use
-  \code{ggplot2::stat_smooth()} instead.
+The statistics \code{stat_fit_augment} and
+  \code{stat_fit_augment_panel} at the moment accepts only \code{methods}
+  that accept formulas under any formal parameter name and a \code{data}
+  argument. Use \code{ggplot2::stat_smooth()} instead of
+  \code{stat_fit_augment} in production code if the additional features are
+  not needed. At the moment \code{stat_fit_augment} is under development and
+  may change.
 }
 \section{Computed variables}{
 
-  The output of \code{\link[broom]{glance}} is returned as is.
+  The output of \code{\link[broom]{augment}} is returned as is, except for
+  \code{y} which is set based on \code{y.out} and \code{y.observed} which
+  preserves the \code{y} returned by the \code{broom::augment} methods.
 }
 
