@@ -1,21 +1,17 @@
-Package __ggpmisc__ is a small set of extensions to ggplot2 (>= 2.0.0) which
-I hope will be useful when plotting diverse types of data and/or debugging
-ggplot plots.
+Package '__ggpmisc__' (Miscellaneous Extensions to 'ggplot2') is a set of extensions to R package 'ggplot2' (>= 2.1.0) useful when plotting diverse types of data.  Currently available statistics, geoms and function add facilities for labeling
+peaks and valleys, generating labels for fitted models including polynomial
+equations, highlighting deviations from a model fit and for debugging new geoms
+and statistics (or learning how they work). Plottng of time series data is
+facilitated by a 'fortify-like' function.
 
-Extensions:
-- Function for conversion of time series data into data frames that can be
-plotted with ggplot.
-- Stats for locating and tagging "peaks" and "valleys" (local or global maxima
-and minima).
-- Stat for generating labels from a `lm()` model fit, including formatted
-equation.
-- _Debug_ stats and a geom that print to the console their `data` input.
+Documentation generated with package 'staticdocs' is available on-line. 
 
-Please, see the web site [R4Photobiology](http://www.r4photobiology.info) for 
+Please, see the web site [r4photobiology](http://www.r4photobiology.info) for 
 details and update notices. Other packages, aimed at easing photobiology-related
 calculations including the quantification of biologically effective radiation
 in meteorology are available as part of a suite described at the same
 website.
 
-The current release of __ggpmisc__ is available through [CRAN](https://cran.r-project.org/package=ggpmisc) 
-for R (>= 3.2.0). 
+The current release of '__ggpmisc__' is available through [CRAN](https://cran.r-project.org/package=ggpmisc) 
+for R (>= 3.2.0).
+
