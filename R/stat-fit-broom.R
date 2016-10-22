@@ -28,7 +28,7 @@
 #' @param method character.
 #' @param method.args list of arguments to pass to \code{method}.
 #' @param label.x.npc,label.y.npc \code{numeric} with range 0..1 or character.
-#'   Coordinates to be used for positioning the output, expresed in "normalized
+#'   Coordinates to be used for positioning the output, expressed in "normalized
 #'   parent coordinates" or character string. If too short they will be recycled.
 #' @param label.x,label.y \code{numeric} Coordinates (in data units) to be used
 #'   for absolute positioning of the output. If too short they will be recycled.
@@ -76,6 +76,7 @@ fit_glance_compute_group_fun <- function(data,
                                          label.y.npc,
                                          label.x,
                                          label.y) {
+  force(data)
   if (length(unique(data$x)) < 2) {
     # Not enough data to perform fit
     return(data.frame())
@@ -295,7 +296,7 @@ fit_augment_compute_group_fun <- function(data,
                                     level,
                                     y.out,
                                     ...) {
-
+  force(data)
   unAsIs <- function(X) {
     if ("AsIs" %in% class(X)) {
       class(X) <- class(X)[-match("AsIs", class(X))]
@@ -367,4 +368,3 @@ StatFitAugment <-
 #                                   ymin = ..y.. - ...se.fit.. * ..t.value..),
 #                    required_aes = c("x", "y")
 #   )
-

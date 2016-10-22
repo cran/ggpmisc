@@ -55,7 +55,7 @@
 #'
 stat_debug_panel <-
   function(mapping = NULL, data = NULL, geom = "null",
-           summary.fun = dplyr::as_data_frame, summary.fun.args = list(),
+           summary.fun = tibble::as_tibble, summary.fun.args = list(),
            position = "identity", na.rm = FALSE, show.legend = FALSE,
            inherit.aes = TRUE, ...) {
     ggplot2::layer(
@@ -78,6 +78,7 @@ StatDebugPanel <-
     ggplot2::Stat,
     compute_panel =
       function(data, scales, summary.fun, summary.fun.args) {
+        force(data)
         if (!is.null(summary.fun)) {
           data.summary <-  do.call(summary.fun, c(quote(data), summary.fun.args))
           print("Input 'data' to 'compute_panel()':")

@@ -1,18 +1,18 @@
 ---
-title: "`ggpmisc` `r packageVersion('ggpmisc')`<br>Additional examples"
+title: "`ggpmisc` `r packageVersion('ggpmisc')`<br>User Guide"
 author: "Pedro J. Aphalo"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Additional Examples}
+  %\VignetteIndexEntry{User Guide}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
 
 ```{r, include=FALSE, echo=FALSE}
 library(knitr)
-opts_chunk$set(fig.path = 'figure/pos-', fig.align = 'center', fig.show = 'hold',
-               fig.width = 7, fig.height = 4)
+opts_chunk$set(fig.path = 'figure/guide-pos-', fig.align = 'center', 
+               fig.show = 'hold', fig.width = 7, fig.height = 4)
 options(warnPartialMatchArgs = FALSE)
 ```
 
@@ -21,6 +21,7 @@ options(warnPartialMatchArgs = FALSE)
 ```{r}
 library(ggpmisc)
 library(ggplot2)
+library(ggrepel)
 library(xts)
 library(lubridate)
 library(tibble)
@@ -254,7 +255,7 @@ ggplot(my.data, aes(x, y)) +
                parse = TRUE)
 ```
 
-Two examples of removing and changing the _lhs_ and/or _rhs_ of the equation.
+Two examples of removing and changing the _ohs_ and/or _rhus_ of the equation.
 
 ```{r}
 formula <- y ~ poly(x, 3, raw = TRUE)
@@ -332,7 +333,7 @@ formula <- y ~ poly(x, 3, raw = TRUE)
 ggplot(my.data, aes(x, y2)) +
   geom_point() +
   geom_smooth(method = "lm", formula = formula) +
-  stat_poly_eq(aes(label = ..eq.label..), size = rel(3),
+  stat_poly_eq(aes(label = ..eq.label..), size = 3,
                formula = formula, parse = TRUE) +
   facet_wrap(~group)
 ```
@@ -342,7 +343,7 @@ formula <- y ~ poly(x, 3, raw = TRUE)
 ggplot(my.data, aes(x, y2)) +
   geom_point() +
   geom_smooth(method = "lm", formula = formula) +
-  stat_poly_eq(aes(label = ..eq.label..), size = rel(3),
+  stat_poly_eq(aes(label = ..eq.label..), size = 3,
                formula = formula, parse = TRUE) +
   facet_wrap(~group, scales = "free_y")
 ```
@@ -390,9 +391,9 @@ panel to panel.
 ```{r}
 formula <- y ~ poly(x, 3, raw = TRUE)
 ggplot(my.data, aes(x, y2, fill = block)) +
-  geom_point(shape = 21, size = rel(3)) +
+  geom_point(shape = 21, size = 3) +
   geom_smooth(method = "lm", formula = formula) +
-  stat_poly_eq(aes(label = ..rr.label..), size = rel(3),
+  stat_poly_eq(aes(label = ..rr.label..), size = 3,
                geom = "label", alpha = 0.33,
                formula = formula, parse = TRUE) +
   facet_wrap(~group, scales = "free_y") +
@@ -402,9 +403,9 @@ ggplot(my.data, aes(x, y2, fill = block)) +
 ```{r}
 formula <- y ~ poly(x, 3, raw = TRUE)
 ggplot(my.data, aes(x, y2, colour = group, fill = block)) +
-  geom_point(shape = 21, size = rel(3)) +
+  geom_point(shape = 21, size = 3) +
   geom_smooth(method = "lm", formula = formula) +
-  stat_poly_eq(aes(label = ..rr.label..), size = rel(3),
+  stat_poly_eq(aes(label = ..rr.label..), size = 3,
                geom = "label", alpha = 0.2,
                formula = formula, parse = TRUE,
                label.y.npc = 0.66) +
@@ -558,14 +559,6 @@ ggplot(my.data, aes(x, y, color = group)) +
                    y.out = ".std.resid")
 ```
 
-```{r, eval=FALSE, echo=FALSE}
-# triggers error
-formula <- y ~ x + I(x^2) + I(x^3)
-ggplot(my.data, aes(x, y, color = group)) +
-  stat_panel_fit_augment(method = "lm",
-                   method.args = list(formula = formula))
-```
-
 We can use any model fitting method for which `augment` is implemented.
 
 ```{r}
@@ -599,211 +592,174 @@ ggplot(Orange, aes(age, circumference, color = Tree)) +
                    augment.args = list(data = quote(data)))
 ```
 
-```{r, eval=FALSE, echo=FALSE}
-# triggers error!
-args <- list(model = y ~ SSlogis(x, Asym, xmid, scal),
-             fixed = Asym + xmid + scal ~1,
-             random = Asym~1 | group,
-             start = c(Asym = 200, xmid = 725, scal = 350))
-ggplot(Orange, aes(age, circumference, colour = Tree)) +
+## `stat_dens2d_labels` and `stat_dens2d_filter`
+
+These stats had their origin in an enhancement suggestion for 'ggrepel' from 
+Hadley Wickham and discussion with Kamil Slowikowski (ggrepel's author) and 
+others. In fact the code is based on code Kamil gave during the discussion,
+but simplified and taking a few further ideas from `ggplot::stat_dens2d`.
+
+**Warning!** Which observations are selected by the algorithm used, based on 
+`MASS:kde2d`, depends strongly on the values of parameters `h` and `n`. As these
+stats have been tested only with a few data sets, you may need to alter the
+defaults. Beware, though, that what are good values, may depend on individual 
+data sets even if they include the same number of observations. For the
+selection of observations to work cleanly, the argument for `n` must create a
+dense grid. Much larger values of `n` than in the examples in the documentation
+of `MASS::kde2d` and `ggplot2::stat_dens2d` will be needed in most cases.
+
+Some random data with random labels.
+
+```{r}
+random_string <- function(len = 6) {
+paste(sample(letters, len, replace = TRUE), collapse = "")
+}
+
+# Make random data.
+set.seed(1001)
+d <- tibble::tibble(
+  x = rnorm(100),
+  y = rnorm(100),
+  group = rep(c("A", "B"), c(50, 50)),
+  lab = replicate(100, { random_string() })
+)
+```
+
+### `stat_dens2d_filter`
+
+The stat `stat_dens2d_filter` _filters_ observations, in other words passes to 
+the geom a subset of the data received as input. The default value for `geom` is
+`"point"`.
+
+Using defaults except for the color aesthetic. Highlight 1/10 of observations 
+from lowest density areas of the plot panel.
+
+```{r}
+ggplot(data = d, aes(x, y)) +
   geom_point() +
-  stat_panel_fit_augment(method = "nlme",
-                         method.args = args,
-                         augment.args = list(data = quote(data)),
-                         y.out = ".fixed",
-                         geom = "debug",
-                         summary.fun = as_data_frame,
-                         summary.fun.args = list(n = 20))
+  stat_dens2d_filter(color = "red")
 ```
 
-## Debugging ggplots
-
-These stats are very simple and print a summary of their `data` input to the
-console. In addition they also return a data frame containing labels suitable
-for plotting as with geom "text" or geom "label". However, starting from 
-version 0.2.7 of the package the default geom is "null". The values are listed
-to the console at the time when the `ggplot` object is printed.
-
-As shown here, no other _geom_ or _stat_ is required, however in the remaining
-examples we include `geom_point()` to make the data on the plot visible.
+Highlighting  1/4 of the observations by under-plotting with larger black points.
 
 ```{r}
-ggplot(my.data, aes(x, y)) + stat_debug_group()
+ggplot(data = d, aes(x, y, color = group)) +
+   stat_dens2d_filter(keep.fraction = 0.25,
+                      size = 3,
+                      color = "black") +
+   geom_point()
 ```
- 
-In the absence of facets or groups we get just get the summary from one data 
-frame.
+
+A different way of highlighting 1/4 of the observations, using over-plotting with
+a 'hollow' shape. We also shift one group with respect to the other.
 
 ```{r}
-ggplot(my.data, aes(x, y)) + geom_point() + stat_debug_group()
+ggplot(data = d, aes(x + rep(c(-2,2), rep(50,2)), 
+                     y, color = group)) +
+   geom_point() +
+   stat_dens2d_filter(shape = 1, size = 3,
+                      keep.fraction = 0.25)
 ```
+
+Highlight 1/4 of observations from lowest density areas of the plot, with
+density considered separately for each individual group, in this case based on
+the color aesthetic.
 
 ```{r}
-ggplot(my.data, aes(x, y)) + geom_point() + stat_debug_panel()
+ggplot(data = d, aes(x + rep(c(-2,2), rep(50,2)), 
+                     y, color = group)) +
+   geom_point() +
+   stat_dens2d_filter_g(shape = 1, size = 3,
+                      keep.fraction = 0.25)
 ```
 
-In the case of grouping then one data frame is summarized for each group
-in the ggplot object.
+Add text labels to 1/10 of the observations. The "text_repel" geom sees only
+these observations.
 
 ```{r}
-ggplot(my.data, aes(x, y, colour = group)) + geom_point() + 
-  stat_debug_group()
+ggplot(data = d, aes(x, y, label = lab, color = group)) +
+  geom_point() + 
+  stat_dens2d_filter(geom = "text_repel")
 ```
 
-Without facets, we still have only one panel.
+Add text labels to 1/2 of the observations. 
 
 ```{r}
-ggplot(my.data, aes(x, y, colour = group)) + geom_point() + 
-  stat_debug_panel()
-```
-
-The data are similar, except for the column named after the aesthetic, for the aesthetics used for grouping.
-
-```{r}
-ggplot(my.data, aes(x, y, shape = group)) + geom_point() + 
-  stat_debug_group()
-```
-
-If we use as _geom_ `"label"` or `"text"` a _debug_ summary is added
-to the plot itself, we can use other arguments valid for the _geom_ used,
-in this case `vjust`.
-
-```{r}
-ggplot(my.data, aes(x, y, shape = group)) + geom_point() + 
-  stat_debug_group(geom = "label", vjust = c(-0.5,1.5))
-```
-
-The summary function can be a user defined one, which allows lots of flexibility.
-
-```{r}
-ggplot(my.data, aes(x, y)) + geom_point() + 
-  stat_debug_group(summary.fun = summary)
-```
-
-```{r}
-ggplot(my.data, aes(x, y)) + geom_point() + 
-  stat_debug_group(summary.fun = head)
-```
-
-```{r}
-ggplot(my.data, aes(x, y)) + geom_point() + 
-  stat_debug_group(summary.fun = nrow)
-```
-
-The default.
-
-```{r}
-ggplot(my.data, aes(x, y)) + geom_point() + 
-  stat_debug_group(summary.fun = as_data_frame)
-```
-
-```{r}
-ggplot(my.data, aes(x, y)) + geom_point() + 
-  stat_debug_group(summary.fun = head, summary.fun.args = list(n = 3))
-```
-
-This next chunk showing how to print the whole data frame is not run as its output is more than 100 lines long as the data set contains 100 observations.
-
-```{r, eval=FALSE}
-ggplot(my.data, aes(x, y)) + geom_point() + 
-  stat_debug_group(summary.fun = function(x) {x})
-```
-
-With grouping, for each _group_ the `compute_group()` function is called with a subset of the data.
-
-```{r}
-ggplot(my.data, aes(x, y, colour = group)) + geom_point() + 
-  stat_debug_group(summary.fun = head, summary.fun.args = list(n = 3))
-```
-
-In this example with grouping and facets, within each _panel_ the `compute_group()` function is called for each group, in total four times.
-
-```{r}
-ggplot(my.data, aes(x, y, colour = group)) + geom_point() + 
-  stat_debug_group(summary.fun = nrow) +
-  facet_wrap(~block)
-```
-
-With facets, for each _panel_ the `compute_panel()` function is called with a subset of the data that is not split by groups. For our example, it is called twice.
-
-```{r}
-ggplot(my.data, aes(x, y, colour = group)) + geom_point() + 
-  stat_debug_panel(summary.fun = nrow) +
-  facet_wrap(~block)
-```
-
-Finally we show how `geom_debug()` can be used. First to print to the console the data as passed to geoms.
-
-```{r}
-ggplot(my.data, aes(x, y, colour = group)) + geom_point() + 
-  geom_debug(summary.fun = head)
-```
-
-And also to print to the console the data returned by a stat. 
-
-```{r}
-ggplot(my.data, aes(x, y, colour = group)) + geom_point() + 
-  stat_smooth(method = "lm",
-             geom = "debug", 
-             summary.fun = as_data_frame, 
-             summary.fun.args = list())
-```
-
-```{r}
-ggplot(my.data, aes(x, y, colour = group)) + geom_point() + 
-  stat_peaks(span = NULL,
-             geom = "debug", 
-             summary.fun = as_data_frame, 
-             summary.fun.args = list())
-```
-
-```{r}
-formula <- y ~ poly(x, 3, raw = TRUE)
-ggplot(my.data, aes(x, y)) +
-  stat_fit_residuals(formula = formula, 
-                     geom = "debug",
-                     summary.fun = as_data_frame, 
-                     summary.fun.args = list())
-```
-
-```{r}
-formula <- y ~ x + I(x^2) + I(x^3)
-ggplot(my.data, aes(x, y)) +
+ggplot(data = d, aes(x, y, label = lab, color = group)) +
   geom_point() +
-  stat_fit_augment(method = "lm", 
-                   method.args = list(formula = formula),
-                   geom = "debug",
-                   summary.fun = tibble::as_data_frame, 
-                   summary.fun.args = list()) +
-  stat_fit_augment(method = "lm", 
-                   method.args = list(formula = formula),
-                   geom = "smooth",
-                   aes(y = ...fitted..,
-                       ymax = ...fitted.. + ...se.fit.. * 2,
-                       ymin = ...fitted.. - ...se.fit.. * 2))
+  stat_dens2d_filter(geom = "text_repel", keep.fraction = 0.5)
 ```
 
+### `stat_dens2d_labels`
+
+The stat `stat_dens2d_labels` _replaces_ with `label.fill` the values of the 
+label (aesthetic) variable in data in the high density regions of the panel 
+before passing them to the geom. The default value for `geom` is `"text"`. The
+default value of `label.fill` is `""` which results in empty labels, while using
+`NA` as fill label results in observations being omitted. Using `NA` as
+`label.fill` is not too different from using `stat_dens2d_filter` as long as the
+geom used requires a `label` aesthetic.
+
+Label 1/10 of observations from lowest density areas of the plot panels.
+
 ```{r}
-formula <- y ~ x + I(x^2) + I(x^3)
-ggplot(my.data, aes(x, y2, colour = group)) +
+ggplot(data = d, aes(x, y, label = lab, color = group)) +
   geom_point() +
-  stat_fit_augment(method = "lm", 
-                   method.args = list(formula = formula),
-                   geom = "debug",
-                   summary.fun = tibble::as_data_frame, 
-                   summary.fun.args = list()) +
-  stat_fit_augment(method = "lm", 
-                   method.args = list(formula = formula),
-                   geom = "smooth",
-                   aes(y = ...fitted..,
-                       ymax = ...fitted.. + ...se.fit.. * 2,
-                       ymin = ...fitted.. - ...se.fit.. * 2))
+  stat_dens2d_labels()
 ```
 
-The package also defines a `"null"` geom, which is used as default by the _debug_
-_stats_ described above. Currently this geom is similar to the recently added 
-`ggplot2::geom_blank()`, which should be preferred.
+Add text labels to 45% of the observations. 
 
 ```{r}
-ggplot(my.data, aes(x, y, colour = group)) + geom_null()
+ggplot(data = d, aes(x, y, label = lab, color = group)) +
+  geom_point() +
+  stat_dens2d_labels(keep.fraction = 0.45)
+```
+
+When using geom `"text"` we can statically adjust the positioning of labels, but
+this is rarely enough even when keeping 1/4 of the labels.
+
+```{r}
+ggplot(data = d, aes(x, y, label = lab, color = group)) +
+  geom_point() +
+  stat_dens2d_labels(keep.fraction = 0.25,
+                     vjust = -0.3)
+```
+
+Using the geoms from package 'ggrepel' avoids clashes among labels or on top of data points. This works with versions 0.6.0 and newer of 'ggrepel'. One example with `geom_text_repel` follows. 
+
+```{r}
+ggplot(data = d, aes(x, y, label = lab, color = group)) +
+  geom_point() +
+  stat_dens2d_labels(geom = "text_repel", 
+                     keep.fraction = 0.45)
+```
+
+With `geom_label_repel` one needs to use a smaller value for `keep.fracton`, or a smaller `size`, as labels use more space on the plot than the test alone.
+
+```{r}
+ggplot(data = d, aes(x, y, label = lab, color = group)) +
+  geom_point() +
+  stat_dens2d_labels(geom = "label_repel", 
+                     keep.fraction = 0.25)
+```
+
+Additional arguments can be used to change the angle and position of the text, but may give unexpected output when labels are long as the repulsion algorithm "sees" always a rectangular bounding box that is not rotated. With short labels or angles that are multiples of 90 degrees, there is no such problem.
+
+```{r}
+ggplot(data = d, aes(x, y, label = lab, color = group)) +
+geom_point() +
+stat_dens2d_labels(geom = "text_repel",
+keep.fraction = 0.25, angle = 90)
+```
+
+Using `NA` as fill makes the observations with labels set to `NA` to be skipped completely, possibly leading to text overlapping the points corresponding to unlabelled observations around the boundary of the regions where labels are kept or discarded. We use here `alpha` so that the overlaps can be seen.
+
+```{r}
+ggplot(data = d, aes(x, y, label = lab, color = group)) +
+  geom_point() +
+  stat_dens2d_labels(geom = "label_repel", 
+                     keep.fraction = 0.35, 
+                     alpha = 0.5,
+                     label.fill = NA)
 ```

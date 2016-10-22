@@ -33,8 +33,10 @@ formatted equation. By default labels are expressions but tikz device is
 supported optionally with LaTeX formatted labels.
 \item Stats for extracting information from a any model fit supported by
 package 'broom'.
+\item Stats for filtering-out/filtering-in observations in regions of a
+panel or group where the density of observations is high.
 \item "Debug" stats and a "debug" geom that print to the console a summary
-ot their \code{data} input.
+of their \code{data} input.
 }
 
 The stats for peaks and valleys are coded so as to work correctly both with
@@ -49,6 +51,12 @@ The signatures of \code{stat_peaks()} and \code{stat_valleys()} are
   package \code{ggpmisc} work correctly when the x aesthetic uses a date or
   datetime scale, while those from package \code{photobiology} do not
   generate correct labels in this case.
+}
+\section{Acknowledgements}{
+
+We thank Kamil Slowikowski not only for contributing ideas and code examples
+to this package but also for adding new features to his package 'ggrepel'
+that allow new use cases for \code{stat_dens2d_labels} from this package.
 }
 \author{
 Pedro J. Aphalo

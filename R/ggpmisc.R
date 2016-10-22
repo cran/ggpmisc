@@ -13,8 +13,10 @@
 #' supported optionally with LaTeX formatted labels.
 #' \item Stats for extracting information from a any model fit supported by
 #' package 'broom'.
+#' \item Stats for filtering-out/filtering-in observations in regions of a
+#' panel or group where the density of observations is high.
 #' \item "Debug" stats and a "debug" geom that print to the console a summary
-#' ot their \code{data} input.
+#' of their \code{data} input.
 #' }
 #'
 #' The stats for peaks and valleys are coded so as to work correctly both with
@@ -23,12 +25,20 @@
 #'
 #' @author Pedro J. Aphalo
 #'
+#' @section Acknowledgements:
+#' We thank Kamil Slowikowski not only for contributing ideas and code examples
+#' to this package but also for adding new features to his package 'ggrepel'
+#' that allow new use cases for \code{stat_dens2d_labels} from this package.
+#'
 #' @references
 #' Package suite 'r4photobiology' web site at
 #' \url{http://www.r4photobiology.info/}\cr
 #' Package 'ggplot2' web site at \url{http://ggplot2.org/}\cr
 #' Package 'ggplot2' documentation at \url{http://docs.ggplot2.org/}\cr
 #' Package 'ggplot2' source code at \url{https://github.com/hadley/ggplot2}
+#'
+#' @import ggplot2
+#' @importFrom ggplot2 ggplot
 #'
 #' @note The signatures of \code{stat_peaks()} and \code{stat_valleys()} are
 #'   identical to those of \code{stat_peaks} and \code{stat_valleys} from
