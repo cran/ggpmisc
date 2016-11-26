@@ -15,64 +15,76 @@ library(nlme)
 
 ## ------------------------------------------------------------------------
 class(austres)
-austres.df <- try_data_frame(austres)
+austres.df <- try_tibble(austres)
 class(austres.df)
 lapply(austres.df, "class")
 head(austres.df, 4)
 
 ## ------------------------------------------------------------------------
-austres.df <- try_data_frame(austres, as.numeric = TRUE)
+austres.df <- try_tibble(austres, as.numeric = TRUE)
 lapply(austres.df, "class")
 head(austres.df, 4)
 
 ## ------------------------------------------------------------------------
 class(lynx)
-lynx.df <- try_data_frame(lynx)
+lynx.df <- try_tibble(lynx)
 class(lynx.df)
 lapply(lynx.df, "class")
 head(lynx.df, 3)
 
 ## ------------------------------------------------------------------------
-lynx.df <- try_data_frame(lynx, "year")
+lynx.df <- try_tibble(lynx, "year")
 head(lynx.df, 3)
 
 ## ------------------------------------------------------------------------
-lynx_n.df <- try_data_frame(lynx, "year", as.numeric = TRUE)
+lynx_n.df <- try_tibble(lynx, "year", as.numeric = TRUE)
 lapply(lynx_n.df, "class")
 head(lynx_n.df, 3)
 
 ## ------------------------------------------------------------------------
-try_data_frame(1:5)
+try_tibble(1:5)
 
 ## ------------------------------------------------------------------------
-try_data_frame(letters[1:5])
+try_tibble(letters[1:5])
 
 ## ------------------------------------------------------------------------
-try_data_frame(factor(letters[1:5]))
+try_tibble(factor(letters[1:5]))
 
 ## ------------------------------------------------------------------------
-try_data_frame(list(x = rep(1,5), y = 1:5))
+try_tibble(list(x = rep(1,5), y = 1:5))
 
 ## ------------------------------------------------------------------------
-try_data_frame(data.frame(x = rep(1,5), y = 1:5))
+try_tibble(data.frame(x = rep(1,5), y = 1:5))
 
 ## ------------------------------------------------------------------------
-try_data_frame(matrix(1:10, ncol = 2))
+try_tibble(matrix(1:10, ncol = 2))
 
 ## ------------------------------------------------------------------------
-ggplot(lynx.df, aes(time, V.lynx)) + geom_line() + 
+ggplot(lynx) + geom_line()
+
+## ------------------------------------------------------------------------
+ggplot(lynx, as.numeric = FALSE) + geom_line()
+
+## ------------------------------------------------------------------------
+ggplot(AirPassengers) + geom_line()
+
+## ------------------------------------------------------------------------
+ggplot(AirPassengers, as.numeric = FALSE) + geom_line()
+
+## ------------------------------------------------------------------------
+ggplot(lynx, as.numeric = FALSE) + geom_line() + 
   stat_peaks(colour = "red") +
   stat_peaks(geom = "text", colour = "red", vjust = -0.5) +
   ylim(-100, 7300)
 
 ## ------------------------------------------------------------------------
-ggplot(lynx_n.df, aes(time, V.lynx)) + geom_line() + 
+ggplot(lynx) + geom_line() + 
   stat_peaks(colour = "red") +
   stat_peaks(geom = "text", colour = "red", vjust = -0.5) +
   ylim(-100, 7300)
 
 ## ------------------------------------------------------------------------
-ggplot(lynx.df, aes(time, V.lynx)) + geom_line() + 
+ggplot(lynx, as.numeric = FALSE) + geom_line() + 
   stat_peaks(colour = "red") +
   stat_peaks(geom = "text", colour = "red", vjust = -0.5, x.label.fmt = "%Y") +
   stat_valleys(colour = "blue") +
@@ -80,7 +92,7 @@ ggplot(lynx.df, aes(time, V.lynx)) + geom_line() +
   ylim(-100, 7300)
 
 ## ------------------------------------------------------------------------
-ggplot(lynx_n.df, aes(time, V.lynx)) + geom_line() + 
+ggplot(lynx) + geom_line() + 
   stat_peaks(colour = "red") +
   stat_peaks(geom = "text", colour = "red", vjust = -0.5, x.label.fmt = "%4.0f") +
   stat_valleys(colour = "blue") +
@@ -88,14 +100,14 @@ ggplot(lynx_n.df, aes(time, V.lynx)) + geom_line() +
   ylim(-100, 7300)
 
 ## ------------------------------------------------------------------------
-ggplot(lynx.df, aes(time, V.lynx)) + geom_line() + 
+ggplot(lynx, as.numeric = FALSE) + geom_line() + 
   stat_peaks(colour = "red") +
   stat_peaks(geom = "text", colour = "red", angle = 66,
              hjust = -0.1, x.label.fmt = "%Y") +
   ylim(NA, 7800)
 
 ## ------------------------------------------------------------------------
-ggplot(lynx.df, aes(time, V.lynx)) + geom_line() + 
+ggplot(lynx, as.numeric = FALSE) + geom_line() + 
   stat_peaks(colour = "red") +
   stat_peaks(geom = "rug", colour = "red") +
   stat_valleys(colour = "blue") +

@@ -1,12 +1,12 @@
 Package: ggpmisc
 Type: Package
 Title: Miscellaneous Extensions to 'ggplot2'
-Version: 0.2.12
-Date: 2016-10-21
+Version: 0.2.13
+Date: 2016-11-25
 Authors@R: 
     c(
     person("Pedro J.", "Aphalo", email = "pedro.aphalo@helsinki.fi", role = c("aut", "cre")),
-    person("Kamil", "Slowikowski", email = "kslowikowski@fas.harvard.edu", role = "ctb")
+    person("Kamil", "Slowikowski", role = "ctb")
     )
 Maintainer: Pedro J. Aphalo <pedro.aphalo@helsinki.fi>
 Description: Extensions to 'ggplot2' respecting the grammar of graphics
@@ -16,14 +16,14 @@ Description: Extensions to 'ggplot2' respecting the grammar of graphics
     fitted with function lm(). Additional statistics give access to functions
     in package 'broom'. Provides a function for flexibly converting time
     series to data frames suitable for plotting with ggplot(). In addition
-    provides two statistics and two geometries useful for diagnosing what data
+    provides statistics and ggplot geometries useful for diagnosing what data
     are passed to compute_group() and compute_panel() functions and to
     geometries.
-License: GPL (>= 3)
+License: GPL (>= 2)
 LazyData: TRUE
 LazyLoad: TRUE
 ByteCompile: TRUE
-Depends: R (>= 3.2.0), ggplot2 (>= 2.1.0)
+Depends: R (>= 3.2.0), ggplot2 (>= 2.2.0)
 Imports: tibble (>= 1.2), MASS (>= 7.3-45), polynom (>= 1.3-8), splus2R
         (>= 1.2-2), plyr (>= 1.8.4), dplyr (>= 0.5.0), xts (>= 0.9-7),
         zoo (>= 1.7-13), broom (>= 0.4.1), lubridate (>= 1.6.0)
@@ -35,8 +35,8 @@ BugReports: https://bitbucket.org/aphalo/ggpmisc/issues
 RoxygenNote: 5.0.1
 VignetteBuilder: knitr
 NeedsCompilation: no
-Packaged: 2016-10-22 10:51:10 UTC; aphalo
+Packaged: 2016-11-25 19:33:16 UTC; aphalo
 Author: Pedro J. Aphalo [aut, cre],
   Kamil Slowikowski [ctb]
 Repository: CRAN
-Date/Publication: 2016-10-22 16:21:31
+Date/Publication: 2016-11-26 12:10:42
