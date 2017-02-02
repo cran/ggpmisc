@@ -1,8 +1,8 @@
 Package: ggpmisc
 Type: Package
 Title: Miscellaneous Extensions to 'ggplot2'
-Version: 0.2.13
-Date: 2016-11-25
+Version: 0.2.14
+Date: 2017-02-01
 Authors@R: 
     c(
     person("Pedro J.", "Aphalo", email = "pedro.aphalo@helsinki.fi", role = c("aut", "cre")),
@@ -23,20 +23,20 @@ License: GPL (>= 2)
 LazyData: TRUE
 LazyLoad: TRUE
 ByteCompile: TRUE
-Depends: R (>= 3.2.0), ggplot2 (>= 2.2.0)
+Depends: R (>= 3.2.0), ggplot2 (>= 2.2.1)
 Imports: tibble (>= 1.2), MASS (>= 7.3-45), polynom (>= 1.3-8), splus2R
         (>= 1.2-2), plyr (>= 1.8.4), dplyr (>= 0.5.0), xts (>= 0.9-7),
         zoo (>= 1.7-13), broom (>= 0.4.1), lubridate (>= 1.6.0)
 Suggests: knitr (>= 1.14), rmarkdown (>= 1.1), nlme (>= 3.1-128),
         ggrepel (>= 0.6.3)
-URL: http://www.r4photobiology.info
+URL: http://www.r4photobiology.info,
         https://bitbucket.org/aphalo/ggpmisc
 BugReports: https://bitbucket.org/aphalo/ggpmisc/issues
-RoxygenNote: 5.0.1
+RoxygenNote: 6.0.0
 VignetteBuilder: knitr
 NeedsCompilation: no
-Packaged: 2016-11-25 19:33:16 UTC; aphalo
+Packaged: 2017-02-01 20:03:06 UTC; aphalo
 Author: Pedro J. Aphalo [aut, cre],
   Kamil Slowikowski [ctb]
 Repository: CRAN
-Date/Publication: 2016-11-26 12:10:42
+Date/Publication: 2017-02-02 01:06:16
