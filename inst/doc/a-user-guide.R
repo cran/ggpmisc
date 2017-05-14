@@ -14,50 +14,7 @@ library(tibble)
 library(nlme)
 
 ## ------------------------------------------------------------------------
-class(austres)
-austres.df <- try_tibble(austres)
-class(austres.df)
-lapply(austres.df, "class")
-head(austres.df, 4)
-
-## ------------------------------------------------------------------------
-austres.df <- try_tibble(austres, as.numeric = TRUE)
-lapply(austres.df, "class")
-head(austres.df, 4)
-
-## ------------------------------------------------------------------------
-class(lynx)
-lynx.df <- try_tibble(lynx)
-class(lynx.df)
-lapply(lynx.df, "class")
-head(lynx.df, 3)
-
-## ------------------------------------------------------------------------
-lynx.df <- try_tibble(lynx, "year")
-head(lynx.df, 3)
-
-## ------------------------------------------------------------------------
-lynx_n.df <- try_tibble(lynx, "year", as.numeric = TRUE)
-lapply(lynx_n.df, "class")
-head(lynx_n.df, 3)
-
-## ------------------------------------------------------------------------
-try_tibble(1:5)
-
-## ------------------------------------------------------------------------
-try_tibble(letters[1:5])
-
-## ------------------------------------------------------------------------
-try_tibble(factor(letters[1:5]))
-
-## ------------------------------------------------------------------------
-try_tibble(list(x = rep(1,5), y = 1:5))
-
-## ------------------------------------------------------------------------
-try_tibble(data.frame(x = rep(1,5), y = 1:5))
-
-## ------------------------------------------------------------------------
-try_tibble(matrix(1:10, ncol = 2))
+old_theme <- theme_set(theme_minimal())
 
 ## ------------------------------------------------------------------------
 ggplot(lynx) + geom_line()
@@ -169,6 +126,25 @@ formula <- y ~ poly(x, 3, raw = TRUE)
 ggplot(my.data, aes(x, y)) +
   geom_point() +
   geom_smooth(method = "lm", formula = formula) +
+  stat_poly_eq(aes(label =  paste(..eq.label.., ..rr.label.., 
+                                  ..AIC.label.., ..BIC.label..,
+                                  sep = "*\",\"~~")),
+               formula = formula, parse = TRUE)
+
+## ------------------------------------------------------------------------
+formula <- y ~ poly(x, 3, raw = TRUE)
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = formula) +
+  stat_poly_eq(aes(label =  paste(..eq.label.., ..adj.rr.label.., 
+                                  sep = "~~italic(\"with\")~~")),
+               formula = formula, parse = TRUE)
+
+## ------------------------------------------------------------------------
+formula <- y ~ poly(x, 3, raw = TRUE)
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = formula) +
   stat_poly_eq(aes(label = paste("atop(", ..AIC.label.., ",", ..BIC.label.., ")", sep = "")), 
                formula = formula, 
                parse = TRUE)
@@ -250,8 +226,7 @@ ggplot(my.data, aes(x, y2, colour = group)) +
   geom_point() +
   geom_smooth(method = "lm", formula = formula) +
   stat_poly_eq(aes(label = ..eq.label..),
-               formula = formula, parse = TRUE) +
-  theme_bw()
+               formula = formula, parse = TRUE)
 
 ## ------------------------------------------------------------------------
 formula <- y ~ poly(x, 3, raw = TRUE)
@@ -259,8 +234,7 @@ ggplot(my.data, aes(x, y2, colour = group)) +
   geom_point() +
   geom_smooth(method = "lm", formula = formula) +
   stat_poly_eq(aes(label = ..eq.label..),
-               formula = formula, parse = TRUE, label.y.npc = "center") +
-  theme_bw()
+               formula = formula, parse = TRUE, label.y.npc = "center")
 
 ## ------------------------------------------------------------------------
 formula <- y ~ poly(x, 3, raw = TRUE)
@@ -268,8 +242,7 @@ ggplot(my.data, aes(x, y2, colour = group)) +
   geom_point() +
   geom_smooth(method = "lm", formula = formula) +
   stat_poly_eq(aes(label = ..eq.label..),
-               formula = formula, parse = TRUE, label.y.npc = 0.75) +
-  theme_bw()
+               formula = formula, parse = TRUE, label.y.npc = 0.75)
 
 ## ------------------------------------------------------------------------
 formula <- y ~ poly(x, 3, raw = TRUE)
@@ -279,8 +252,7 @@ ggplot(my.data, aes(x, y2, fill = block)) +
   stat_poly_eq(aes(label = ..rr.label..), size = 3,
                geom = "label", alpha = 0.33,
                formula = formula, parse = TRUE) +
-  facet_wrap(~group, scales = "free_y") +
-  theme_bw()
+  facet_wrap(~group, scales = "free_y")
 
 ## ------------------------------------------------------------------------
 formula <- y ~ poly(x, 3, raw = TRUE)
@@ -291,8 +263,7 @@ ggplot(my.data, aes(x, y2, colour = group, fill = block)) +
                geom = "label", alpha = 0.2,
                formula = formula, parse = TRUE,
                label.y.npc = 0.66) +
-  facet_wrap(~group, scales = "free_y") +
-  theme_bw()
+  facet_wrap(~group, scales = "free_y")
 
 ## ------------------------------------------------------------------------
 formula <- y ~ poly(x, 3, raw = TRUE)
@@ -372,6 +343,57 @@ ggplot(my.data, aes(x, y, color = group)) +
                   label.y.npc = "bottom",
                   geom = "text", 
                   aes(label = paste("P-value = ", signif(..p.value.., digits = 4), sep = "")))
+
+## ------------------------------------------------------------------------
+micmen.formula <- y ~ SSmicmen(x, Vm, K) 
+ggplot(Puromycin, aes(conc, rate, colour = state)) +
+  geom_point() +
+  geom_smooth(method = "nls", 
+              formula = micmen.formula,
+              se = FALSE) +
+  stat_fit_glance(method = "nls", 
+                  method.args = list(formula = micmen.formula),
+                  geom = "text",
+                  aes(label = paste("AIC = ", signif(..AIC.., digits = 3), 
+                                    ", BIC = ", signif(..BIC.., digits = 3),
+                                    sep = "")))
+
+## ------------------------------------------------------------------------
+micmen.formula <- y ~ SSmicmen(x, Vm, K) 
+ggplot(Puromycin, aes(conc, rate, colour = state)) +
+  geom_point() +
+  geom_smooth(method = "nls", 
+              formula = micmen.formula,
+              se = FALSE) +
+  stat_fit_tidy(method = "nls", 
+                method.args = list(formula = micmen.formula),
+                geom = "text",
+                label.x.npc = "right",
+                label.y.npc = "bottom",
+                aes(label = paste("V[m]~`=`~", signif(..Vm.., digits = 3),
+                                  "%+-%", signif(..Vm_se.., digits = 2),
+                                  "~~~~K~`=`~", signif(..K.., digits = 3),
+                                  "%+-%", signif(..K_se.., digits = 2),
+                                  sep = "")),
+                parse = TRUE)
+
+## ------------------------------------------------------------------------
+micmen.formula <- y ~ SSmicmen(x, Vm, K) 
+ggplot(Puromycin, aes(conc, rate, colour = state)) +
+  geom_point() +
+  geom_smooth(method = "nls", 
+              formula = micmen.formula,
+              se = FALSE) +
+  stat_fit_tidy(method = "nls", 
+                method.args = list(formula = micmen.formula),
+                geom = "text",
+                label.x.npc = 0.9,
+                label.y.npc = 0.3,
+                aes(label = paste("V~`=`~frac(", signif(..Vm.., digits = 2), "~C,",
+                                  signif(..K.., digits = 2), "+C)",
+                                  sep = "")),
+                parse = TRUE) +
+  labs(x = "C", y = "V")
 
 ## ------------------------------------------------------------------------
 # formula <- y ~ poly(x, 3, raw = TRUE)
@@ -524,4 +546,50 @@ ggplot(data = d, aes(x, y, label = lab, color = group)) +
                      keep.fraction = 0.35, 
                      alpha = 0.5,
                      label.fill = NA)
+
+## ------------------------------------------------------------------------
+class(austres)
+austres.df <- try_tibble(austres)
+class(austres.df)
+lapply(austres.df, "class")
+head(austres.df, 4)
+
+## ------------------------------------------------------------------------
+austres.df <- try_tibble(austres, as.numeric = TRUE)
+lapply(austres.df, "class")
+head(austres.df, 4)
+
+## ------------------------------------------------------------------------
+class(lynx)
+lynx.df <- try_tibble(lynx)
+class(lynx.df)
+lapply(lynx.df, "class")
+head(lynx.df, 3)
+
+## ------------------------------------------------------------------------
+lynx.df <- try_tibble(lynx, "year")
+head(lynx.df, 3)
+
+## ------------------------------------------------------------------------
+lynx_n.df <- try_tibble(lynx, "year", as.numeric = TRUE)
+lapply(lynx_n.df, "class")
+head(lynx_n.df, 3)
+
+## ------------------------------------------------------------------------
+try_tibble(1:5)
+
+## ------------------------------------------------------------------------
+try_tibble(letters[1:5])
+
+## ------------------------------------------------------------------------
+try_tibble(factor(letters[1:5]))
+
+## ------------------------------------------------------------------------
+try_tibble(list(x = rep(1,5), y = 1:5))
+
+## ------------------------------------------------------------------------
+try_tibble(data.frame(x = rep(1,5), y = 1:5))
+
+## ------------------------------------------------------------------------
+try_tibble(matrix(1:10, ncol = 2))
 

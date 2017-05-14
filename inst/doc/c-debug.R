@@ -5,8 +5,8 @@ opts_chunk$set(fig.path = 'figure/debug-pos-', fig.align = 'center',
 options(warnPartialMatchArgs = FALSE)
 
 ## ------------------------------------------------------------------------
+library(ggplot2)
 library(ggpmisc)
-# library(ggplot2)
 library(tibble)
 
 ## ------------------------------------------------------------------------
@@ -19,6 +19,9 @@ my.data <- data.frame(x,
                       group = c("A", "B"), 
                       y2 = y * c(0.5,2),
                       block = c("a", "a", "b", "b"))
+
+## ------------------------------------------------------------------------
+old_theme <- theme_set(theme_minimal())
 
 ## ------------------------------------------------------------------------
 ggplot(my.data, aes(x, y)) + stat_debug_group()
@@ -59,7 +62,7 @@ ggplot(my.data, aes(x, y)) + geom_point() +
 
 ## ------------------------------------------------------------------------
 ggplot(my.data, aes(x, y)) + geom_point() + 
-  stat_debug_group(summary.fun = as_data_frame)
+  stat_debug_group(summary.fun = as_tibble)
 
 ## ------------------------------------------------------------------------
 ggplot(my.data, aes(x, y)) + geom_point() + 
@@ -91,14 +94,14 @@ ggplot(my.data, aes(x, y, colour = group)) + geom_point() +
 ggplot(my.data, aes(x, y, colour = group)) + geom_point() + 
   stat_smooth(method = "lm",
              geom = "debug", 
-             summary.fun = as_data_frame, 
+             summary.fun = as_tibble, 
              summary.fun.args = list())
 
 ## ------------------------------------------------------------------------
 ggplot(my.data, aes(x, y, colour = group)) + geom_point() + 
   stat_peaks(span = NULL,
              geom = "debug", 
-             summary.fun = as_data_frame, 
+             summary.fun = as_tibble, 
              summary.fun.args = list())
 
 ## ------------------------------------------------------------------------
@@ -106,7 +109,7 @@ formula <- y ~ poly(x, 3, raw = TRUE)
 ggplot(my.data, aes(x, y)) +
   stat_fit_residuals(formula = formula, 
                      geom = "debug",
-                     summary.fun = as_data_frame, 
+                     summary.fun = as_tibble, 
                      summary.fun.args = list())
 
 ## ------------------------------------------------------------------------
@@ -116,7 +119,7 @@ ggplot(my.data, aes(x, y)) +
   stat_fit_augment(method = "lm", 
                    method.args = list(formula = formula),
                    geom = "debug",
-                   summary.fun = tibble::as_data_frame, 
+                   summary.fun = tibble::as_tibble, 
                    summary.fun.args = list()) +
   stat_fit_augment(method = "lm", 
                    method.args = list(formula = formula),
@@ -129,7 +132,7 @@ ggplot(my.data, aes(x, y2, colour = group)) +
   stat_fit_augment(method = "lm", 
                    method.args = list(formula = formula),
                    geom = "debug",
-                   summary.fun = tibble::as_data_frame, 
+                   summary.fun = tibble::as_tibble, 
                    summary.fun.args = list()) +
   stat_fit_augment(method = "lm", 
                    method.args = list(formula = formula),

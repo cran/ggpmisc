@@ -1,8 +1,8 @@
 Package: ggpmisc
 Type: Package
 Title: Miscellaneous Extensions to 'ggplot2'
-Version: 0.2.14
-Date: 2017-02-01
+Version: 0.2.15
+Date: 2017-05-14
 Authors@R: 
     c(
     person("Pedro J.", "Aphalo", email = "pedro.aphalo@helsinki.fi", role = c("aut", "cre")),
@@ -32,11 +32,11 @@ Suggests: knitr (>= 1.14), rmarkdown (>= 1.1), nlme (>= 3.1-128),
 URL: http://www.r4photobiology.info,
         https://bitbucket.org/aphalo/ggpmisc
 BugReports: https://bitbucket.org/aphalo/ggpmisc/issues
-RoxygenNote: 6.0.0
+RoxygenNote: 6.0.1
 VignetteBuilder: knitr
 NeedsCompilation: no
-Packaged: 2017-02-01 20:03:06 UTC; aphalo
+Packaged: 2017-05-14 09:19:26 UTC; aphalo
 Author: Pedro J. Aphalo [aut, cre],
   Kamil Slowikowski [ctb]
 Repository: CRAN
-Date/Publication: 2017-02-02 01:06:16
+Date/Publication: 2017-05-14 17:29:59 UTC

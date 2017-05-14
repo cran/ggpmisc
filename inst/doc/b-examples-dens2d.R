@@ -25,6 +25,9 @@ make_data_tbl <- function(nrow = 100, rfun = rnorm, ...) {
 }
 
 ## ------------------------------------------------------------------------
+old_theme <- theme_set(theme_minimal())
+
+## ------------------------------------------------------------------------
 ggplot(data = make_data_tbl(6), aes(x, y)) +
   geom_point() +
   stat_dens2d_filter(color = "red")
