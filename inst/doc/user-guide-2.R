@@ -25,7 +25,7 @@ make_data_tbl <- function(nrow = 100, rfun = rnorm, ...) {
 }
 
 ## ------------------------------------------------------------------------
-old_theme <- theme_set(theme_minimal())
+old_theme <- theme_set(theme_bw())
 
 ## ------------------------------------------------------------------------
 ggplot(data = make_data_tbl(6), aes(x, y)) +

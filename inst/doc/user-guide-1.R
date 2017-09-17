@@ -14,7 +14,7 @@ library(tibble)
 library(nlme)
 
 ## ------------------------------------------------------------------------
-old_theme <- theme_set(theme_minimal())
+old_theme <- theme_set(theme_bw())
 
 ## ------------------------------------------------------------------------
 ggplot(lynx) + geom_line()
@@ -61,7 +61,7 @@ ggplot(lynx, as.numeric = FALSE) + geom_line() +
   stat_peaks(colour = "red") +
   stat_peaks(geom = "text", colour = "red", angle = 66,
              hjust = -0.1, x.label.fmt = "%Y") +
-  ylim(NA, 7800)
+  ylim(NA, 8000)
 
 ## ------------------------------------------------------------------------
 ggplot(lynx, as.numeric = FALSE) + geom_line() + 

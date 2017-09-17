@@ -1,8 +1,8 @@
 Package: ggpmisc
 Type: Package
 Title: Miscellaneous Extensions to 'ggplot2'
-Version: 0.2.15
-Date: 2017-05-14
+Version: 0.2.16
+Date: 2017-09-16
 Authors@R: 
     c(
     person("Pedro J.", "Aphalo", email = "pedro.aphalo@helsinki.fi", role = c("aut", "cre")),
@@ -23,20 +23,21 @@ License: GPL (>= 2)
 LazyData: TRUE
 LazyLoad: TRUE
 ByteCompile: TRUE
-Depends: R (>= 3.2.0), ggplot2 (>= 2.2.1)
-Imports: tibble (>= 1.2), MASS (>= 7.3-45), polynom (>= 1.3-8), splus2R
-        (>= 1.2-2), plyr (>= 1.8.4), dplyr (>= 0.5.0), xts (>= 0.9-7),
-        zoo (>= 1.7-13), broom (>= 0.4.1), lubridate (>= 1.6.0)
-Suggests: knitr (>= 1.14), rmarkdown (>= 1.1), nlme (>= 3.1-128),
-        ggrepel (>= 0.6.3)
+Depends: R (>= 3.3.3), ggplot2 (>= 2.2.1)
+Imports: methods, tibble (>= 1.3.4), MASS (>= 7.3-47), polynom (>=
+        1.3-9), splus2R (>= 1.2-2), plyr (>= 1.8.4), dplyr (>= 0.7.3),
+        xts (>= 0.10-0), zoo (>= 1.8-0), broom (>= 0.4.2), lubridate
+        (>= 1.6.0)
+Suggests: knitr (>= 1.17), rmarkdown (>= 1.6), nlme (>= 3.1-131),
+        ggrepel (>= 0.6.5)
 URL: http://www.r4photobiology.info,
         https://bitbucket.org/aphalo/ggpmisc
 BugReports: https://bitbucket.org/aphalo/ggpmisc/issues
 RoxygenNote: 6.0.1
 VignetteBuilder: knitr
 NeedsCompilation: no
-Packaged: 2017-05-14 09:19:26 UTC; aphalo
+Packaged: 2017-09-17 14:52:38 UTC; aphalo
 Author: Pedro J. Aphalo [aut, cre],
   Kamil Slowikowski [ctb]
 Repository: CRAN
-Date/Publication: 2017-05-14 17:29:59 UTC
+Date/Publication: 2017-09-17 15:26:13 UTC

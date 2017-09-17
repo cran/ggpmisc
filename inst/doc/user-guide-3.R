@@ -17,11 +17,11 @@ y <- (x + x^2 + x^3) + rnorm(length(x), mean = 0, sd = mean(x^3) / 4)
 my.data <- data.frame(x, 
                       y, 
                       group = c("A", "B"), 
-                      y2 = y * c(0.5,2),
+                      y2 = y * c(0.5, 2),
                       block = c("a", "a", "b", "b"))
 
 ## ------------------------------------------------------------------------
-old_theme <- theme_set(theme_minimal())
+old_theme <- theme_set(theme_bw())
 
 ## ------------------------------------------------------------------------
 ggplot(my.data, aes(x, y)) + stat_debug_group()
@@ -91,26 +91,33 @@ ggplot(my.data, aes(x, y, colour = group)) + geom_point() +
   geom_debug(summary.fun = head)
 
 ## ------------------------------------------------------------------------
-ggplot(my.data, aes(x, y, colour = group)) + geom_point() + 
-  stat_smooth(method = "lm",
-             geom = "debug", 
-             summary.fun = as_tibble, 
-             summary.fun.args = list())
+tidy.assign <- function(value, name, pos = .GlobalEnv, ...) {
+  assign(x = name, value = value, inherits = FALSE, pos = pos, ...)
+}
+ggplot(my.data, aes(x, y, colour = group)) + 
+  geom_point() + 
+  geom_debug(summary.fun = tidy.assign, 
+             summary.fun.args = list(name = "debug_data"),
+             print.fun = NULL)
+debug_data
 
 ## ------------------------------------------------------------------------
 ggplot(my.data, aes(x, y, colour = group)) + geom_point() + 
-  stat_peaks(span = NULL,
-             geom = "debug", 
-             summary.fun = as_tibble, 
-             summary.fun.args = list())
+  geom_debug(summary.fun = NULL)
+
+## ------------------------------------------------------------------------
+ggplot(my.data, aes(x, y, colour = group)) + geom_point() + 
+  stat_smooth(method = "lm", geom = "debug")
+
+## ------------------------------------------------------------------------
+ggplot(my.data, aes(x, y, colour = group)) + geom_point() + 
+  stat_peaks(span = NULL, geom = "debug")
 
 ## ------------------------------------------------------------------------
 formula <- y ~ poly(x, 3, raw = TRUE)
 ggplot(my.data, aes(x, y)) +
-  stat_fit_residuals(formula = formula, 
-                     geom = "debug",
-                     summary.fun = as_tibble, 
-                     summary.fun.args = list())
+  stat_fit_residuals(formula = formula, geom = "debug", 
+                     summary.fun = head, summary.fun.args = list(n = 12))
 
 ## ------------------------------------------------------------------------
 formula <- y ~ x + I(x^2) + I(x^3)
@@ -118,9 +125,7 @@ ggplot(my.data, aes(x, y)) +
   geom_point() +
   stat_fit_augment(method = "lm", 
                    method.args = list(formula = formula),
-                   geom = "debug",
-                   summary.fun = tibble::as_tibble, 
-                   summary.fun.args = list()) +
+                   geom = "debug") +
   stat_fit_augment(method = "lm", 
                    method.args = list(formula = formula),
                    geom = "smooth")
@@ -131,9 +136,7 @@ ggplot(my.data, aes(x, y2, colour = group)) +
   geom_point() +
   stat_fit_augment(method = "lm", 
                    method.args = list(formula = formula),
-                   geom = "debug",
-                   summary.fun = tibble::as_tibble, 
-                   summary.fun.args = list()) +
+                   geom = "debug") +
   stat_fit_augment(method = "lm", 
                    method.args = list(formula = formula),
                    geom = "smooth")

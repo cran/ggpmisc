@@ -1,3 +1,13 @@
+ggpmisc 0.2.16
+==============
+
+* Revise stat_fit_tidy() so that it returns p-values for parameters, in additon
+to estimates and their standard errors.
+* BUG FIX: Revise geom_debug() adding missing default arguments.
+* Add functions for manipulation of layers in ggplot objects: delete_layers(),
+append_layers(), move_layers(), shift_layers(), which_layers(),
+extract_layers(), num_layers(), top_layer() and bottom_layer().
+
 ggpmisc 0.2.15
 ==============
 
