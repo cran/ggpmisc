@@ -1,4 +1,4 @@
-#' Find local maxima or global maximum (peaks).
+#' Find local maxima or global maximum (peaks)
 #'
 #' This method finds peaks (local maxima) in a spectrum, using a user selectable
 #' span and size threshold relative to the tallest peak (global maximum). This
@@ -52,7 +52,7 @@ find_peaks <-
     }
   }
 
-#' Find and label local maxima (peaks) or minima (valleys).
+#' Local maxima (peaks) or minima (valleys)
 #'
 #' \code{stat_peaks} finds at which x positions local y maxima are located and
 #' \code{stat_valleys} finds at which x positions local y minima are located.
@@ -61,7 +61,7 @@ find_peaks <-
 #' for \code{sprintf()}.
 #'
 #' @param mapping The aesthetic mapping, usually constructed with
-#'   \code{\link[ggplot2]{aes}} or \code{\link[ggplot2]{aes_string}}. Only needs
+#'   \code{\link[ggplot2]{aes}} or \code{\link[ggplot2]{aes_}}. Only needs
 #'   to be set
 #'    at the layer level if you are overriding the plot defaults.
 #' @param data A layer specific dataset - only needed if you want to override
@@ -276,9 +276,9 @@ valleys_compute_group_fun <- function(data,
 StatPeaks <-
   ggplot2::ggproto("StatPeaks", ggplot2::Stat,
                    compute_group = peaks_compute_group_fun,
-                   default_aes = ggplot2::aes(label = ..x.label..,
-                                              xintercept = ..x..,
-                                              yintercept = ..y..),
+                   default_aes = ggplot2::aes(label = stat(x.label),
+                                              xintercept = stat(x),
+                                              yintercept = stat(y)),
                    required_aes = c("x", "y")
   )
 
@@ -315,8 +315,8 @@ stat_valleys <- function(mapping = NULL, data = NULL, geom = "point",
 StatValleys <-
   ggplot2::ggproto("StatValleys", ggplot2::Stat,
                    compute_group = valleys_compute_group_fun,
-                   default_aes = ggplot2::aes(label = ..x.label..,
-                                              xintercept = ..x..,
-                                              yintercept = ..y..),
+                   default_aes = ggplot2::aes(label = stat(x.label),
+                                              xintercept = stat(x),
+                                              yintercept = stat(y)),
                    required_aes = c("x", "y")
   )

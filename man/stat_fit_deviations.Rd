@@ -2,7 +2,7 @@
 % Please edit documentation in R/stat-fit-deviations.R
 \name{stat_fit_deviations}
 \alias{stat_fit_deviations}
-\title{Plot residuals from fit as segments.}
+\title{Residuals from model fit as segments}
 \usage{
 stat_fit_deviations(mapping = NULL, data = NULL, geom = "segment",
   method = "lm", formula = NULL, position = "identity", na.rm = FALSE,
@@ -10,7 +10,7 @@ stat_fit_deviations(mapping = NULL, data = NULL, geom = "segment",
 }
 \arguments{
 \item{mapping}{The aesthetic mapping, usually constructed with
-\code{\link[ggplot2]{aes}} or \code{\link[ggplot2]{aes_string}}. Only needs
+\code{\link[ggplot2]{aes}} or \code{\link[ggplot2]{aes_}}. Only needs
 to be set at the layer level if you are overriding the plot defaults.}
 
 \item{data}{A layer specific dataset - only needed if you want to override

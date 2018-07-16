@@ -1,4 +1,4 @@
-#' @title Filter observations in high density regions.
+#' @title Filter observations by local density
 #'
 #' @description \code{stat_dens2d_filter} Filters out/filters in observations in
 #'   regions of a plot panel with high density of observations.
@@ -8,7 +8,7 @@
 #'   among text labels.
 #'
 #' @param mapping The aesthetic mapping, usually constructed with
-#'   \code{\link[ggplot2]{aes}} or \code{\link[ggplot2]{aes_string}}. Only needs
+#'   \code{\link[ggplot2]{aes}} or \code{\link[ggplot2]{aes_}}. Only needs
 #'   to be set at the layer level if you are overriding the plot defaults.
 #' @param data A layer specific dataset - only needed if you want to override
 #'   the plot defaults.

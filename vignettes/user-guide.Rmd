@@ -1,5 +1,5 @@
 ---
-title: "User Guide: 1 Plotting"
+title: "User Guide"
 subtitle: "'ggpmisc' `r packageVersion('ggpmisc')`"
 author: "Pedro J. Aphalo"
 date: "`r Sys.Date()`"
@@ -7,7 +7,7 @@ output:
   rmarkdown::html_vignette:
     toc: yes
 vignette: >
-  %\VignetteIndexEntry{User Guide: 1 Plotting}
+  %\VignetteIndexEntry{User Guide}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -16,7 +16,9 @@ vignette: >
 library(knitr)
 opts_chunk$set(fig.path = 'figure/guide-pos-', fig.align = 'center', 
                fig.show = 'hold', fig.width = 7, fig.height = 4)
-options(warnPartialMatchArgs = FALSE)
+options(warnPartialMatchArgs = FALSE,
+        tibble.print.max = 4,
+        tibble.print.min = 4)
 ```
 
 ## Preliminaries
@@ -53,7 +55,7 @@ frames. This, for example, useful for plotting time series data with `ggplot()`.
 New `ggplot()` methods for classes `ts` and `xts` make the call to
 `try_tibble()` and conversion automatic.
 
-## `ggplot` methods for time series
+## ggplot methods for time series
 
 `ggplot()` methods for classes `"ts"` and `"xts"` automate plotting of time
 series data. For plotting time series data stored in objects of other classes,
@@ -76,7 +78,7 @@ ggplot(AirPassengers) + geom_line()
 ggplot(AirPassengers, as.numeric = FALSE) + geom_line()
 ```
 
-## `stat_peaks` and `stat_valleys`
+## stat_peaks and stat_valleys
 
 Using POSIXct for `time` and the default formatting of labels.
 
@@ -139,7 +141,69 @@ ggplot(lynx, as.numeric = FALSE) + geom_line() +
   stat_valleys(geom = "rug", colour = "blue")
 ```
 
-## `stat_poly_eq`
+## stat_quadrant_counts
+
+This statistic automates the annotation of plots with number of observations,
+either by quadrant, by pairs of quadrants or the four quadrants taken together.
+
+We generate some artificial data.
+
+```{r}
+set.seed(4321)
+# generate artificial data
+x <- -99:100
+y <- x + rnorm(length(x), mean = 0, sd = abs(x))
+my.data <- data.frame(x, 
+                      y, 
+                      group = c("A", "B"))
+```
+
+Using defaults except for colour.
+
+```{r}
+ggplot(my.data, aes(x, y)) +
+  geom_hline(yintercept = 0, colour = "red") +
+  geom_vline(xintercept = 0, colour = "red") +
+  geom_point() +
+  stat_quadrant_counts(colour = "red")
+```
+
+Pooling quadrants along the _x_-axis.
+
+```{r}
+ggplot(my.data, aes(x, y)) +
+  geom_hline(yintercept = 0, colour = "red") +
+  geom_point() +
+  stat_quadrant_counts(colour = "red", pool.along = "x")
+```
+
+Manual positioning of the text annotations and pooling of all four quadrants.
+
+```{r}
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  stat_quadrant_counts(quadrants = 0L, labels.range.x = c(-90, -90), hjust = 0)
+```
+
+Annotation of only specific quadrants.
+
+```{r}
+ggplot(my.data, aes(x, y)) +
+  geom_hline(yintercept = 0, colour = "red") +
+  geom_vline(xintercept = 0, colour = "red") +
+  geom_point() +
+  stat_quadrant_counts(colour = "red", quadrants = c(2, 4))
+```
+```{r}
+ggplot(my.data, aes(x, y)) +
+  geom_hline(yintercept = 0, colour = "red") +
+  geom_vline(xintercept = 0, colour = "red") +
+  geom_point() +
+  stat_quadrant_counts(colour = "red") +
+  facet_wrap(~group)
+```
+
+## stat_poly_eq
 
 We generate some artificial data.
 
@@ -152,7 +216,8 @@ my.data <- data.frame(x,
                       y, 
                       group = c("A", "B"), 
                       y2 = y * c(0.5,2),
-                      block = c("a", "a", "b", "b"))
+                      block = c("a", "a", "b", "b"),
+                      wt = sqrt(x))
 ```
 
 First one example using defaults.
@@ -410,8 +475,7 @@ ggplot(my.data, aes(x, y2, colour = group, fill = block)) +
   facet_wrap(~group, scales = "free_y")
 ```
 
-
-## `stat_fit_residuals`
+## stat_fit_residuals
 
 I had the need to quickly plot residuals matching fits plotted with `geom_smooth()`
 using grouping and facets, so a new (simple) statistic was born.
@@ -437,7 +501,7 @@ ggplot(my.data, aes(x, y, color = group)) +
   stat_fit_residuals(formula = formula)
 ```
 
-## `stat_fit_deviations`
+## stat_fit_deviations
 
 As I also had the need to highlight residuals in slides and notes to be used in
 teaching, another statistic was born.
@@ -468,7 +532,7 @@ ggplot(my.data, aes(x, y)) +
   geom_point()
 ```
 
-## `stat_fit_glance`
+## stat_fit_glance
 
 ```{r}
 # formula <- y ~ poly(x, 3, raw = TRUE)
@@ -531,7 +595,7 @@ ggplot(Puromycin, aes(conc, rate, colour = state)) +
                                     sep = "")))
 ```
 
-## `stat_fit_tidy`
+## stat_fit_tidy
 
 This stat makes it possible to add the equation for any fitted model for which
 `broom::tidy()` is implemented. Alternatively, individual values such as
@@ -580,7 +644,140 @@ ggplot(Puromycin, aes(conc, rate, colour = state)) +
   labs(x = "C", y = "V")
 ```
 
-## `stat_fit_augment`
+## stat_fit_tb
+
+This stat makes it possible to add summary or ANOVA tables for any fitted model
+for which `broom::tidy()` is implemented. The output from `tidy()` is embedded
+as a single list value within the returned `data`, an object of class `tibble`.
+This statistic **ignores grouping** based on aesthetics. This allows fitting
+models when `x` or `y` is a factor (as in such cases `ggplot` splits the data
+into groups, one for each level of the factor, which is needed for example for
+`stat_summary()` to work as expected). By default, the `"table"` geometry is
+used. The use of `geom_table()` is described in a separate section of this User
+Guide.
+
+The default output of `stat_fit_tb` is the default output from `tidy(mf)` where
+`mf` is the fitted model.
+
+```{r}
+formula <- y ~ x + I(x^2) + I(x^3)
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = formula) +
+  stat_fit_tb(method = "lm",
+              method.args = list(formula = formula),
+              tb.vars = c(Parameter = "term", 
+                          Estimate = "estimate", 
+                          "s.e." = "std.error", 
+                          "italic(t)" = "statistic", 
+                          "italic(P)" = "p.value"),
+              label.y.npc = "top", label.x.npc = "left",
+              parse = TRUE)
+```
+
+When `tb.type = "fit.anova"` the output returned is that from `tidy(anova(mf))`
+where `mf` is the fitted model.
+
+```{r}
+formula <- y ~ x + I(x^2) + I(x^3)
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = formula) +
+  stat_fit_tb(method = "lm",
+              method.args = list(formula = formula),
+              tb.type = "fit.anova",
+              tb.vars = c(Effect = "term", 
+                          "df",
+                          "M.S." = "meansq", 
+                          "italic(F)" = "statistic", 
+                          "italic(P)" = "p.value"),
+               label.y.npc = "top", label.x.npc = "left",
+              parse = TRUE)
+```
+
+When `tb.type = "fit.coefs"` the output returned is that of `tidy(mf)` after
+selecting the `term` and `estimate` columns.
+
+```{r}
+formula <- y ~ x + I(x^2) + I(x^3)
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = formula) +
+  stat_fit_tb(method = "lm",
+              method.args = list(formula = formula),
+              tb.type = "fit.coefs",
+              label.y.npc = "center", label.x.npc = "left")
+```
+
+Faceting works as expected, but grouping is ignored as mentioned above. In this
+case, the colour aesthetic is not applied to the text of the tables.
+Furthermore, if `label.x.npc` or `label.y.npc` are passed numeric vectors of
+length > 1, the values are obeyed by the different panels.
+
+```{r}
+micmen.formula <- y ~ SSmicmen(x, Vm, K)
+ggplot(Puromycin, aes(conc, rate, colour = state)) +
+  facet_wrap(~state) +
+  geom_point() +
+  geom_smooth(method = "nls",
+              formula = micmen.formula,
+              se = FALSE) +
+  stat_fit_tb(method = "nls",
+              method.args = list(formula = micmen.formula),
+              tb.type = "fit.coefs",
+              label.x.npc = 0.67,
+              label.y.npc = c(0.6, 0.3)) +
+  theme(legend.position = "none") +
+  labs(x = "C", y = "V")
+```
+
+The data in the example below are split by `ggplot` into six groups based on the
+levels of the `feed` factor. However, as `stat_fit_tb()` ignores groupings, we
+can still fit a linear model to all the data in the panel.
+
+```{r}
+ggplot(chickwts, aes(factor(feed), weight)) +
+  stat_summary(fun.data = "mean_se") +
+  stat_fit_tb(tb.type = "fit.anova",
+              label.x.npc = 1.07, hjust = 1,
+              label.y.npc = "bottom") +
+  expand_limits(y = 0)
+```
+
+We can flip the system of coordinates, if desired. Be aware that in this case
+the specification of the position and justification of the table is no longer
+intuitive.
+
+```{r}
+ggplot(chickwts, aes(factor(feed), weight)) +
+  stat_summary(fun.data = "mean_se") +
+  stat_fit_tb(tb.type = "fit.anova",
+              label.x.npc = 1.1, hjust = 0,
+              label.y.npc = 0, vjust = 1) +
+  expand_limits(y = 0) +
+  coord_flip()
+```
+
+It is also possible to rotate the table using `angle`.
+
+```{r}
+ggplot(chickwts, aes(factor(feed), weight)) +
+  stat_summary(fun.data = "mean_se") +
+  stat_fit_tb(tb.type = "fit.anova",
+              angle = 90,
+              tb.vars = c(Effect = "term", 
+                          "df",
+                          "M.S." = "meansq", 
+                          "italic(F)" = "statistic", 
+                          "italic(P)" = "p.value"),
+              label.x.npc = 0.5, hjust = 0.5,
+              label.y.npc = 0, vjust = 1,
+              parse = TRUE) +
+  expand_limits(y = 0) +
+  coord_flip()
+```
+
+## stat_fit_augment
 
 **Experimental!** 
 Use `ggplot2::stat_smooth` instead of `stat_fit_augment` if possible.
@@ -608,9 +805,9 @@ ggplot(my.data, aes(x, y, color = group)) +
                    method.args = list(formula = formula))
 ```
 
-We can override the variable returned as \code{y} to be any of the variables in
+We can override the variable returned as `y` to be any of the variables in
 the data frame returned by `broom::augment` while still preserving the original
-_y_ values.
+`y` values.
 
 ```{r}
 formula <- y ~ x + I(x^2) + I(x^3)
@@ -663,7 +860,7 @@ ggplot(Orange, aes(age, circumference, color = Tree)) +
                    augment.args = list(data = quote(data)))
 ```
 
-## `stat_dens2d_labels` and `stat_dens2d_filter`
+## stat_dens2d_labels and stat_dens2d_filter
 
 These stats had their origin in an enhancement suggestion for 'ggrepel' from 
 Hadley Wickham and discussion with Kamil Slowikowski (ggrepel's author) and 
@@ -671,13 +868,7 @@ others. In fact the code is based on code Kamil gave during the discussion,
 but simplified and taking a few further ideas from `ggplot::stat_dens2d`.
 
 **Warning!** Which observations are selected by the algorithm used, based on 
-`MASS:kde2d`, depends strongly on the values of parameters `h` and `n`. As these
-stats have been tested only with a few data sets, you may need to alter the
-defaults. Beware, though, that what are good values, may depend on individual 
-data sets even if they include the same number of observations. For the
-selection of observations to work cleanly, the argument for `n` must create a
-dense grid. Much larger values of `n` than in the examples in the documentation
-of `MASS::kde2d` and `ggplot2::stat_dens2d` will be needed in most cases.
+`MASS:kde2d`, depends strongly on the values of parameters `h` and `n`. You may need to alter the defaults by passing explicit arguments to these stats. Beware, though, that what are good values, may depend on individual data sets even if they include the same number of observations. For the selection of observations to work cleanly, the argument for `n` must create a dense grid. Much larger values of `n` than in the examples in the documentation of `MASS::kde2d` and `ggplot2::stat_dens2d` will be needed in most cases.
 
 Some random data with random labels.
 
@@ -696,7 +887,7 @@ d <- tibble::tibble(
 )
 ```
 
-### `stat_dens2d_filter`
+### stat_dens2d_filter
 
 The stat `stat_dens2d_filter` _filters_ observations, in other words passes to 
 the geom a subset of the data received as input. The default value for `geom` is
@@ -733,8 +924,8 @@ ggplot(data = d, aes(x + rep(c(-2,2), rep(50,2)),
 ```
 
 Highlight 1/4 of observations from lowest density areas of the plot, with
-density considered separately for each individual group, in this case based on
-the color aesthetic.
+density considered separately for each individual group. In this case grouping
+is based on the color aesthetic.
 
 ```{r}
 ggplot(data = d, aes(x + rep(c(-2,2), rep(50,2)), 
@@ -761,15 +952,10 @@ ggplot(data = d, aes(x, y, label = lab, color = group)) +
   stat_dens2d_filter(geom = "text_repel", keep.fraction = 0.5)
 ```
 
-### `stat_dens2d_labels`
+### stat_dens2d_labels
 
-The stat `stat_dens2d_labels` _replaces_ with `label.fill` the values of the 
-label (aesthetic) variable in data in the high density regions of the panel 
-before passing them to the geom. The default value for `geom` is `"text"`. The
-default value of `label.fill` is `""` which results in empty labels, while using
-`NA` as fill label results in observations being omitted. Using `NA` as
-`label.fill` is not too different from using `stat_dens2d_filter` as long as the
-geom used requires a `label` aesthetic.
+The stat `stat_dens2d_labels` _replaces_ the values of the 
+label (aesthetic) variable in data in the high density regions of the panel with the argument passed to `label.fill` before passing them to the geom. The default value for `geom` is `"text"`. The default value of `label.fill` is `""` which results in empty labels, while using `NA` as fill label results in observations being omitted. Using `NA` as `label.fill` is not too different from using `stat_dens2d_filter` as long as the geom used requires a `label` aesthetic.
 
 Label 1/10 of observations from lowest density areas of the plot panels.
 
@@ -844,7 +1030,61 @@ ggplot(data = d, aes(x, y, label = lab, color = group)) +
                      label.fill = NA)
 ```
 
-## `try_tibble`
+## geom_table and stat_fmt_table
+
+The `geom_table()` _geometry_ plots a data frame or tibble, nested in a tibble passed as data
+argument, using _easthetics_ `x` and `y` for positioning, and `label` for the
+data frame containing the data for the table. The table is created as a 'grid'
+grob and added as usual to the ggplot object.
+
+```{r}
+tb <- tibble(date = ymd(c("2017-05-21", "2007-05-21"), tz = "UCT"),
+             value = 1:2 * 10)
+data.tb <- tibble(x = 0, y = 8e5, tb = list(tb))
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  geom_table(data = data.tb, aes(label = tb), hjust = 0, vjust = 0) +
+  theme_bw()
+```
+
+Using `stat_fmt_tb()` we can rename the columns of the tibble as shown below,
+and/or select a subset of columns or a slice of rows. 
+
+```{r}
+tb <- tibble(date = ymd(c("2017-05-21", "2007-05-21"), tz = "UCT"),
+             value = 1:2 * 10)
+data.tb <- tibble(x = 0, y = 8e5, tb = list(tb))
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  geom_table(data = data.tb, aes(label = tb), hjust = 0, vjust = 0,
+             stat = "fmt_tb", tb.vars = c(Date = "date", Amount = "value")) +
+  theme_bw()
+```
+
+```{r}
+tb <- tibble(date = ymd(c("2017-05-21", "2007-05-21"), tz = "UCT"),
+             value = 1:2 * 10)
+data.tb <- tibble(x = 25, y = 8e5, tb = list(tb))
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  geom_table(data = data.tb, aes(label = tb), colour = "blue", size = 4) +
+  theme_bw()
+```
+
+Parsed text, using plot math syntax is supported in the table, with fall-back to
+plain text in case of parsing errors, on a cell by cell basis.
+
+```{r}
+tb.pm <- tibble(parameter = c("frac(beta[1], a^2)", "frac(beta[2], a^3)"),
+             value = c("10^2.4", "10^3.532"))
+data.tb <- tibble(x = 12.5, y = 8.5e5, tb = list(tb.pm))
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  geom_table(data = data.tb, aes(label = tb), parse = TRUE) +
+  theme_bw()
+```
+
+## try_tibble
 
 ### Time series
 
@@ -923,4 +1163,71 @@ try_tibble(data.frame(x = rep(1,5), y = 1:5))
 
 ```{r}
 try_tibble(matrix(1:10, ncol = 2))
+```
+
+## Appendix: Additional examples of the use density filtering
+
+We define a function to simplify the generation of random data sets.
+
+```{r}
+make_data_tbl <- function(nrow = 100, rfun = rnorm, ...) {
+  if (nrow %% 2) {
+    nrow <- nrow + 1
+  }
+  
+  set.seed(1001)
+  
+  tibble::tibble(
+    x = rfun(nrow, ...),
+    y = rfun(nrow, ...),
+    group = rep(c("A", "B"), c(nrow / 2, nrow / 2))
+  )
+}
+```
+
+As we will draw many points on the plotting area we change the default theme
+to an uncluttered one.
+
+```{r}
+old_theme <- theme_set(theme_bw())
+```
+
+In all the examples in this vignette we use colours to demonstrate which data points are selected, but any other suitable aesthetic and discrete scale can be used instead. With `keep.sparse = FALSE` we keep 1/3 of the observations in the denser region of the plot. Although here we first plot all data points and later overplot the selected ones this is not necessary.
+
+```{r}
+ggplot(data = make_data_tbl(300), aes(x, y)) +
+  geom_point() +
+  stat_dens2d_filter(color = "red", 
+                     keep.sparse = FALSE, 
+                     keep.fraction = 1/3)
+```
+
+Here we highlight the observations split in three group equal groups, each of a
+different density of observations.
+
+```{r}
+ggplot(data = make_data_tbl(300), aes(x, y)) +
+  geom_point() +
+  stat_dens2d_filter(color = "red", 
+                     keep.sparse = FALSE, 
+                     keep.fraction = 1/3)+
+  stat_dens2d_filter(color = "blue", 
+                     keep.fraction = 1/3)
+```
+
+The algorithm seems to work well also with other distributions, in this example the uniform distribution.
+
+```{r}
+ggplot(data = make_data_tbl(300, rfun = runif), aes(x, y)) +
+  geom_point() +
+  stat_dens2d_filter(color = "red", keep.fraction = 1/2)
+```
+
+One example with the gamma distribution, which is asymmetric.
+
+```{r}
+ggplot(data = make_data_tbl(300, rfun = rgamma, shape = 2), 
+       aes(x, y)) +
+  geom_point() +
+  stat_dens2d_filter(color = "red", keep.fraction = 1/3)
 ```

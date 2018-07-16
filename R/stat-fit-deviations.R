@@ -1,10 +1,10 @@
-#' Plot residuals from fit as segments.
+#' Residuals from model fit as segments
 #'
 #' \code{stat_fit_deviations} fits a linear model and returns fitted values and
 #' residuals ready to be plotted as segments.
 #'
 #' @param mapping The aesthetic mapping, usually constructed with
-#'   \code{\link[ggplot2]{aes}} or \code{\link[ggplot2]{aes_string}}. Only needs
+#'   \code{\link[ggplot2]{aes}} or \code{\link[ggplot2]{aes_}}. Only needs
 #'   to be set at the layer level if you are overriding the plot defaults.
 #' @param data A layer specific dataset - only needed if you want to override
 #'   the plot defaults.
@@ -98,7 +98,7 @@ StatFitDeviations <-
                                 hjust = 0)
                    },
                    default_aes =
-                     ggplot2::aes(xend = ..x.fitted..,
-                                  yend = ..y.fitted..),
+                     ggplot2::aes(xend = stat(x.fitted),
+                                  yend = stat(y.fitted)),
                    required_aes = c("x", "y")
   )

@@ -1,4 +1,4 @@
-#' Convert an R object containing observations into a tibble.
+#' Convert an R object into a tibble
 #'
 #' This functions tries to convert any R object into a data.frame object.
 #' If \code{x} is already a data.frame, it is returned as is. If it is
@@ -32,7 +32,7 @@
 #'   account as even for yearly data when conversion is to POSIXct a day (1st of
 #'   January) will be set, but then shifted some hours if printed on a TZ
 #'   different from "UTC". I recommend reading the documentation of package
-#'   \code{\link[lubridate]{lubridate}} where the irregularities of time data
+#'   \code{\link[lubridate]{lubridate-package}} where the irregularities of time data
 #'   and the difficulties they cause are very well described. In many cases when
 #'   working with time series with yearly observations it is best to work with
 #'   numeric values for years.
@@ -129,7 +129,7 @@ try_tibble <- function(x,
   tibble::as_tibble(z)
 }
 
-#' Create a new ggplot plot from time series data.
+#' Create a new ggplot plot from time series data
 #'
 #' \code{ggplot()} initializes a ggplot object. It can be used to
 #' declare the input spectral object for a graphic and to optionally specify the

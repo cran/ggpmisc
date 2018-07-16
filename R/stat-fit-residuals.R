@@ -1,10 +1,10 @@
-#' Plot residuals from a model fit.
+#' Residuals from a model fit
 #'
 #' \code{stat_fit_residuals} fits a linear model and returns
 #'    residuals ready to be plotted as points.
 #'
 #' @param mapping The aesthetic mapping, usually constructed with
-#'   \code{\link[ggplot2]{aes}} or \code{\link[ggplot2]{aes_string}}. Only needs
+#'   \code{\link[ggplot2]{aes}} or \code{\link[ggplot2]{aes_}}. Only needs
 #'   to be set at the layer level if you are overriding the plot defaults.
 #' @param data A layer specific dataset - only needed if you want to override
 #'   the plot defaults.

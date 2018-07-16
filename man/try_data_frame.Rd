@@ -3,7 +3,7 @@
 \name{try_data_frame}
 \alias{try_data_frame}
 \alias{try_tibble}
-\title{Convert an R object containing observations into a tibble.}
+\title{Convert an R object into a tibble}
 \usage{
 try_data_frame(x, time.resolution = "month", as.numeric = FALSE,
   col.names = NULL)
@@ -51,7 +51,7 @@ This function can be used to easily convert time series data into a
   account as even for yearly data when conversion is to POSIXct a day (1st of
   January) will be set, but then shifted some hours if printed on a TZ
   different from "UTC". I recommend reading the documentation of package
-  \code{\link[lubridate]{lubridate}} where the irregularities of time data
+  \code{\link[lubridate]{lubridate-package}} where the irregularities of time data
   and the difficulties they cause are very well described. In many cases when
   working with time series with yearly observations it is best to work with
   numeric values for years.

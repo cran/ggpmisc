@@ -3,7 +3,7 @@
 \name{stat_dens2d_filter}
 \alias{stat_dens2d_filter}
 \alias{stat_dens2d_filter_g}
-\title{Filter observations in high density regions.}
+\title{Filter observations by local density}
 \usage{
 stat_dens2d_filter(mapping = NULL, data = NULL, geom = "point",
   position = "identity", keep.fraction = 0.1, keep.number = Inf,
@@ -17,7 +17,7 @@ stat_dens2d_filter_g(mapping = NULL, data = NULL, geom = "point",
 }
 \arguments{
 \item{mapping}{The aesthetic mapping, usually constructed with
-\code{\link[ggplot2]{aes}} or \code{\link[ggplot2]{aes_string}}. Only needs
+\code{\link[ggplot2]{aes}} or \code{\link[ggplot2]{aes_}}. Only needs
 to be set at the layer level if you are overriding the plot defaults.}
 
 \item{data}{A layer specific dataset - only needed if you want to override

@@ -7,20 +7,23 @@
 \title{ggpmisc: Miscellaneous Extensions to 'ggplot2'}
 \description{
 Extensions to 'ggplot2' respecting the grammar of graphics
-paradigm. Provides new statistics to locate and tag peaks and valleys in 2D
-plots, a statistics to add a label with the equation of a polynomial fitted
-with lm(), or R^2 or adjusted R^2 or information criteria for any model
-fitted with function lm(). Additional statistics give access to functions
-in package 'broom'. Provides a function for flexibly converting time
-series to data frames suitable for plotting with ggplot(). In addition
-provides statistics and ggplot geometries useful for diagnosing what data
-are passed to compute_group() and compute_panel() functions and to
-geometries.
+paradigm. Specialization of method ggplot(): accept and convert on the fly
+time series data. Geom: "table", adds tables to plots. Statistics: locate
+and tag peaks and valleys in 2D plots; count observations in different
+quadrants of a plot; select observations based on 2D density; label with the
+equation of a polynomial fitted with lm() or other types of models; labels
+with P-value, R^2 or adjusted R^2 or information criteria for fitted models;
+label with ANOVA table for fitted models; label with summary for fitted
+models. Model fit classes for which suitable methods are provided by package
+'broom' are supported.
 }
 \details{
 The new facilities for cleanly defining new stats and geoms added to
-'ggplot2' in version 2.0.0 have made this package easy to code. However, this
-means that this package requires version 2.0.0 or later of ggplot2.
+'ggplot2' in version 2.0.0 and the support for nested tibbles and new syntax
+for mapping computed values to aesthetics added to
+'ggplot2' in version 3.0.0 are used in this package's code. This
+means that 'ggpmisc' (>= 0.3.0) requires version 3.0.0 or later of ggplot2
+while 'ggpmisc' (< 0.3.0) requires version 2.0.0 or later of ggplot2.
 
 Extensions provided:
 \itemize{
@@ -37,8 +40,6 @@ package 'broom'.
 \item Stats for filtering-out/filtering-in observations in regions of a
 panel or group where the density of observations is high.
 \item Geom for annotating plots with tables.
-\item "Debug" stats and a "debug" geom that print to the console a summary
-of their \code{data} input.
 }
 
 The stats for peaks and valleys are coded so as to work correctly both with
@@ -54,11 +55,21 @@ The signatures of \code{stat_peaks()} and \code{stat_valleys()} are
   datetime scale, while those from package \code{photobiology} do not
   generate correct labels in this case.
 }
-\section{Acknowledgements}{
+\section{Warning!}{
+ \code{geom_null()}, \code{stat_debug_group()},
+  \code{stat_debug_panel()}, \code{geom_debug()}, \code{append_layers()},
+  \code{bottom_layer()}, \code{delete_layers()}, \code{extract_layers()},
+  \code{move_layers()}, \code{num_layesr()}, \code{shift_layers()},
+  \code{top_layer()} and \code{which_layers()} have been moved from package
+  'ggpmisc' into their own seperate package
+  '\code{\link[gginnards]{gginnards-package}}.
+}
 
-We thank Kamil Slowikowski not only for contributing ideas and code examples
-to this package but also for adding new features to his package 'ggrepel'
-that allow new use cases for \code{stat_dens2d_labels} from this package.
+\section{Acknowledgements}{
+ We thank Kamil Slowikowski not only for
+  contributing ideas and code examples to this package but also for adding
+  new features to his package 'ggrepel' that allow new use cases for
+  \code{stat_dens2d_labels} from this package.
 }
 
 \examples{
@@ -77,23 +88,37 @@ ggplot(cars, aes(speed, dist)) +
   stat_poly_eq(aes(label = ..eq.label..), formula = formula,
                parse = TRUE)
 
+formula <- y ~ x
+ggplot(PlantGrowth, aes(group, weight)) +
+  stat_summary(fun.data = "mean_se") +
+  stat_fit_tb(method = "lm",
+              method.args = list(formula = formula),
+              tb.type = "fit.anova") +
+  theme_classic()
+
 }
 \references{
 Package suite 'r4photobiology' web site at
-\url{https://www.r4photobiology.info/}\cr
-Package 'ggplot2' web site at \url{http://ggplot2.org/}\cr
-Package 'ggplot2' documentation at \url{http://docs.ggplot2.org/}\cr
-Package 'ggplot2' source code at \url{https://github.com/hadley/ggplot2}
+\url{https://www.r4photobiology.info/}\cr Package 'ggplot2' web site at
+\url{http://ggplot2.org/}\cr Package 'ggplot2' documentation at
+\url{http://docs.ggplot2.org/}\cr Package 'ggplot2' source code at
+\url{https://github.com/hadley/ggplot2}
 }
 \seealso{
 Useful links:
 \itemize{
-  \item \url{http://www.r4photobiology.info}
+  \item \url{https://www.r4photobiology.info}
   \item \url{https://bitbucket.org/aphalo/ggpmisc}
   \item Report bugs at \url{https://bitbucket.org/aphalo/ggpmisc/issues}
 }
 
 }
 \author{
-Pedro J. Aphalo
+\strong{Maintainer}: Pedro J. Aphalo \email{pedro.aphalo@helsinki.fi} (0000-0003-3385-972X)
+
+Other contributors:
+\itemize{
+  \item Kamil Slowikowski [contributor]
+}
+
 }

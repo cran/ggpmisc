@@ -3,7 +3,7 @@
 \name{stat_peaks}
 \alias{stat_peaks}
 \alias{stat_valleys}
-\title{Find and label local maxima (peaks) or minima (valleys).}
+\title{Local maxima (peaks) or minima (valleys)}
 \usage{
 stat_peaks(mapping = NULL, data = NULL, geom = "point", span = 5,
   ignore_threshold = 0, strict = FALSE, label.fmt = "\%.4g",
@@ -17,7 +17,7 @@ stat_valleys(mapping = NULL, data = NULL, geom = "point", span = 5,
 }
 \arguments{
 \item{mapping}{The aesthetic mapping, usually constructed with
-\code{\link[ggplot2]{aes}} or \code{\link[ggplot2]{aes_string}}. Only needs
+\code{\link[ggplot2]{aes}} or \code{\link[ggplot2]{aes_}}. Only needs
 to be set
  at the layer level if you are overriding the plot defaults.}
 

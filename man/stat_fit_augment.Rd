@@ -2,7 +2,7 @@
 % Please edit documentation in R/stat-fit-broom.R
 \name{stat_fit_augment}
 \alias{stat_fit_augment}
-\title{Return the data augmented with fitted values and statistics.}
+\title{Augment data with fitted values and statistics}
 \usage{
 stat_fit_augment(mapping = NULL, data = NULL, geom = "smooth",
   method = "lm", method.args = list(formula = y ~ x),
@@ -12,7 +12,7 @@ stat_fit_augment(mapping = NULL, data = NULL, geom = "smooth",
 }
 \arguments{
 \item{mapping}{The aesthetic mapping, usually constructed with
-\code{\link[ggplot2]{aes}} or \code{\link[ggplot2]{aes_string}}. Only needs
+\code{\link[ggplot2]{aes}} or \code{\link[ggplot2]{aes_}}. Only needs
 to be set at the layer level if you are overriding the plot defaults.}
 
 \item{data}{A layer specific dataset - only needed if you want to override

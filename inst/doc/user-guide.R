@@ -2,7 +2,9 @@
 library(knitr)
 opts_chunk$set(fig.path = 'figure/guide-pos-', fig.align = 'center', 
                fig.show = 'hold', fig.width = 7, fig.height = 4)
-options(warnPartialMatchArgs = FALSE)
+options(warnPartialMatchArgs = FALSE,
+        tibble.print.max = 4,
+        tibble.print.min = 4)
 
 ## ------------------------------------------------------------------------
 library(ggpmisc)
@@ -73,13 +75,56 @@ ggplot(lynx, as.numeric = FALSE) + geom_line() +
 ## ------------------------------------------------------------------------
 set.seed(4321)
 # generate artificial data
+x <- -99:100
+y <- x + rnorm(length(x), mean = 0, sd = abs(x))
+my.data <- data.frame(x, 
+                      y, 
+                      group = c("A", "B"))
+
+## ------------------------------------------------------------------------
+ggplot(my.data, aes(x, y)) +
+  geom_hline(yintercept = 0, colour = "red") +
+  geom_vline(xintercept = 0, colour = "red") +
+  geom_point() +
+  stat_quadrant_counts(colour = "red")
+
+## ------------------------------------------------------------------------
+ggplot(my.data, aes(x, y)) +
+  geom_hline(yintercept = 0, colour = "red") +
+  geom_point() +
+  stat_quadrant_counts(colour = "red", pool.along = "x")
+
+## ------------------------------------------------------------------------
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  stat_quadrant_counts(quadrants = 0L, labels.range.x = c(-90, -90), hjust = 0)
+
+## ------------------------------------------------------------------------
+ggplot(my.data, aes(x, y)) +
+  geom_hline(yintercept = 0, colour = "red") +
+  geom_vline(xintercept = 0, colour = "red") +
+  geom_point() +
+  stat_quadrant_counts(colour = "red", quadrants = c(2, 4))
+
+## ------------------------------------------------------------------------
+ggplot(my.data, aes(x, y)) +
+  geom_hline(yintercept = 0, colour = "red") +
+  geom_vline(xintercept = 0, colour = "red") +
+  geom_point() +
+  stat_quadrant_counts(colour = "red") +
+  facet_wrap(~group)
+
+## ------------------------------------------------------------------------
+set.seed(4321)
+# generate artificial data
 x <- 1:100
 y <- (x + x^2 + x^3) + rnorm(length(x), mean = 0, sd = mean(x^3) / 4)
 my.data <- data.frame(x, 
                       y, 
                       group = c("A", "B"), 
                       y2 = y * c(0.5,2),
-                      block = c("a", "a", "b", "b"))
+                      block = c("a", "a", "b", "b"),
+                      wt = sqrt(x))
 
 ## ------------------------------------------------------------------------
 formula <- y ~ poly(x, 3, raw = TRUE)
@@ -396,6 +441,96 @@ ggplot(Puromycin, aes(conc, rate, colour = state)) +
   labs(x = "C", y = "V")
 
 ## ------------------------------------------------------------------------
+formula <- y ~ x + I(x^2) + I(x^3)
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = formula) +
+  stat_fit_tb(method = "lm",
+              method.args = list(formula = formula),
+              tb.vars = c(Parameter = "term", 
+                          Estimate = "estimate", 
+                          "s.e." = "std.error", 
+                          "italic(t)" = "statistic", 
+                          "italic(P)" = "p.value"),
+              label.y.npc = "top", label.x.npc = "left",
+              parse = TRUE)
+
+## ------------------------------------------------------------------------
+formula <- y ~ x + I(x^2) + I(x^3)
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = formula) +
+  stat_fit_tb(method = "lm",
+              method.args = list(formula = formula),
+              tb.type = "fit.anova",
+              tb.vars = c(Effect = "term", 
+                          "df",
+                          "M.S." = "meansq", 
+                          "italic(F)" = "statistic", 
+                          "italic(P)" = "p.value"),
+               label.y.npc = "top", label.x.npc = "left",
+              parse = TRUE)
+
+## ------------------------------------------------------------------------
+formula <- y ~ x + I(x^2) + I(x^3)
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = formula) +
+  stat_fit_tb(method = "lm",
+              method.args = list(formula = formula),
+              tb.type = "fit.coefs",
+              label.y.npc = "center", label.x.npc = "left")
+
+## ------------------------------------------------------------------------
+micmen.formula <- y ~ SSmicmen(x, Vm, K)
+ggplot(Puromycin, aes(conc, rate, colour = state)) +
+  facet_wrap(~state) +
+  geom_point() +
+  geom_smooth(method = "nls",
+              formula = micmen.formula,
+              se = FALSE) +
+  stat_fit_tb(method = "nls",
+              method.args = list(formula = micmen.formula),
+              tb.type = "fit.coefs",
+              label.x.npc = 0.67,
+              label.y.npc = c(0.6, 0.3)) +
+  theme(legend.position = "none") +
+  labs(x = "C", y = "V")
+
+## ------------------------------------------------------------------------
+ggplot(chickwts, aes(factor(feed), weight)) +
+  stat_summary(fun.data = "mean_se") +
+  stat_fit_tb(tb.type = "fit.anova",
+              label.x.npc = 1.07, hjust = 1,
+              label.y.npc = "bottom") +
+  expand_limits(y = 0)
+
+## ------------------------------------------------------------------------
+ggplot(chickwts, aes(factor(feed), weight)) +
+  stat_summary(fun.data = "mean_se") +
+  stat_fit_tb(tb.type = "fit.anova",
+              label.x.npc = 1.1, hjust = 0,
+              label.y.npc = 0, vjust = 1) +
+  expand_limits(y = 0) +
+  coord_flip()
+
+## ------------------------------------------------------------------------
+ggplot(chickwts, aes(factor(feed), weight)) +
+  stat_summary(fun.data = "mean_se") +
+  stat_fit_tb(tb.type = "fit.anova",
+              angle = 90,
+              tb.vars = c(Effect = "term", 
+                          "df",
+                          "M.S." = "meansq", 
+                          "italic(F)" = "statistic", 
+                          "italic(P)" = "p.value"),
+              label.x.npc = 0.5, hjust = 0.5,
+              label.y.npc = 0, vjust = 1,
+              parse = TRUE) +
+  expand_limits(y = 0) +
+  coord_flip()
+
+## ------------------------------------------------------------------------
 # formula <- y ~ poly(x, 3, raw = TRUE)
 # broom::augment does not handle poly correctly!
 formula <- y ~ x + I(x^2) + I(x^3)
@@ -548,6 +683,43 @@ ggplot(data = d, aes(x, y, label = lab, color = group)) +
                      label.fill = NA)
 
 ## ------------------------------------------------------------------------
+tb <- tibble(date = ymd(c("2017-05-21", "2007-05-21"), tz = "UCT"),
+             value = 1:2 * 10)
+data.tb <- tibble(x = 0, y = 8e5, tb = list(tb))
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  geom_table(data = data.tb, aes(label = tb), hjust = 0, vjust = 0) +
+  theme_bw()
+
+## ------------------------------------------------------------------------
+tb <- tibble(date = ymd(c("2017-05-21", "2007-05-21"), tz = "UCT"),
+             value = 1:2 * 10)
+data.tb <- tibble(x = 0, y = 8e5, tb = list(tb))
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  geom_table(data = data.tb, aes(label = tb), hjust = 0, vjust = 0,
+             stat = "fmt_tb", tb.vars = c(Date = "date", Amount = "value")) +
+  theme_bw()
+
+## ------------------------------------------------------------------------
+tb <- tibble(date = ymd(c("2017-05-21", "2007-05-21"), tz = "UCT"),
+             value = 1:2 * 10)
+data.tb <- tibble(x = 25, y = 8e5, tb = list(tb))
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  geom_table(data = data.tb, aes(label = tb), colour = "blue", size = 4) +
+  theme_bw()
+
+## ------------------------------------------------------------------------
+tb.pm <- tibble(parameter = c("frac(beta[1], a^2)", "frac(beta[2], a^3)"),
+             value = c("10^2.4", "10^3.532"))
+data.tb <- tibble(x = 12.5, y = 8.5e5, tb = list(tb.pm))
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  geom_table(data = data.tb, aes(label = tb), parse = TRUE) +
+  theme_bw()
+
+## ------------------------------------------------------------------------
 class(austres)
 austres.df <- try_tibble(austres)
 class(austres.df)
@@ -592,4 +764,49 @@ try_tibble(data.frame(x = rep(1,5), y = 1:5))
 
 ## ------------------------------------------------------------------------
 try_tibble(matrix(1:10, ncol = 2))
+
+## ------------------------------------------------------------------------
+make_data_tbl <- function(nrow = 100, rfun = rnorm, ...) {
+  if (nrow %% 2) {
+    nrow <- nrow + 1
+  }
+  
+  set.seed(1001)
+  
+  tibble::tibble(
+    x = rfun(nrow, ...),
+    y = rfun(nrow, ...),
+    group = rep(c("A", "B"), c(nrow / 2, nrow / 2))
+  )
+}
+
+## ------------------------------------------------------------------------
+old_theme <- theme_set(theme_bw())
+
+## ------------------------------------------------------------------------
+ggplot(data = make_data_tbl(300), aes(x, y)) +
+  geom_point() +
+  stat_dens2d_filter(color = "red", 
+                     keep.sparse = FALSE, 
+                     keep.fraction = 1/3)
+
+## ------------------------------------------------------------------------
+ggplot(data = make_data_tbl(300), aes(x, y)) +
+  geom_point() +
+  stat_dens2d_filter(color = "red", 
+                     keep.sparse = FALSE, 
+                     keep.fraction = 1/3)+
+  stat_dens2d_filter(color = "blue", 
+                     keep.fraction = 1/3)
+
+## ------------------------------------------------------------------------
+ggplot(data = make_data_tbl(300, rfun = runif), aes(x, y)) +
+  geom_point() +
+  stat_dens2d_filter(color = "red", keep.fraction = 1/2)
+
+## ------------------------------------------------------------------------
+ggplot(data = make_data_tbl(300, rfun = rgamma, shape = 2), 
+       aes(x, y)) +
+  geom_point() +
+  stat_dens2d_filter(color = "red", keep.fraction = 1/3)
 

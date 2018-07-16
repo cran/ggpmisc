@@ -2,7 +2,7 @@
 % Please edit documentation in R/stat-dens2d-labels.r
 \name{stat_dens2d_labels}
 \alias{stat_dens2d_labels}
-\title{Reset labels of observations in high density regions.}
+\title{Reset labels of observations in high density regions}
 \usage{
 stat_dens2d_labels(mapping = NULL, data = NULL, geom = "text",
   position = "identity", keep.fraction = 0.1, keep.number = Inf,
@@ -11,7 +11,7 @@ stat_dens2d_labels(mapping = NULL, data = NULL, geom = "text",
 }
 \arguments{
 \item{mapping}{The aesthetic mapping, usually constructed with
-\code{\link[ggplot2]{aes}} or \code{\link[ggplot2]{aes_string}}. Only needs
+\code{\link[ggplot2]{aes}} or \code{\link[ggplot2]{aes_}}. Only needs
 to be set at the layer level if you are overriding the plot defaults.}
 
 \item{data}{A layer specific dataset - only needed if you want to override

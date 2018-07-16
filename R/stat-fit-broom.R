@@ -1,12 +1,12 @@
 # broom::glance -----------------------------------------------------------
 
-#' @title Return one row summary data frame for a fitted model.
+#' @title One row summary data frame for a fitted model
 #'
 #' @description \code{stat_fit_glance} fits a model and returns a summary
 #'   "glance" of the model's statistics, using package 'broom'.
 #'
 #' @param mapping The aesthetic mapping, usually constructed with
-#'   \code{\link[ggplot2]{aes}} or \code{\link[ggplot2]{aes_string}}. Only needs
+#'   \code{\link[ggplot2]{aes}} or \code{\link[ggplot2]{aes_}}. Only needs
 #'   to be set at the layer level if you are overriding the plot defaults.
 #' @param data A layer specific dataset - only needed if you want to override
 #'   the plot defaults.
@@ -35,9 +35,40 @@
 #'   for absolute positioning of the output. If too short they will be recycled.
 #'
 #' @section Computed variables: The output of \code{\link[broom]{glance}} is
-#'   returned as is in the \code{data} object.
+#'   returned as is in the \code{data} object. If you do not know what names
+#'   to expect for the variables returned, use \code{broom::glance()} and
+#'   \code{names()} or \code{print()} to find out.
+#'
+#' @note The names of the columns in the returned data are consitent with those
+#'   returned by method \code{glance()} from package 'broom', that will
+#'   frequently differ from the name of values returned by the fit or test
+#'   function used.
+#'
+#' @section Warning!: \code{stat_fit_glance} applies the function given by
+#'   \code{method} separately to each group of observations, and factors mapped
+#'   to aesthetics generate a separate group for each factor level. Because of
+#'   this, it is not useful for annotating plots with results from
+#'   \code{t.test()} or ANOVA or ANCOVA. In such cases use the
+#'   \code{stat_fit_tb} statistic which does the model fitting per panel.
 #'
 #' @export
+#'
+#' @examples
+#' library(ggplot2)
+#' # Correlation example
+#' x <- c(44.4, 45.9, 41.9, 53.3, 44.7, 44.1, 50.7, 45.2, 60.1)
+#' y <- c( 2.6,  3.1,  2.5,  5.0,  3.6,  4.0,  5.2,  2.8,  3.8)
+#' my.df <- data.frame(x, y)
+#' # estimated correlation is in column "estimate"!
+#' broom::glance(cor.test(x, y))
+#' ggplot(my.df, aes(x, y)) +
+#'   geom_point() +
+#'   stat_fit_glance(geom = "text",
+#'                   method = "cor.test",
+#'                   method.args = list(x = x, y = y, method = "spearman"),
+#'                   aes(label = sprintf('r[s]~"="~%.2f~~italic(P)~"="~%.2f',
+#'                       stat(estimate), stat(p.value))),
+#'                   parse = TRUE)
 #'
 stat_fit_glance <- function(mapping = NULL, data = NULL, geom = "null",
                             method = "lm",
@@ -60,7 +91,6 @@ stat_fit_glance <- function(mapping = NULL, data = NULL, geom = "null",
                   ...)
   )
 }
-
 
 # Defined here to avoid a note in check --as-cran as the imports from 'broom'
 # are not seen when the function is defined in-line in the ggproto object.
@@ -188,13 +218,13 @@ StatFitGlance <-
 
 # broom::augment ----------------------------------------------------------
 
-#' @title Return the data augmented with fitted values and statistics.
+#' @title Augment data with fitted values and statistics
 #'
 #' @description \code{stat_fit_augment} fits a model and returns the data
 #'   augmented with information from the fitted model, using package 'broom'.
 #'
 #' @param mapping The aesthetic mapping, usually constructed with
-#'   \code{\link[ggplot2]{aes}} or \code{\link[ggplot2]{aes_string}}. Only needs
+#'   \code{\link[ggplot2]{aes}} or \code{\link[ggplot2]{aes_}}. Only needs
 #'   to be set at the layer level if you are overriding the plot defaults.
 #' @param data A layer specific dataset - only needed if you want to override
 #'   the plot defaults.
@@ -319,13 +349,13 @@ StatFitAugment <-
 
 # broom::tidy -------------------------------------------------------------
 
-#' @title Return one row data frame with fitted parameter estimates.
+#' @title One row data frame with fitted parameter estimates
 #'
 #' @description \code{stat_fit_tidy} fits a model and returns a "tidy" version
 #'   of the model's summary, using package 'broom'.
 #'
 #' @param mapping The aesthetic mapping, usually constructed with
-#'   \code{\link[ggplot2]{aes}} or \code{\link[ggplot2]{aes_string}}. Only needs
+#'   \code{\link[ggplot2]{aes}} or \code{\link[ggplot2]{aes_}}. Only needs
 #'   to be set at the layer level if you are overriding the plot defaults.
 #' @param data A layer specific dataset - only needed if you want to override
 #'   the plot defaults.
