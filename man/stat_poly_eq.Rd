@@ -4,12 +4,13 @@
 \alias{stat_poly_eq}
 \title{Equation, p-value, R^2, AIC or BIC of fitted polynomial}
 \usage{
-stat_poly_eq(mapping = NULL, data = NULL, geom = "text", formula = NULL,
+stat_poly_eq(mapping = NULL, data = NULL, geom = "text_npc",
+  position = "identity", ..., formula = NULL,
   eq.with.lhs = "italic(y)~`=`~", eq.x.rhs = NULL, coef.digits = 3,
-  rr.digits = 2, label.x.npc = "left", label.y.npc = "top",
-  label.x = NULL, label.y = NULL, output.type = "expression",
-  position = "identity", na.rm = FALSE, show.legend = FALSE,
-  inherit.aes = TRUE, ...)
+  rr.digits = 2, label.x = "left", label.y = "top",
+  label.x.npc = NULL, label.y.npc = NULL, hstep = 0, vstep = NULL,
+  output.type = "expression", na.rm = FALSE, show.legend = FALSE,
+  inherit.aes = TRUE)
 }
 \arguments{
 \item{mapping}{The aesthetic mapping, usually constructed with
@@ -20,6 +21,13 @@ set at the layer level if you are overriding the plot defaults.}
 the plot defaults.}
 
 \item{geom}{The geometric object to use display the data}
+
+\item{position}{The position adjustment to use for overlapping points on this
+layer}
+
+\item{...}{other arguments passed on to \code{\link[ggplot2]{layer}}. This
+can include aesthetics whose values you want to set, not map. See
+\code{\link[ggplot2]{layer}} for more details.}
 
 \item{formula}{a formula object.}
 
@@ -33,18 +41,19 @@ it.}
 \item{coef.digits, rr.digits}{integer Number of significant digits to use in
 for the vector of fitted coefficients and for $R^2$ labels.}
 
-\item{label.x.npc, label.y.npc}{\code{numeric} with range 0..1 or character.
-Coordinates to be used for positioning the output, expressed in "normalized
-parent coordinates" or character string. If too short they will be
-recycled.}
+\item{label.x, label.y}{\code{numeric} with range 0..1 "normalized parent
+coordinates" (npc units) or character if using \code{geom_text_npc()} or
+\code{geom_label_npc()}. If using \code{geom_text()} or \code{geom_label()}
+numeric in native data units. If too short they will be recycled.}
 
-\item{label.x, label.y}{\code{numeric} Coordinates (in data units) to be used
-for absolute positioning of the output. If too short they will be recycled.}
+\item{label.x.npc, label.y.npc}{\code{numeric} with range 0..1 (npc units)
+DEPRECATED, use label.x and label.y instead; together with a geom
+using npcx and npcy aesthetics.}
+
+\item{hstep, vstep}{numeric in npc units, the horizontal and vertical step
+used between labels for different groups.}
 
 \item{output.type}{character One of "expression", "LaTeX" or "text".}
-
-\item{position}{The position adjustment to use for overlapping points on this
-layer}
 
 \item{na.rm}{a logical indicating whether NA values should be stripped before
 the computation proceeds.}
@@ -57,10 +66,6 @@ never includes, and \code{TRUE} always includes.}
 than combining with them. This is most useful for helper functions that
 define both data and aesthetics and shouldn't inherit behaviour from the
 default plot specification, e.g. \code{\link[ggplot2]{borders}}.}
-
-\item{...}{other arguments passed on to \code{\link[ggplot2]{layer}}. This
-can include aesthetics whose values you want to set, not map. See
-\code{\link[ggplot2]{layer}} for more details.}
 }
 \description{
 \code{stat_poly_eq} fits a polynomial and generates several labels including
@@ -92,11 +97,10 @@ For backward compatibility a logical is accepted as argument for
 }
 \section{Aesthetics}{
  \code{stat_poly_eq} understands \code{x} and \code{y},
-  to be referenced in the \code{formula} and \code{weight} passed as
-  argument to parameter \code{weights} of \code{lm()}. All three must be
-  mappeed to \code{numeric} variables. In addition the aesthetics undertood
-  by the geom used (\code{"text"} by default) are understood and grouping
-  respected.
+  to be referenced in the \code{formula} and \code{weight} passed as argument
+  to parameter \code{weights} of \code{lm()}. All three must be mappeed to
+  \code{numeric} variables. In addition the aesthetics undertood by the geom
+  used (\code{"text"} by default) are understood and grouping respected.
 }
 
 \section{Computed variables}{
@@ -113,8 +117,8 @@ For backward compatibility a logical is accepted as argument for
 \section{Warning!}{
  if using \code{output.type = "expression"}, then
   \code{parse = TRUE} is needed, while if using \code{output.type = "LaTeX"}
-  \code{parse = FALSE}, the default of \code{geom_text} and \code{geom_label},
-  should be used.
+  \code{parse = FALSE}, the default of \code{geom_text} and
+  \code{geom_label}, should be used.
 }
 
 \examples{
@@ -134,6 +138,16 @@ ggplot(my.data, aes(x, y)) +
   geom_point() +
   geom_smooth(method = "lm", formula = formula) +
   stat_poly_eq(formula = formula, parse = TRUE)
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = formula) +
+  stat_poly_eq(formula = formula, parse = TRUE,
+               label.y = "bottom", label.x = "right")
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = formula) +
+  stat_poly_eq(formula = formula, parse = TRUE,
+               label.y = 0.1, label.x = 0.9)
 # using weights
 ggplot(my.data, aes(x, y, weight = w)) +
   geom_point() +
@@ -156,6 +170,12 @@ ggplot(my.data, aes(x, y)) +
   geom_smooth(method = "lm", formula = formula) +
   stat_poly_eq(aes(label =  paste(stat(eq.label), stat(adj.rr.label), sep = "~~~~")),
                formula = formula, rr.digits = 3, coef.digits = 2, parse = TRUE)
+# geom = "text"
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = formula) +
+  stat_poly_eq(geom = "text", label.x = 100, label.y = 0, hjust = 1,
+               formula = formula, parse = TRUE)
 
 }
 \references{

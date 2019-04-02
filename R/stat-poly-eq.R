@@ -32,12 +32,15 @@
 #'   it.
 #' @param coef.digits,rr.digits integer Number of significant digits to use in
 #'   for the vector of fitted coefficients and for $R^2$ labels.
-#' @param label.x.npc,label.y.npc \code{numeric} with range 0..1 or character.
-#'   Coordinates to be used for positioning the output, expressed in "normalized
-#'   parent coordinates" or character string. If too short they will be
-#'   recycled.
-#' @param label.x,label.y \code{numeric} Coordinates (in data units) to be used
-#'   for absolute positioning of the output. If too short they will be recycled.
+#' @param label.x,label.y \code{numeric} with range 0..1 "normalized parent
+#'   coordinates" (npc units) or character if using \code{geom_text_npc()} or
+#'   \code{geom_label_npc()}. If using \code{geom_text()} or \code{geom_label()}
+#'   numeric in native data units. If too short they will be recycled.
+#' @param label.x.npc,label.y.npc \code{numeric} with range 0..1 (npc units)
+#'   DEPRECATED, use label.x and label.y instead; together with a geom
+#'   using npcx and npcy aesthetics.
+#' @param hstep,vstep numeric in npc units, the horizontal and vertical step
+#'   used between labels for different groups.
 #' @param output.type character One of "expression", "LaTeX" or "text".
 #'
 #' @note For backward compatibility a logical is accepted as argument for
@@ -64,12 +67,12 @@
 #' @references Written as an answer to a question at Stackoverflow.
 #'   \url{https://stackoverflow.com/questions/7549694/adding-regression-line-equation-and-r2-on-graph}
 #'
+#'
 #' @section Aesthetics: \code{stat_poly_eq} understands \code{x} and \code{y},
-#'   to be referenced in the \code{formula} and \code{weight} passed as
-#'   argument to parameter \code{weights} of \code{lm()}. All three must be
-#'   mappeed to \code{numeric} variables. In addition the aesthetics undertood
-#'   by the geom used (\code{"text"} by default) are understood and grouping
-#'   respected.
+#'   to be referenced in the \code{formula} and \code{weight} passed as argument
+#'   to parameter \code{weights} of \code{lm()}. All three must be mappeed to
+#'   \code{numeric} variables. In addition the aesthetics undertood by the geom
+#'   used (\code{"text"} by default) are understood and grouping respected.
 #'
 #' @section Computed variables: \describe{ \item{x}{x position for left edge}
 #'   \item{y}{y position near upper edge} \item{eq.label}{equation for the
@@ -82,8 +85,8 @@
 #'
 #' @section Warning!: if using \code{output.type = "expression"}, then
 #'   \code{parse = TRUE} is needed, while if using \code{output.type = "LaTeX"}
-#'   \code{parse = FALSE}, the default of \code{geom_text} and \code{geom_label},
-#'   should be used.
+#'   \code{parse = FALSE}, the default of \code{geom_text} and
+#'   \code{geom_label}, should be used.
 #'
 #' @examples
 #' library(ggplot2)
@@ -102,6 +105,16 @@
 #'   geom_point() +
 #'   geom_smooth(method = "lm", formula = formula) +
 #'   stat_poly_eq(formula = formula, parse = TRUE)
+#' ggplot(my.data, aes(x, y)) +
+#'   geom_point() +
+#'   geom_smooth(method = "lm", formula = formula) +
+#'   stat_poly_eq(formula = formula, parse = TRUE,
+#'                label.y = "bottom", label.x = "right")
+#' ggplot(my.data, aes(x, y)) +
+#'   geom_point() +
+#'   geom_smooth(method = "lm", formula = formula) +
+#'   stat_poly_eq(formula = formula, parse = TRUE,
+#'                label.y = 0.1, label.x = 0.9)
 #' # using weights
 #' ggplot(my.data, aes(x, y, weight = w)) +
 #'   geom_point() +
@@ -124,33 +137,63 @@
 #'   geom_smooth(method = "lm", formula = formula) +
 #'   stat_poly_eq(aes(label =  paste(stat(eq.label), stat(adj.rr.label), sep = "~~~~")),
 #'                formula = formula, rr.digits = 3, coef.digits = 2, parse = TRUE)
+#' # geom = "text"
+#' ggplot(my.data, aes(x, y)) +
+#'   geom_point() +
+#'   geom_smooth(method = "lm", formula = formula) +
+#'   stat_poly_eq(geom = "text", label.x = 100, label.y = 0, hjust = 1,
+#'                formula = formula, parse = TRUE)
 #'
 #' @export
 #'
-stat_poly_eq <- function(mapping = NULL, data = NULL, geom = "text",
+stat_poly_eq <- function(mapping = NULL, data = NULL,
+                         geom = "text_npc",
+                         position = "identity",
+                         ...,
                          formula = NULL,
                          eq.with.lhs = "italic(y)~`=`~",
                          eq.x.rhs = NULL,
                          coef.digits = 3,
                          rr.digits = 2,
-                         label.x.npc = "left", label.y.npc = "top",
-                         label.x = NULL, label.y = NULL,
+                         label.x = "left", label.y = "top",
+                         label.x.npc = NULL, label.y.npc = NULL,
+                         hstep = 0,
+                         vstep = NULL,
                          output.type = "expression",
-                         position = "identity",
-                         na.rm = FALSE, show.legend = FALSE,
-                         inherit.aes = TRUE, ...) {
+                         na.rm = FALSE,
+                         show.legend = FALSE,
+                         inherit.aes = TRUE) {
+  # backwards compatibility
+  if (!is.null(label.x.npc)) {
+    stopifnot(grepl("_npc", geom))
+    label.x <- label.x.npc
+  }
+  if (!is.null(label.y.npc)) {
+    stopifnot(grepl("_npc", geom))
+    label.y <- label.y.npc
+  }
   ggplot2::layer(
-    stat = StatPolyEq, data = data, mapping = mapping, geom = geom,
-    position = position, show.legend = show.legend, inherit.aes = inherit.aes,
+    data = data,
+    mapping = mapping,
+    stat = StatPolyEq,
+    geom = geom,
+    position = position,
+    show.legend = show.legend,
+    inherit.aes = inherit.aes,
     params = list(formula = formula,
                   eq.with.lhs = eq.with.lhs,
                   eq.x.rhs = eq.x.rhs,
                   coef.digits = coef.digits,
                   rr.digits = rr.digits,
-                  label.x.npc = label.x.npc,
-                  label.y.npc = label.y.npc,
                   label.x = label.x,
                   label.y = label.y,
+                  hstep = hstep,
+                  vstep = ifelse(is.null(vstep),
+                                 ifelse(grepl("label", geom),
+                                        0.125,
+                                        0.075),
+                                 vstep),
+                  npc.used = grepl("_npc", geom),
                   output.type = output.type,
                   na.rm = na.rm,
                   ...)
@@ -165,47 +208,38 @@ stat_poly_eq <- function(mapping = NULL, data = NULL, geom = "text",
 #' @usage NULL
 #'
 poly_eq_compute_group_fun <- function(data,
-                                     scales,
-                                     formula,
-                                     eq.with.lhs,
-                                     eq.x.rhs,
-                                     coef.digits,
-                                     rr.digits,
-                                     label.x.npc,
-                                     label.y.npc,
-                                     label.x,
-                                     label.y,
-                                     output.type) {
+                                      scales,
+                                      formula = NULL,
+                                      weight = 1,
+                                      eq.with.lhs = "italic(y)~`=`~",
+                                      eq.x.rhs = NULL,
+                                      coef.digits = 3,
+                                      rr.digits = 2,
+                                      label.x = "left",
+                                      label.y = "top",
+                                      hstep = 0,
+                                      vstep = 0.075,
+                                      npc.used = TRUE,
+                                      output.type = "expression",
+                                      na.rm = FALSE) {
   force(data)
+  if (length(unique(data$x)) < 2) {
+    # Not enough data to perform fit
+    return(tibble::new_tibble())
+  }
 
   if (is.null(data$weight)) data$weight <- 1
 
   output.type = tolower(output.type)
   if (is.null(eq.x.rhs)) {
     if (output.type == "expression") {
-      eq.x.rhs = "~italic(x)"
+      eq.x.rhs <- "~italic(x)"
     } else {
-      eq.x.rhs = " x"
+      eq.x.rhs <- " x"
     }
   }
-  if (length(unique(data$x)) < 2) {
-    # Not enough data to perform fit
-    return(data.frame())
-  }
-  group.idx <- abs(data$group[1])
 
   group.idx <- abs(data$group[1])
-  if (length(label.x.npc) >= group.idx) {
-    label.x.npc <- label.x.npc[group.idx]
-  } else if (length(label.x.npc) > 0) {
-    label.x.npc <- label.x.npc[1]
-  }
-  if (length(label.y.npc) >= group.idx) {
-    label.y.npc <- label.y.npc[group.idx]
-  } else if (length(label.y.npc) > 0) {
-    label.y.npc <- label.y.npc[1]
-  }
-
   if (length(label.x) >= group.idx) {
     label.x <- label.x[group.idx]
   } else if (length(label.x) > 0) {
@@ -230,7 +264,11 @@ poly_eq_compute_group_fun <- function(data,
   AIC <- AIC(mf)
   BIC <- BIC(mf)
   eq.char <- as.character(signif(polynom::as.polynomial(coefs), coef.digits))
-  eq.char <- gsub("e([+-]?[0-9]*)", "%*%10^\\1", eq.char)
+  # as character drops 1
+  eq.char <- gsub("+ x", paste("+ 1.", stringr::str_dup("0", coef.digits - 1L),
+                               "*x", sep = ""),
+                  eq.char, fixed = TRUE)
+  eq.char <- gsub("e([+-]?[0-9]*)", "%*%10^{\\1}", eq.char)
   if (output.type %in% c("latex", "tex", "tikz")) {
     eq.char <- gsub("*", " ", eq.char, fixed = TRUE)
   }
@@ -240,9 +278,9 @@ poly_eq_compute_group_fun <- function(data,
   } else if (eq.with.lhs) {
     if (output.type == "expression") {
       lhs <- "italic(y)~`=`~"
-     } else if (output.type %in% c("latex", "tex", "tikz", "text")) {
-       lhs <- "y = "
-     }
+    } else if (output.type %in% c("latex", "tex", "tikz", "text")) {
+      lhs <- "y = "
+    }
   }
   if (eq.with.lhs) {
     eq.char <- paste(lhs, eq.char, sep = "")
@@ -267,62 +305,18 @@ poly_eq_compute_group_fun <- function(data,
                     BIC.label = paste("BIC", BIC.char, sep = " = "))
   }
 
-  if (length(label.x) > 0) {
+  if (npc.used) {
+    label.x <- compute_npcx(x = label.x, group = group.idx, h.step = 0)
+    label.y <- compute_npcy(y = label.y, group = group.idx, v.step = 0.07)
+    z$npcx <- label.x
+    z$x <- NA_real_
+    z$npcy <- label.y
+    z$y <- NA_real_
+  } else {
     z$x <- label.x
-    z$hjust <- 0.5
-  } else if (length(label.x.npc) > 0) {
-    if (is.numeric(label.x.npc)) {
-      if (any(label.x.npc < 0 | label.x.npc > 1)) {
-        warning("'label.x.npc' argument is numeric but outside range 0..1.")
-      }
-      z$x <- scales$x$dimension()[1] + label.x.npc *
-        diff(scales$x$dimension())
-      z$hjust <- 0.5
-    } else if (is.character(label.x.npc)) {
-      if (label.x.npc == "right") {
-        z$x <- scales$x$dimension()[2]
-        z$hjust <- 1
-      } else if (label.x.npc %in% c("center", "centre", "middle")) {
-        z$x <- mean(scales$x$dimension())
-        z$hjust <- 0.5
-      } else if (label.x.npc == "left") {
-        z$x <- scales$x$dimension()[1]
-        z$hjust <- 0
-      } else {
-        stop("'label.x.npc' argument '", label.x.npc, " unsupported")
-      }
-    } else {
-      stop("'label.x.npc' argument is neither numeric nor character")
-    }
-  }
-
-  if (length(label.y) > 0) {
+    z$npcx <- NA_real_
     z$y <- label.y
-    z$vjust <- 0.5
-  } else if (length(label.y.npc) > 0) {
-    if (is.numeric(label.y.npc)) {
-      if (any(label.y.npc < 0 | label.y.npc > 1)) {
-        warning("'label.y.npc' argument is numeric but outside range 0..1.")
-      }
-      z$y <- scales$y$dimension()[1] + label.y.npc *
-        (scales$y$dimension()[2] - scales$y$dimension()[1])
-      z$vjust <- 1.4 * (group.idx - 1) - (0.7 * (length(group.idx) - 1))
-    } else if (is.character(label.y.npc)) {
-      if (label.y.npc == "bottom") {
-        z$y <- scales$y$dimension()[1]
-        z$vjust <- -1.4 * group.idx
-      } else if (label.y.npc %in% c("center", "centre", "middle")) {
-        z$y <- mean(scales$y$dimension())
-        z$vjust <- 1.4 * (group.idx - 1) - (0.7 * (length(group.idx) - 1))
-      } else if (label.y.npc == "top") {
-        z$y <- scales$y$dimension()[2]
-        z$vjust <- 1.4 * group.idx
-      } else {
-        stop("'label.y.npc' argument '", label.y.npc, " unsupported")
-      }
-    } else {
-      stop("'label.y.npc' argument is neither numeric nor character")
-    }
+    z$npcy <- NA_real_
   }
 
   z
@@ -336,7 +330,10 @@ StatPolyEq <-
   ggplot2::ggproto("StatPolyEq", ggplot2::Stat,
                    compute_group = poly_eq_compute_group_fun,
                    default_aes =
-                     ggplot2::aes(label = stat(rr.label),
-                                  hjust = stat(hjust), vjust = stat(vjust)),
+                     ggplot2::aes(npcx = stat(npcx),
+                                  npcy = stat(npcy),
+                                  label = stat(rr.label),
+                                  hjust = "inward", vjust = "inward",
+                                  weight = 1),
                    required_aes = c("x", "y")
   )

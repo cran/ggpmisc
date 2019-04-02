@@ -1,6 +1,6 @@
 #' @title Filter observations by local density
 #'
-#' @description \code{stat_dens2d_filter} Filters out/filters in observations in
+#' @description \code{stat_dens2d_filter} Filters-out/filters-in observations in
 #'   regions of a plot panel with high density of observations.
 #'   \code{stat_dens2d_filter_g} does the filtering by group instead of by
 #'   panel. This second stat is useful for highlighting observations, while
@@ -160,14 +160,14 @@ dens2d_flt_compute_fun <-
     }
 
     if (is.null(n)) {
-      n = trunc(sqrt(nrow(data))) * 8L
+      n <- trunc(sqrt(nrow(data))) * 8L
     }
 
     kk <-  MASS::kde2d(
       data$x, data$y, h = h, n = n,
       lims = c(scales$x$dimension(), scales$y$dimension()))
 
-    dimnames(kk$z) <- list(kk$x,kk$y)
+    dimnames(kk$z) <- list(kk$x, kk$y)
 
     # Identify points that are in the low density regions of the plot.
     kx <- cut(data$x, kk$x, labels = FALSE, include.lowest = TRUE)

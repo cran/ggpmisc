@@ -2,11 +2,16 @@
 % Please edit documentation in R/geom-table.R
 \name{geom_table}
 \alias{geom_table}
-\title{Tables}
+\alias{geom_table_npc}
+\title{Inset tables}
 \usage{
 geom_table(mapping = NULL, data = NULL, stat = "identity",
-  position = "identity", ..., parse = FALSE, check_overlap = FALSE,
-  na.rm = FALSE, show.legend = NA, inherit.aes = TRUE)
+  position = "identity", ..., parse = FALSE, na.rm = FALSE,
+  show.legend = FALSE, inherit.aes = FALSE)
+
+geom_table_npc(mapping = NULL, data = NULL, stat = "identity",
+  position = "identity", ..., parse = FALSE, na.rm = FALSE,
+  show.legend = FALSE, inherit.aes = FALSE)
 }
 \arguments{
 \item{mapping}{The aesthetic mapping, usually constructed with
@@ -29,9 +34,6 @@ can include aesthetics whose values you want to set, not map. See
 \item{parse}{If TRUE, the labels will be parsed into expressions and
 displayed as described in ?plotmath.}
 
-\item{check_overlap}{If \code{TRUE}, text that overlaps previous text in the
-same layer will not be plotted.}
-
 \item{na.rm}{If \code{FALSE} (the default), removes missing values with a
 warning.  If \code{TRUE} silently removes missing values.}
 
@@ -46,7 +48,9 @@ default plot specification, e.g. \code{\link[ggplot2]{borders}}.}
 }
 \description{
 \code{geom_table} adds a textual table directly to the ggplot using syntax
-similar to that of \code{\link[ggplot2]{geom_label}}.
+similar to that of \code{\link[ggplot2]{geom_label}} while
+\code{geom_table_npc} is similar to \code{geom_label_npc} in that \code{x}
+and \code{y} coordinates are given in npc units.
 }
 \details{
 Note the "width" and "height" like of a text element are 0, so stacking
@@ -57,19 +61,26 @@ space they occupy on that plot is not constant in data units: when you resize
 a plot, tables stay the same size, but the size of the axes changes.
 }
 \note{
-This geom works only with tibbles as \code{data}, as it expects a list
-  of data frames or a list of tibbles to be mapped to the \code{label}
-  aesthetic. In the current version the following aesthetics affect the text
-  within the table \code{size}, \code{colour}, and \code{alpha}. The argument
-  to parameter \code{parse} is simply passed forward to
-  \code{gridExtra::ttheme_default()}. As \code{x} and \code{y} determine the
-  position of the whole table, similarly to that of a text label,
-  justification is interpreted as indicating the position of the table with
-  respect to the $x$ and $y$ coordinates in the data, and \code{angle} is
-  used to rotate the table as a whole. Other aesthetics, including
-  \code{fill} are not yet implemented, neither are themes for table
-  formatting. \strong{\code{annotate()} cannot be used with \code{geom =
-  "table"}}. Use \code{geom_table} directly also for adding annotations.
+These geoms work only with tibbles as \code{data}, as they expects a
+  list of data frames or tibbles ("tb" objects) to be mapped to the
+  \code{label} aesthetic. Aesthetics mappings in the inset plot are
+  independent of those in the base plot.
+
+  In the case of \code{geom_table()}, \code{x} and \code{y} aesthetics
+  determine the position of the whole inset table, similarly to that of a text
+  label, justification is interpreted as indicating the position of the table
+  with respect to the $x$ and $y$ coordinates in the data, and \code{angle}
+  is used to rotate the plot as a whole.
+
+  In the case of \code{geom_table_npc()}, \code{npcx} and \code{npcy} aesthetics
+  determine the position of the whole inset table, similarly to that of a text
+  label, justification is interpreted as indicating the position of the table
+  with respect to the $x$ and $y$ coordinates in "npc" units, and \code{angle}
+  is used to rotate the plot as a whole.
+
+  \strong{\code{annotate()} cannot be used with \code{geom = "table"}}. Use
+  \code{\link[ggplot2]{annotation_custom}} directly when adding inset tables
+  as annotations.
 }
 \section{Alignment}{
  You can modify table alignment with the \code{vjust} and
@@ -78,14 +89,33 @@ This geom works only with tibbles as \code{data}, as it expects a list
   "bottom", "center", "top").
 }
 
+\section{Inset size}{
+ You can modify inset table size with the \code{size}
+  aesthetics, which determines the size of text within the table.
+}
+
+\examples{
+library(dplyr)
+library(tibble)
+mtcars \%>\%
+  group_by(cyl) \%>\%
+  summarize(wt = mean(wt), mpg = mean(mpg)) \%>\%
+  ungroup() \%>\%
+  mutate(wt = sprintf("\%.2f", wt),
+         mpg = sprintf("\%.1f", mpg)) -> tb
+df <- tibble(x = 0.95, y = 0.95, tb = list(tb))
+ggplot(mtcars, aes(wt, mpg, colour = factor(cyl))) +
+  geom_point() +
+  geom_table_npc(data = df, aes(npcx = x, npcy = y, label = tb),
+                 hjust = 1, vjust = 1)
+
+}
 \references{
 This geometry is inspired on answers to two questions in
   Stackoverflow. In contrast to these earlier examples, the current geom
   obeys the grammar of graphics, and attempts to be consistent with the
   behaviour of 'ggplot2' geometries.
   \url{https://stackoverflow.com/questions/12318120/adding-table-within-the-plotting-region-of-a-ggplot-in-r}
-
-
   \url{https://stackoverflow.com/questions/25554548/adding-sub-tables-on-each-panel-of-a-facet-ggplot-in-r?}
 }
 \seealso{

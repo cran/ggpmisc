@@ -40,12 +40,11 @@
 #'   \code{stat_dens2d_labels} from this package.
 #'
 #' @references Package suite 'r4photobiology' web site at
-#' \url{https://www.r4photobiology.info/}\cr Package 'ggplot2' web site at
-#' \url{http://ggplot2.org/}\cr Package 'ggplot2' documentation at
-#' \url{http://docs.ggplot2.org/}\cr Package 'ggplot2' source code at
+#' \url{https://www.r4photobiology.info/}\cr Package 'ggplot2' documentation at
+#' \url{https://ggplot2.tidyverse.org/}\cr Package 'ggplot2' source code at
 #' \url{https://github.com/hadley/ggplot2}
 #'
-#' @import ggplot2
+#' @import scales grid ggplot2
 #' @importFrom ggplot2 ggplot
 #' @importFrom magrittr %>%
 #' @importFrom rlang .data
@@ -59,7 +58,7 @@
 #'   generate correct labels in this case.
 #'
 #' @examples
-#' library(ggplot2)
+#' library(tibble)
 #'
 #' ggplot(lynx, as.numeric = FALSE) + geom_line() +
 #' stat_peaks(colour = "red") +

@@ -4,9 +4,9 @@
 \alias{stat_fit_tidy}
 \title{One row data frame with fitted parameter estimates}
 \usage{
-stat_fit_tidy(mapping = NULL, data = NULL, geom = "null", method = "lm",
-  method.args = list(formula = y ~ x), label.x.npc = "left",
-  label.y.npc = "top", label.x = NULL, label.y = NULL,
+stat_fit_tidy(mapping = NULL, data = NULL, geom = "text_npc",
+  method = "lm", method.args = list(formula = y ~ x),
+  label.x = "left", label.y = "top", hstep = 0, vstep = NULL,
   position = "identity", na.rm = FALSE, show.legend = FALSE,
   inherit.aes = TRUE, ...)
 }
@@ -24,12 +24,12 @@ the plot defaults.}
 
 \item{method.args}{list of arguments to pass to \code{method}.}
 
-\item{label.x.npc, label.y.npc}{\code{numeric} with range 0..1 or character.
+\item{label.x, label.y}{\code{numeric} with range 0..1 or character.
 Coordinates to be used for positioning the output, expressed in "normalized
 parent coordinates" or character string. If too short they will be recycled.}
 
-\item{label.x, label.y}{\code{numeric} Coordinates (in data units) to be used
-for absolute positioning of the output. If too short they will be recycled.}
+\item{hstep, vstep}{numeric in npc units, the horizontal and vertical step
+used between labels for different groups.}
 
 \item{position}{The position adjustment to use for overlapping points on this
 layer}
@@ -52,7 +52,10 @@ can include aesthetics whose values you want to set, not map. See
 }
 \description{
 \code{stat_fit_tidy} fits a model and returns a "tidy" version
-  of the model's summary, using package 'broom'.
+  of the model's summary, using package 'broom'. To add the summary in
+  tabular form use \code{\link{stat_fit_tb}}. When using
+  \code{stat_fit_tidy()} you will most likely want to change the default
+  mapping for label.
 }
 \section{Computed variables}{
  The output of \code{\link[broom]{tidy}} is
@@ -61,3 +64,18 @@ can include aesthetics whose values you want to set, not map. See
   object has one row for each group within a panel.
 }
 
+\examples{
+
+# Regression example
+my.df <-
+  data.frame(X = c(44.4, 45.9, 41.9, 53.3, 44.7, 44.1, 50.7, 45.2, 60.1),
+             Y = c( 2.6,  3.1,  2.5,  5.0,  3.6,  4.0,  5.2,  2.8,  3.8))
+
+ggplot(my.df, aes(X, Y)) +
+  geom_point() +
+  stat_fit_tidy(method = "lm",
+                method.args = list(formula = y ~ x),
+                mapping = aes(label = sprintf("Slope = \%.3g\\np-value = \%.3g",
+                                              stat(x_estimate), stat(x_p.value))))
+
+}
