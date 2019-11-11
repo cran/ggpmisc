@@ -6,7 +6,7 @@
 \usage{
 stat_fit_glance(mapping = NULL, data = NULL, geom = "text_npc",
   method = "lm", method.args = list(formula = y ~ x),
-  label.x = "left", label.y = "top", hstep = 0, vstep = NULL,
+  label.x = "left", label.y = "top", hstep = 0, vstep = 0.075,
   position = "identity", na.rm = FALSE, show.legend = FALSE,
   inherit.aes = TRUE, ...)
 }
@@ -55,51 +55,105 @@ can include aesthetics whose values you want to set, not map. See
 \code{stat_fit_glance} fits a model and returns a summary
   "glance" of the model's statistics, using package 'broom'.
 }
-\note{
-The names of the columns in the returned data are consitent with those
+\details{
+\code{stat_fit_glance} together with \code{\link{stat_fit_tidy}}
+  and \code{\link{stat_fit_augment}}, based on package 'broom' can be used
+  with a broad range of model fitting functions as supported at any given
+  time by package 'broom'. In contrast to \code{\link{stat_poly_eq}} wich can
+  generate text or expression labels automatically, for these functions the
+  mapping of aesthetic \code{label} needs to be explicitly supplied in the
+  callm, and labels built on the fly.
+
+  A ggplot statistic receives as data a data frame that is not the one passed
+  as argument by the user, but instead a data frame with the variables mapped
+  to aesthetics. In other words, it respects the grammar of graphics and
+  consequently within arguments passed through \code{method.args} names of
+  aesthetics like $x$ and $y$ should be used intead of the original variable
+  names, while data is automatically passed the data frame. This helps ensure
+  that the model is fitted to the same data as plotted in other layers.
+}
+\section{Handling of grouping}{
+ \code{stat_fit_glance} applies the function
+  given by \code{method} separately to each group of observations, and
+  factors mapped to aesthetics generate a separate group for each factor
+  level. Because of this, \code{stat_fit_glance} is not useful for annotating
+  plots with results from \code{t.test()}, ANOVA or ANCOVA. In such cases use
+  the \code{stat_fit_tb()} statistic which applie the model fitting per
+  panel.
+}
+
+\section{Model formula required}{
+ The current implementation works only with
+  methods that accept a formula as argument and which have a \code{data}
+  parameter through which a data frame can be passed. For example,
+  \code{lm()} should be used with the formula interface, as the evaluation of
+  \code{x} and \code{y} needs to be delayed until the internal \code{object}
+  of the ggplot is available.  With some methods like \code{cor.test()} the
+  data embedded in the \code{"ggplot"} object cannot be automatically passed
+  as argument for the \code{data} parameter of the test or model fit
+  function.
+}
+
+\section{Computed variables}{
+ The output of \code{glance()} is
+  returned almost as is in the \code{data} object.
+  The names of the columns in the returned data are consitent with those
   returned by method \code{glance()} from package 'broom', that will
   frequently differ from the name of values returned by the print methods
-  corresponding to fit or test function used. With some methods like
-  \code{cor.test()} the data embedded in the \code{"ggplot"} object cannot be
-  automatically passed as argument for the \code{data} parameter of the test
-  or model fit function.
-}
-\section{Computed variables}{
- The output of \code{\link[broom]{glance}} is
-  returned as is in the \code{data} object. If you do not know what names
-  to expect for the variables returned, use \code{broom::glance()} and
-  \code{names()} or \code{print()} to find out.
-}
-
-\section{Warning!}{
- The current implementation works only with methods that
-  accept a formula as argument and which have a \code{data} paremeter through
-  which a data frame can be passed. For example, \code{lm()} should be
-  used with the formula interface, as the evaluation of \code{x} and \code{y}
-  needs to be delayed until the internal \code{object} of the ggplot is
-  available.
-
- \code{stat_fit_glance} applies the function given by
-  \code{method} separately to each group of observations, and factors mapped
-  to aesthetics generate a separate group for each factor level. Because of
-  this, it is not useful for annotating plots with results from
-  \code{t.test()} or ANOVA or ANCOVA. In such cases use the
-  \code{stat_fit_tb()} statistic which does the model fitting per panel.
+  corresponding to the fit or test function used. To explore the values
+  returned by this statistic, which vary depending on the model fitting
+  function and model formula we suggest the use of
+  \code{\link[gginnards]{geom_debug}}. An example is shown below.
 }
 
 \examples{
-# Regression example
-my.df <-
-  data.frame(X = c(44.4, 45.9, 41.9, 53.3, 44.7, 44.1, 50.7, 45.2, 60.1),
-             Y = c( 2.6,  3.1,  2.5,  5.0,  3.6,  4.0,  5.2,  2.8,  3.8))
-# We need to check the names of the returned values!
-broom::glance(lm(formula = Y ~ X, data = my.df ))
-ggplot(my.df, aes(X, Y)) +
-  geom_point() +
+library(gginnards)
+# Regression by panel example, using geom_debug.
+ggplot(mtcars, aes(x = disp, y = mpg)) +
+  stat_smooth(method = "lm") +
+  geom_point(aes(colour = factor(cyl))) +
   stat_fit_glance(method = "lm",
                   method.args = list(formula = y ~ x),
-                  aes(label = sprintf('r^2~"="~\%.3f~~italic(P)~"="~\%.2f',
-                      stat(r.squared), stat(p.value))),
+                  geom = "debug")
+
+# Regression by panel example
+ggplot(mtcars, aes(x = disp, y = mpg)) +
+  stat_smooth(method = "lm") +
+  geom_point(aes(colour = factor(cyl))) +
+  stat_fit_glance(method = "lm",
+                  label.y = "bottom",
+                  method.args = list(formula = y ~ x),
+                  mapping = aes(label = sprintf('r^2~"="~\%.3f~~italic(P)~"="~\%.2g',
+                                stat(r.squared), stat(p.value))),
+                  parse = TRUE)
+
+# Regression by group example
+ggplot(mtcars, aes(x = disp, y = mpg, colour = factor(cyl))) +
+  stat_smooth(method = "lm") +
+  geom_point() +
+  stat_fit_glance(method = "lm",
+                  label.y = "bottom",
+                  method.args = list(formula = y ~ x),
+                  mapping = aes(label = sprintf('r^2~"="~\%.3f~~italic(P)~"="~\%.2g',
+                                stat(r.squared), stat(p.value))),
+                  parse = TRUE)
+
+# Weighted regression example
+ggplot(mtcars, aes(x = disp, y = mpg, weight = cyl)) +
+  stat_smooth(method = "lm") +
+  geom_point(aes(colour = factor(cyl))) +
+  stat_fit_glance(method = "lm",
+                  label.y = "bottom",
+                  method.args = list(formula = y ~ x, weights = quote(weight)),
+                  mapping = aes(label = sprintf('r^2~"="~\%.3f~~italic(P)~"="~\%.2g',
+                                stat(r.squared), stat(p.value))),
                   parse = TRUE)
 
 }
+\seealso{
+\code{\link[broom]{broom}}
+
+Other ggplot2 statistics based on 'broom'.: \code{\link{stat_fit_augment}},
+  \code{\link{stat_fit_tb}}, \code{\link{stat_fit_tidy}}
+}
+\concept{ggplot2 statistics based on 'broom'.}

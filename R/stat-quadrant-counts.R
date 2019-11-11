@@ -38,29 +38,39 @@
 #'
 #' @details This stat can be used to automatically count observations in each of
 #'   the four quadrants of a plot, and by default add these counts as text
-#'   labels.
-#'
-#' @section Computed variables: Data frame with one to four rows, one for each
-#'   quadrant for which observations are present in \code{data}. \describe{
-#'   \item{quadrant}{integer, one of 0:4} \item{x}{extreme x value in the
-#'   quadrant} \item{y}{extreme y value in the quadrant} \item{count}{number of
-#'   observations} }
-#'
-#' @note Values exactly equal to zero are counted as belonging to the positve
+#'   labels. Values exactly equal to zero are counted as belonging to the positve
 #'   quadrant. An argument value of zero, passed to formal parameter
 #'   \code{quadrants} is interpreted as a request for the count of all
-#'   observations in each plot panel. By default, which quadrants to compute
-#'   counts for is decided based on which quadrants are expected to be visible
-#'   in the plot. In the current implementation, the default positions of the
-#'   labels is based on the range of the coordinates in a given panel.
-#'   Consequently, when using facets even with free limits for x and y axes, the
-#'   location of the labels will be consistent accross panels. This is achieved
-#'   by use of \code{geom = "text_npc"} or \code{geom = "label_npc"}. To pass
-#'   the positions in native data units, pass \code{geom = "text"} explicitly as
-#'   argument, or labels will be positioned relative to the data range in each
-#'   panel.
+#'   observations in each plot panel.
+#'
+#'   The default origin of quadrants is at \code{xintercept = 0},
+#'   \code{yintercept = 0}. Alsoby default, counts are computed for all quadrants
+#'   within the $x$ and $y$ scale limits, but ignoring any marginal scale
+#'   expansion. The default positions of the labels is in the farthest corner or
+#'   edge of each quadrant using npc coordinates. Consequently, when using
+#'   facets even with free limits for $x$ and $y$ axes, the location of the labels
+#'   is consistent across panels. This is achieved by use of
+#'   \code{geom = "text_npc"} or \code{geom = "label_npc"}. To pass the positions in native
+#'   data units, pass \code{geom = "text"} explicitly as argument.
+#'
+#' @section Computed variables: Data frame with one to four rows, one for each
+#'   quadrant for which counts are counted in \code{data}. \describe{
+#'   \item{quadrant}{integer, one of 0:4} \item{x}{x value of label position in
+#'   data units} \item{y}{y value of label position in data units} \item{npcx}{x
+#'   value of label position in npc units} \item{npcy}{y value of label position
+#'   in npc units} \item{count}{number of  observations} }.
+#'
+#'   As shown in one example below \code{\link[gginnards]{geom_debug}} can be
+#'   used to print the computed values returned by any statistic. The output
+#'   shown includes also values mapped to aesthetics, like \code{label} in the
+#'   example.
+#'
+#' @family Functions for quadrant and volcano plots
+#'
+#' @export
 #'
 #' @examples
+#' library(gginnards)
 #' # generate artificial data
 #' set.seed(4321)
 #' x <- 1:100
@@ -71,23 +81,28 @@
 #'   geom_point() +
 #'   stat_quadrant_counts()
 #'
+#' # We use geom_debug() to see the computed values
+#' ggplot(my.data, aes(x, y)) +
+#'   geom_point() +
+#'   stat_quadrant_counts(geom = "debug")
+#'
 #' ggplot(my.data, aes(x, y)) +
 #'   geom_point() +
 #'   stat_quadrant_counts(aes(label = sprintf("%i observations", stat(count)))) +
 #'   expand_limits(y = 12.7)
 #'
 #' ggplot(my.data, aes(x, y)) +
-#'   geom_hline(yintercept = 10, colour = "blue") +
-#'   geom_vline(xintercept = 50, colour = "blue") +
-#'   geom_point() +
+#'   geom_quadrant_lines(colour = "blue", xintercept = 50, yintercept = 10) +
 #'   stat_quadrant_counts(colour = "blue", xintercept = 50, yintercept = 10) +
+#'   geom_point() +
 #'   scale_y_continuous(expand = expand_scale(mult = 0.15, add = 0))
 #'
 #' ggplot(my.data, aes(x, y)) +
-#'   geom_hline(yintercept = 10, colour = "blue") +
-#'   geom_point() +
+#'   geom_quadrant_lines(colour = "blue",
+#'                        pool.along = "x", yintercept = 10) +
 #'   stat_quadrant_counts(colour = "blue", label.x = "right",
 #'                        pool.along = "x", yintercept = 10) +
+#'   geom_point() +
 #'   expand_limits(y = c(7, 13))
 #'
 #' ggplot(my.data, aes(x, y)) +
@@ -96,23 +111,16 @@
 #'
 #' ggplot(my.data, aes(x, y)) +
 #'   geom_point() +
-#'   stat_quadrant_counts(geom = "label_npc", quadrants = 0,
-#'                        label.x = "left", label.y = "bottom")
-#'
-#' ggplot(my.data, aes(x, y)) +
-#'   geom_point() +
-#'   stat_quadrant_counts(geom = "text") # use "text_npc" instead
-#'
-#' @export
+#'   stat_quadrant_counts(geom = "text") # use "tex" instead
 #'
 stat_quadrant_counts <- function(mapping = NULL, data = NULL, geom = "text_npc",
-                                position = "identity",
-                                quadrants = NULL,
-                                pool.along = "none",
-                                xintercept = 0, yintercept = 0,
-                                label.x = NULL, label.y = NULL,
-                                na.rm = FALSE, show.legend = FALSE,
-                                inherit.aes = TRUE, ...) {
+                                 position = "identity",
+                                 quadrants = NULL,
+                                 pool.along = "none",
+                                 xintercept = 0, yintercept = 0,
+                                 label.x = NULL, label.y = NULL,
+                                 na.rm = FALSE, show.legend = FALSE,
+                                 inherit.aes = TRUE, ...) {
   ggplot2::layer(
     stat = StatQuadrantCounts, data = data, mapping = mapping, geom = geom,
     position = position, show.legend = show.legend, inherit.aes = inherit.aes,

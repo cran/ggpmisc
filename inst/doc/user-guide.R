@@ -111,6 +111,15 @@ ggplot() +
  theme_bw(12)
 
 ## ------------------------------------------------------------------------
+ggplot(mpg, aes(displ, hwy, colour = factor(cyl))) +
+  geom_vhlines(xintercept = c(2.75, 4), yintercept = 27, linetype = "dashed") +
+  geom_point() +
+  labs(x = "Engine displacement (l)", y = "Fuel use efficiency (MPG)",
+       colour = "Engine cylinders\n(number)") +
+  theme_bw()
+
+
+## ------------------------------------------------------------------------
 file.name <- 
   system.file("extdata", "Robinin.png", 
               package = "ggpmisc", mustWork = TRUE)
@@ -208,17 +217,16 @@ my.data <- data.frame(x,
 
 ## ------------------------------------------------------------------------
 ggplot(my.data, aes(x, y)) +
-  geom_hline(yintercept = 0, colour = "red") +
-  geom_vline(xintercept = 0, colour = "red") +
+  geom_quadrant_lines(colour = "red") +
+  stat_quadrant_counts(colour = "red") +
   geom_point() +
-  expand_limits(y = c(-250, 250)) +
-  stat_quadrant_counts(colour = "red")
+  expand_limits(y = c(-250, 250))
 
 ## ------------------------------------------------------------------------
 ggplot(my.data, aes(x, y)) +
-  geom_hline(yintercept = 0, colour = "red") +
-  geom_point() +
-  stat_quadrant_counts(colour = "red", pool.along = "x")
+  geom_quadrant_lines(colour = "red", pool.along = "x") +
+  stat_quadrant_counts(colour = "red", pool.along = "x") +
+  geom_point()
 
 ## ------------------------------------------------------------------------
 ggplot(my.data, aes(x, y)) +
@@ -228,17 +236,15 @@ ggplot(my.data, aes(x, y)) +
 
 ## ------------------------------------------------------------------------
 ggplot(my.data, aes(x, y)) +
-  geom_hline(yintercept = 0, colour = "red") +
-  geom_vline(xintercept = 0, colour = "red") +
-  geom_point() +
-  stat_quadrant_counts(colour = "red", quadrants = c(2, 4))
+  geom_quadrant_lines(colour = "red") +
+  stat_quadrant_counts(colour = "red", quadrants = c(2, 4)) +
+  geom_point()
 
 ## ------------------------------------------------------------------------
 ggplot(my.data, aes(x, y, colour = group)) +
-  geom_hline(yintercept = 0) +
-  geom_vline(xintercept = 0) +
+  geom_quadrant_lines() +
+  stat_quadrant_counts(geom = "label_npc") +
   geom_point() +
-  stat_quadrant_counts(hjust = "inward", geom = "label_npc") +
   expand_limits(y = c(-260, 260)) +
   facet_wrap(~group)
 
@@ -808,6 +814,94 @@ try_tibble(data.frame(x = rep(1,5), y = 1:5))
 
 ## ------------------------------------------------------------------------
 try_tibble(matrix(1:10, ncol = 2))
+
+## ------------------------------------------------------------------------
+head(volcano_example.df) 
+
+## ------------------------------------------------------------------------
+volcano_example.df %>%
+  mutate(., outcome.fct = outcome2factor(outcome)) %>%
+  ggplot(., aes(logFC, PValue, colour = outcome.fct)) +
+  geom_point() +
+  scale_x_logFC(name = "Transcript abundance%unit") +
+  scale_y_Pvalue() +
+  scale_colour_outcome() +
+  stat_quadrant_counts(data = . %>% filter(outcome != 0))
+
+## ------------------------------------------------------------------------
+volcano_example.df %>%
+  mutate(., outcome.fct = outcome2factor(outcome, n.levels = 2)) %>%
+  ggplot(., aes(logFC, PValue, colour = outcome.fct)) +
+  geom_point() +
+  scale_x_logFC(name = "Transcript abundance%unit") +
+  scale_y_Pvalue() +
+  scale_colour_outcome() +
+  stat_quadrant_counts(data = . %>% filter(outcome != 0))
+
+## ------------------------------------------------------------------------
+head(quadrant_example.df)
+
+## ------------------------------------------------------------------------
+quadrant_example.df %>%
+  mutate(.,
+         outcome.x.fct = outcome2factor(outcome.x),
+         outcome.y.fct = outcome2factor(outcome.y),
+         outcome.xy.fct = xy_outcomes2factor(outcome.x, outcome.y)) %>%
+         filter(outcome.xy.fct != "none") %>%
+  ggplot(., aes(logFC.x, logFC.y, colour = outcome.x.fct, fill = outcome.y.fct)) +
+  geom_quadrant_lines(linetype = "dotted") +
+  stat_quadrant_counts(size = 3, colour = "white") +
+  geom_point(shape = "circle filled") +
+  scale_x_logFC(name = "Transcript abundance for x%unit") +
+  scale_y_logFC(name = "Transcript abundance for y%unit") +
+  scale_colour_outcome() +
+  scale_fill_outcome() +
+  theme_dark()
+
+## ------------------------------------------------------------------------
+all_quadrant_counts <- function(...) {
+  list(  
+    stat_quadrant_counts(data = . %>% filter(outcome.xy.fct == "xy"), ...),
+    stat_quadrant_counts(data = . %>% filter(outcome.xy.fct == "x"), pool.along = "y", ...),
+    stat_quadrant_counts(data = . %>% filter(outcome.xy.fct == "y"), pool.along = "x", ...),
+    stat_quadrant_counts(data = . %>% filter(outcome.xy.fct == "none"), quadrants = 0L, ...)
+  )
+}
+
+## ------------------------------------------------------------------------
+all_quadrant_lines <- function(...) { 
+  list(
+    geom_hline(data =  data.frame(outcome.xy.fct = factor(c("xy", "x", "y", "none"),
+                                                          levels = c("xy", "x", "y", "none")),
+                                  yintercept = c(0, NA, 0, NA)),
+               aes_(yintercept = ~yintercept),
+               na.rm = TRUE,
+               ...),
+    geom_vline(data =  data.frame(outcome.xy.fct = factor(c("xy", "x", "y", "none"),
+                                                          levels = c("xy", "x", "y", "none")),
+                                  xintercept = c(0, 0, NA, NA)),
+               aes_(xintercept = ~xintercept),
+               na.rm = TRUE,
+               ...)
+  )
+}
+
+## ------------------------------------------------------------------------
+quadrant_example.df %>%
+  mutate(.,
+         outcome.x.fct = outcome2factor(outcome.x),
+         outcome.y.fct = outcome2factor(outcome.y),
+         outcome.xy.fct = xy_outcomes2factor(outcome.x, outcome.y)) %>%
+  ggplot(., aes(logFC.x, logFC.y, colour = outcome.x.fct, fill = outcome.y.fct)) +
+  geom_point(shape = 21) +
+  all_quadrant_lines(linetype = "dotted") +
+  all_quadrant_counts(size = 3, colour = "white") +
+  scale_x_logFC(name = "Transcript abundance for x%unit") +
+  scale_y_logFC(name = "Transcript abundance for y%unit") +
+  scale_colour_outcome() +
+  scale_fill_outcome() +
+  facet_wrap(~outcome.xy.fct) +
+  theme_dark()
 
 ## ------------------------------------------------------------------------
 make_data_tbl <- function(nrow = 100, rfun = rnorm, ...) {

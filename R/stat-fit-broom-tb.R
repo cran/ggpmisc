@@ -9,7 +9,7 @@
 #' @param mapping The aesthetic mapping, usually constructed with
 #'   \code{\link[ggplot2]{aes}} or \code{\link[ggplot2]{aes_}}. Only needs to be
 #'   set at the layer level if you are overriding the plot defaults.
-#' @param data A layer specific dataset - only needed if you want to override
+#' @param data A layer specific dataset, only needed if you want to override
 #'   the plot defaults.
 #' @param geom The geometric object to use display the data
 #' @param position The position adjustment to use for overlapping points on this
@@ -39,29 +39,99 @@
 #' @param label.x,label.y \code{numeric} Coordinates (in data units) to be used
 #'   for absolute positioning of the output. If too short they will be recycled.
 #'
-#' @section Computed variables: The output of \code{\link[broom]{tidy}} is
+#' @details \code{stat_fit_tb} Applies a model fitting function per panel,
+#'   using the grouping factors from easthetic mappings in the fitted model.
+#'   This is suitable, for example for analysis of variance used to test for
+#'   differences among groups.
+#'
+#'   The argument to \code{method} can be any fit method for which a
+#'   suitable \code{tidy()} method is available, including non-linear
+#'   regression. Fit methods retain their default arguments unless orverridden.
+#'
+#'   A ggplot statistic receives as data a data frame that is not the one passed
+#'   as argument by the user, but instead a data frame with the variables mapped
+#'   to aesthetics. In other words, it respects the grammar of graphics and
+#'   consequently within arguments passed through \code{method.args} names of
+#'   aesthetics like $x$ and $y$ should be used intead of the original variable
+#'   names, while data is automatically passed the data frame. This helps ensure
+#'   that the model is fitted to the same data as plotted in other layers.
+#'
+#' @section Computed variables: The output of \code{tidy()} is
 #'   returned as a single "cell" in a tibble (i.e. a tibble nested within a
 #'   tibble). The returned \code{data} object contains a single, containing the
 #'   result from a single model fit to all data in a panel. If grouping is
 #'   present, it is ignored.
 #'
-#' @seealso \code{\link[broom]{tidy}} for details on how the tidying of the
+#'   To explore the values returned by this statistic, which vary depending
+#'   on the model fitting function and model formula we suggest the use of
+#'   \code{\link[gginnards]{geom_debug}}. An example is shown below.
+#'
+#' @seealso \code{\link[broom]{broom}} for details on how the tidying of the
 #'   resulst of model fits is done. See \code{\link{geom_table}} for details
 #'   on how the formating and location of the table can be adjusted.
+#'
+#' @family ggplot2 statistics based on 'broom'.
 #'
 #' @export
 #'
 #' @examples
-#' library(ggplot2)
-#' # t-test example
+#' library(gginnards)
+#' # data for examples
 #' x <- c(44.4, 45.9, 41.9, 53.3, 44.7, 44.1, 50.7, 45.2, 60.1)
+#' covariate <- sqrt(x) + rnorm(9)
 #' group <- factor(c(rep("A", 4), rep("B", 5)))
-#' my.df <- data.frame(x, group)
+#' my.df <- data.frame(x, group, covariate)
 #'
+#' # Linear regression
+#' ggplot(my.df, aes(covariate, x)) +
+#'   geom_point() +
+#'   stat_fit_tb() +
+#'   expand_limits(y = 70)
+#'
+#' # Linear regression
+#' ggplot(my.df, aes(covariate, x)) +
+#'   geom_point() +
+#'   stat_fit_tb(geom = "debug") +
+#'   expand_limits(y = 70)
+#'
+#' # Polynomial regression
+#' ggplot(my.df, aes(covariate, x)) +
+#'   geom_point() +
+#'   stat_fit_tb(method.args = list(formula = y ~ poly(x, 2))) +
+#'   expand_limits(y = 70)
+#'
+#' # ANOVA
+#' ggplot(my.df, aes(group, x)) +
+#'   geom_point() +
+#'   stat_fit_tb() +
+#'   expand_limits(y = 70)
+#'
+#' # ANOVA with renamed and selected columns
+#' ggplot(my.df, aes(group, x)) +
+#'   geom_point() +
+#'   stat_fit_tb(tb.vars = c(Effect = "term", "italic(F)" = "statistic", "italic(P)" = "p.value"),
+#'               parse = TRUE)
+#'
+#' # ANCOVA (covariate not plotted)
+#' ggplot(my.df, aes(group, x, z = covariate)) +
+#'   geom_point() +
+#'   stat_fit_tb(method.args = list(formula = y ~ x + z),
+#'               tb.vars = c(Effect = "term", "italic(F)" = "statistic", "italic(P)" = "p.value"),
+#'               parse = TRUE)
+#'
+#' # t-test
 #' ggplot(my.df, aes(group, x)) +
 #'   geom_point() +
 #'   stat_fit_tb(method = "t.test",
-#'               tb.vars = c("italic(t)" = "estimate", "italic(P)" = "p.value"),
+#'               tb.vars = c("italic(t)" = "statistic", "italic(P)" = "p.value"),
+#'               parse = TRUE)
+#'
+#' # t-test (equal variances assumed)
+#' ggplot(my.df, aes(group, x)) +
+#'   geom_point() +
+#'   stat_fit_tb(method = "t.test",
+#'               method.args = list(formula = y ~ x, var.equal = TRUE),
+#'               tb.vars = c("italic(t)" = "statistic", "italic(P)" = "p.value"),
 #'               parse = TRUE)
 #'
 stat_fit_tb <- function(mapping = NULL, data = NULL, geom = "table_npc",
@@ -163,19 +233,39 @@ fit_tb_compute_panel_fun <- function(data,
 
   if (npc.used) {
     margin.npc = 0.05
-    npc.positions <- c(right = 1 - margin.npc,
-                       left = 0 + margin.npc,
-                       centre = 0.5,
-                       center = 0.5,
-                       middle = 0.5,
-                       top = 1 - margin.npc,
-                       bottom = 0 + margin.npc)
-    if (is.character(label.x)) {
-      label.x <- npc.positions[label.x]
+  } else {
+    margin.npc = 0
+  }
+
+  if (is.character(label.x)) {
+    label.x <- switch(label.x,
+                      right = (1 - margin.npc),
+                      center = 0.5,
+                      centre = 0.5,
+                      middle = 0.5,
+                      left = (0 + margin.npc)
+    )
+    if (!npc.used) {
+      x.delta <- abs(diff(range(data$x)))
+      x.min <- min(data$x)
+      label.x <- label.x * x.delta + x.min
     }
-    if (is.character(label.y)) {
-      label.y <- npc.positions[label.y]
-    }
+  }
+  if (is.character(label.y)) {
+    label.y <- switch(label.y,
+                      top = (1 - margin.npc),
+                      center = 0.5,
+                      centre = 0.5,
+                      middle = 0.5,
+                      bottom = (0 + margin.npc)
+    )
+    if (!npc.used) {
+        y.delta <- abs(diff(range(data$y)))
+        y.min <- min(data$y)
+        label.y <- label.y * y.delta + y.min
+      }
+  }
+  if (npc.used) {
     z$npcx <- label.x
     z$x <- NA_real_
     z$npcy <- label.y
@@ -186,6 +276,7 @@ fit_tb_compute_panel_fun <- function(data,
     z$y <- label.y
     z$npcy <- NA_real_
   }
+
   z
 }
 

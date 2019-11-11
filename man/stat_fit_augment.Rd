@@ -53,18 +53,107 @@ can include aesthetics whose values you want to set, not map. See
 \code{stat_fit_augment} fits a model and returns the data
   augmented with information from the fitted model, using package 'broom'.
 }
+\details{
+\code{stat_fit_augment} together with \code{\link{stat_fit_glance}}
+  and \code{\link{stat_fit_tidy}}, based on package 'broom' can be used
+  with a broad range of model fitting functions as supported at any given
+  time by 'broom'. In contrast to \code{\link{stat_poly_eq}} wich can
+  generate text or expression labels automatically, for these functions the
+  mapping of aesthetic \code{label} needs to be explicitly supplied in the
+  call, and labels built on the fly.
+
+  A ggplot statistic receives as data a data frame that is not the one passed
+  as argument by the user, but instead a data frame with the variables mapped
+  to aesthetics. In other words, it respects the grammar of graphics and
+  consequently within arguments passed through \code{method.args} names of
+  aesthetics like $x$ and $y$ should be used intead of the original variable
+  names, while data is automatically passed the data frame. This helps ensure
+  that the model is fitted to the same data as plotted in other layers.
+}
 \note{
-The statistics \code{stat_fit_augment} accepts only \code{methods} that
+The statistic \code{stat_fit_augment} can be used only with \code{methods} that
   accept formulas under any formal parameter name and a \code{data} argument.
   Use \code{ggplot2::stat_smooth()} instead of \code{stat_fit_augment} in
-  production code if the additional features are not needed. At the moment
-  \code{stat_fit_augment} is under development and may change.
+  production code if the additional features are not needed.
 }
+\section{Handling of grouping}{
+ \code{stat_fit_augment} applies the function
+  given by \code{method} separately to each group of observations; in ggplot2
+  factors mapped to aesthetics generate a separate group for each level.
+  Because of this, \code{stat_fit_augment} is not useful for annotating plots
+  with results from \code{t.test()} or ANOVA or ANCOVA. In such cases use
+  instead \code{stat_fit_tb()} which applies the model fitting per panel.
+}
+
 \section{Computed variables}{
- The output of \code{\link[broom]{augment}} is
+ The output of \code{augment()} is
   returned as is, except for \code{y} which is set based on \code{y.out} and
   \code{y.observed} which preserves the \code{y} returned by the
   \code{broom::augment} methods. This renaming is needed so that the geom
   works as expected.
+
+  To explore the values returned by this statistic, which vary depending
+  on the model fitting function and model formula we suggest the use of
+  \code{\link[gginnards]{geom_debug}}. An example is shown below.
 }
 
+\examples{
+library(gginnards)
+# Regression by panel, using geom_debug() to explore computed variables
+ggplot(mtcars, aes(x = disp, y = mpg)) +
+  geom_point(aes(colour = factor(cyl))) +
+  stat_fit_augment(method = "lm",
+                   method.args = list(formula = y ~ x),
+                   geom = "debug",
+                   summary.fun = colnames)
+
+# Regression by panel example
+ggplot(mtcars, aes(x = disp, y = mpg)) +
+  geom_point(aes(colour = factor(cyl))) +
+  stat_fit_augment(method = "lm",
+                   method.args = list(formula = y ~ x))
+
+# Residuals from regression by panel example
+ggplot(mtcars, aes(x = disp, y = mpg)) +
+  geom_hline(yintercept = 0, linetype = "dotted") +
+  stat_fit_augment(geom = "point",
+                   method = "lm",
+                   method.args = list(formula = y ~ x),
+                   y.out = ".resid")
+
+# Regression by group example
+ggplot(mtcars, aes(x = disp, y = mpg, colour = factor(cyl))) +
+  geom_point() +
+  stat_fit_augment(method = "lm",
+                   method.args = list(formula = y ~ x))
+
+# Residuals from regression by group example
+ggplot(mtcars, aes(x = disp, y = mpg, colour = factor(cyl))) +
+  geom_hline(yintercept = 0, linetype = "dotted") +
+  stat_fit_augment(geom = "point",
+                   method.args = list(formula = y ~ x),
+                   y.out = ".resid")
+
+# Weighted regression example
+ggplot(mtcars, aes(x = disp, y = mpg, weight = cyl)) +
+  geom_point(aes(colour = factor(cyl))) +
+  stat_fit_augment(method = "lm",
+                   method.args = list(formula = y ~ x,
+                                 weights = quote(weight)))
+
+# Residuals from weighted regression example
+ggplot(mtcars, aes(x = disp, y = mpg, weight = cyl)) +
+  geom_hline(yintercept = 0, linetype = "dotted") +
+  stat_fit_augment(geom = "point",
+                   method.args = list(formula = y ~ x,
+                                 weights = quote(weight)),
+                   y.out = ".resid")
+
+}
+\seealso{
+\code{\link[broom]{broom}}
+
+Other ggplot2 statistics based on 'broom'.: \code{\link{stat_fit_glance}},
+  \code{\link{stat_fit_tb}}, \code{\link{stat_fit_tidy}}
+}
+\concept{ggplot2 statistics based on 'broom'.}
