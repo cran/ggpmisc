@@ -4,9 +4,18 @@
 \alias{stat_fit_deviations}
 \title{Residuals from model fit as segments}
 \usage{
-stat_fit_deviations(mapping = NULL, data = NULL, geom = "segment",
-  method = "lm", formula = NULL, position = "identity",
-  na.rm = FALSE, show.legend = FALSE, inherit.aes = TRUE, ...)
+stat_fit_deviations(
+  mapping = NULL,
+  data = NULL,
+  geom = "segment",
+  method = "lm",
+  formula = NULL,
+  position = "identity",
+  na.rm = FALSE,
+  show.legend = FALSE,
+  inherit.aes = TRUE,
+  ...
+)
 }
 \arguments{
 \item{mapping}{The aesthetic mapping, usually constructed with
@@ -69,9 +78,9 @@ For linear models \code{x1} is equal to \code{x2}.
 \section{Computed variables}{
  Data frame with same \code{nrow} as \code{data}
   as subset for each group containing five numeric variables. \describe{
-  \item{x}{x coordinates of observations} \item{y.fitted}{x coordinates of fitted
-  values} \item{y}{y coordinates of observations} \item{y.fitted}{y coordinates of
-  fitted values}}
+  \item{x}{x coordinates of observations} \item{y.fitted}{x coordinates of
+  fitted values} \item{y}{y coordinates of observations} \item{y.fitted}{y
+  coordinates of fitted values}}
 
   To explore the values returned by this statistic we suggest the use of
   \code{\link[gginnards]{geom_debug}}. An example is shown below, where one
@@ -105,7 +114,8 @@ ggplot(my.data, aes(x, y)) +
 
 }
 \seealso{
-Other statistics for linear model fits: \code{\link{stat_fit_residuals}},
-  \code{\link{stat_poly_eq}}
+Other statistics for linear model fits: 
+\code{\link{stat_fit_residuals}()},
+\code{\link{stat_poly_eq}()}
 }
 \concept{statistics for linear model fits}

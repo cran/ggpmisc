@@ -1,4 +1,4 @@
-## ---- include=FALSE, echo=FALSE------------------------------------------
+## ---- include=FALSE, echo=FALSE-----------------------------------------------
 library(knitr)
 opts_chunk$set(fig.align = 'center', 
                fig.show = 'hold', fig.width = 7, fig.height = 4)
@@ -6,7 +6,7 @@ options(warnPartialMatchArgs = FALSE,
         tibble.print.max = 4,
         tibble.print.min = 4)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 library(ggpmisc)
 library(ggrepel)
 library(xts)
@@ -15,17 +15,17 @@ library(tibble)
 library(dplyr)
 library(nlme)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 old_theme <- theme_set(theme_bw())
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 class(lynx)
 ggplot(lynx) + geom_line()
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 ggplot(lynx, as.numeric = FALSE) + geom_line()
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 tb <- mpg %>%
   group_by(cyl) %>%
   summarise(hwy = median(hwy), cty = median(cty))
@@ -34,10 +34,10 @@ ggplot(mpg, aes(displ, hwy, colour = factor(cyl))) +
   geom_table(data = data.tb, aes(x, y, label = tb)) +
   geom_point() 
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 ggplot(mpg, aes(displ, hwy, colour = factor(cyl))) +
   geom_table(data = data.tb, aes(x, y, label = tb),
-             size = 3, colour = "dark blue",
+             size = 3, colour = "darkblue",
              stat = "fmt_tb", tb.vars = c(Cylinders = "cyl", "MPG" = "hwy")) +
   labs(x = "Engine displacement (l)", y = "Fuel use efficiency (MPG)",
        colour = "Engine cylinders\n(number)") +
@@ -45,7 +45,7 @@ ggplot(mpg, aes(displ, hwy, colour = factor(cyl))) +
   theme_bw()
 
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 tb.pm <- tibble(Parameter = c("frac(beta[1], a^2)", "frac(beta[2], a^3)"),
                 Value = c("10^2.4", "10^3.532"))
 data.tb <- tibble(x = 7, y = 44, tb = list(tb.pm))
@@ -54,7 +54,7 @@ ggplot(mpg, aes(displ, cty)) +
   geom_table(data = data.tb, aes(x, y, label = tb), parse = TRUE) +
   theme_bw()
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 p <- ggplot(mpg, aes(displ, hwy, colour = factor(cyl))) +
   geom_point() 
 
@@ -72,7 +72,7 @@ ggplot(mpg, aes(displ, hwy, colour = factor(cyl))) +
            linetype = "dotted", fill = NA, colour = "black") +
   geom_point() 
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 p <- ggplot(mpg, aes(factor(cyl), hwy, fill = factor(cyl))) +
   stat_summary(geom = "col", fun.y = mean, width = 2/3) +
   labs(x = "Number of cylinders", y = NULL, title = "Means") +
@@ -89,7 +89,7 @@ ggplot(mpg, aes(displ, hwy, colour = factor(cyl))) +
        colour = "Engine cylinders\n(number)") +
   theme_bw()
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 file.name <- 
   system.file("extdata", "Isoquercitin.png", 
               package = "ggpmisc", mustWork = TRUE)
@@ -110,7 +110,7 @@ ggplot() +
   scale_x_continuous(expand = expand_scale(mult = 0.2, add = 0)) +
  theme_bw(12)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 ggplot(mpg, aes(displ, hwy, colour = factor(cyl))) +
   geom_vhlines(xintercept = c(2.75, 4), yintercept = 27, linetype = "dashed") +
   geom_point() +
@@ -119,7 +119,7 @@ ggplot(mpg, aes(displ, hwy, colour = factor(cyl))) +
   theme_bw()
 
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 file.name <- 
   system.file("extdata", "Robinin.png", 
               package = "ggpmisc", mustWork = TRUE)
@@ -134,21 +134,21 @@ ggplot(data.tb, aes(x, y)) +
   geom_point() +
   expand_limits(y = 45, x = 0)
 
-## ------------------------------------------------------------------------
-logo.tb <- tibble(x = 0.02,
-                  y = 0.95,
-                  width = 2/3,
-                  height = 1/4,
-                  grob = list(grid::rasterGrob(image = Robinin)))
+## -----------------------------------------------------------------------------
+flavo.tb <- tibble(x = 0.02,
+                   y = 0.95,
+                   width = 1/2,
+                   height = 1/4,
+                   grob = list(grid::rasterGrob(image = Robinin)))
 
 ggplot(data.tb, aes(x, y)) +
-  geom_grob_npc(data = logo.tb, 
+  geom_grob_npc(data = flavo.tb, 
                 aes(label = grob, npcx = x, npcy = y, 
                     vp.width = width, vp.height = height)) +
   geom_point() +
   expand_limits(y = 55, x = 0)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 corner_letters.tb <- tibble(label = LETTERS[1:4],
                             x = "left", 
                             y = "top",
@@ -162,7 +162,7 @@ ggplot(mpg, aes(displ, hwy)) +
   theme(strip.background = element_blank(),
         strip.text.x = element_blank())
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 data.tb <- mpg %>%
   group_by(cyl) %>%
   summarise(hwy = median(hwy), displ = median(displ))
@@ -172,14 +172,14 @@ ggplot(mpg, aes(displ, hwy, colour = factor(cyl))) +
   expand_limits(y = 10) +
   geom_point() 
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 ggplot(lynx, as.numeric = FALSE) + geom_line() + 
   stat_peaks(colour = "red") +
   stat_peaks(geom = "text", colour = "red", vjust = -0.5, 
              check_overlap = TRUE) +
   ylim(-100, 7300)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 ggplot(lynx) + geom_line() + 
   stat_peaks(colour = "red") +
   stat_peaks(geom = "text", colour = "red", hjust = -0.2, vjust = 0.5, 
@@ -189,7 +189,7 @@ ggplot(lynx) + geom_line() +
              angle = 90, check_overlap = TRUE) +
   expand_limits(y = c(-900, 8000))
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 ggplot(lynx, as.numeric = FALSE) + geom_line() + 
   stat_peaks(colour = "red") +
   stat_peaks(geom = "text", colour = "red", hjust = -0.2, vjust = 0.5, 
@@ -199,14 +199,14 @@ ggplot(lynx, as.numeric = FALSE) + geom_line() +
              angle = 90, check_overlap = TRUE, x.label.fmt = "%Y") +
   expand_limits(y = c(-900, 8000))
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 ggplot(lynx, as.numeric = FALSE) + geom_line() + 
   stat_peaks(colour = "red") +
   stat_peaks(geom = "rug", colour = "red") +
   stat_valleys(colour = "blue") +
   stat_valleys(geom = "rug", colour = "blue")
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 set.seed(4321)
 # generate artificial data
 x <- -99:100
@@ -215,32 +215,32 @@ my.data <- data.frame(x,
                       y, 
                       group = c("A", "B"))
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 ggplot(my.data, aes(x, y)) +
   geom_quadrant_lines(colour = "red") +
   stat_quadrant_counts(colour = "red") +
   geom_point() +
   expand_limits(y = c(-250, 250))
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 ggplot(my.data, aes(x, y)) +
   geom_quadrant_lines(colour = "red", pool.along = "x") +
   stat_quadrant_counts(colour = "red", pool.along = "x") +
   geom_point()
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 ggplot(my.data, aes(x, y)) +
   geom_point() +
   stat_quadrant_counts(quadrants = 0L, label.x = "left", 
                        aes(label = sprintf("%i observations", stat(count))))
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 ggplot(my.data, aes(x, y)) +
   geom_quadrant_lines(colour = "red") +
   stat_quadrant_counts(colour = "red", quadrants = c(2, 4)) +
   geom_point()
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 ggplot(my.data, aes(x, y, colour = group)) +
   geom_quadrant_lines() +
   stat_quadrant_counts(geom = "label_npc") +
@@ -248,7 +248,7 @@ ggplot(my.data, aes(x, y, colour = group)) +
   expand_limits(y = c(-260, 260)) +
   facet_wrap(~group)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 set.seed(4321)
 # generate artificial data
 x <- 1:100
@@ -260,14 +260,14 @@ my.data <- data.frame(x,
                       block = c("a", "a", "b", "b"),
                       wt = sqrt(x))
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 formula <- y ~ poly(x, 3, raw = TRUE)
 ggplot(my.data, aes(x, y)) +
   geom_point() +
   stat_smooth(method = "lm", formula = formula) +
   stat_poly_eq(formula = formula, parse = TRUE)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 formula <- y ~ poly(x, 3, raw = TRUE)
 ggplot(my.data, aes(x, y)) +
   geom_point() +
@@ -280,7 +280,7 @@ ggplot(my.data, aes(x, y)) +
                parse = TRUE)
 
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 formula <- y ~ poly(x, 3, raw = TRUE)
 ggplot(my.data, aes(x, y)) +
   geom_point() +
@@ -288,7 +288,7 @@ ggplot(my.data, aes(x, y)) +
   stat_poly_eq(aes(label = ..eq.label..), formula = formula, 
                parse = TRUE)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 formula <- y ~ poly(x, 3, raw = TRUE)
 ggplot(my.data, aes(x, y)) +
   geom_point() +
@@ -296,7 +296,7 @@ ggplot(my.data, aes(x, y)) +
   stat_poly_eq(aes(label =  paste(..eq.label.., ..adj.rr.label.., sep = "~~~~~~")),
                formula = formula, parse = TRUE)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 formula <- y ~ poly(x, 3, raw = TRUE)
 ggplot(my.data, aes(x, y)) +
   geom_point() +
@@ -306,7 +306,7 @@ ggplot(my.data, aes(x, y)) +
                                   sep = "*\",\"~~")),
                formula = formula, parse = TRUE, size = 3.5)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 formula <- y ~ poly(x, 3, raw = TRUE)
 ggplot(my.data, aes(x, y)) +
   geom_point() +
@@ -315,7 +315,7 @@ ggplot(my.data, aes(x, y)) +
                                   sep = "~~italic(\"with\")~~")),
                formula = formula, parse = TRUE)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 formula <- y ~ poly(x, 3, raw = TRUE)
 ggplot(my.data, aes(x, y)) +
   geom_point() +
@@ -324,7 +324,7 @@ ggplot(my.data, aes(x, y)) +
                formula = formula, 
                parse = TRUE)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 formula <- y ~ poly(x, 3, raw = TRUE)
 ggplot(my.data, aes(x, y)) +
   geom_point() +
@@ -333,7 +333,7 @@ ggplot(my.data, aes(x, y)) +
                eq.with.lhs = FALSE,
                formula = formula, parse = TRUE)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 formula <- y ~ poly(x, 3, raw = TRUE)
 ggplot(my.data, aes(x, y)) +
   geom_point() +
@@ -342,7 +342,7 @@ ggplot(my.data, aes(x, y)) +
                eq.with.lhs = "italic(hat(y))~`=`~",
                formula = formula, parse = TRUE)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 formula <- y ~ poly(x, 3, raw = TRUE)
 ggplot(my.data, aes(x, y)) +
   geom_point() +
@@ -353,7 +353,7 @@ ggplot(my.data, aes(x, y)) +
                eq.x.rhs = "~italic(z)",
                formula = formula, parse = TRUE)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 formula <- y ~ poly(x, 2, raw = TRUE)
 ggplot(my.data, aes(x, log10(y + 1e6))) +
   geom_point() +
@@ -362,14 +362,14 @@ ggplot(my.data, aes(x, log10(y + 1e6))) +
                eq.with.lhs = "plain(log)[10](italic(y)+10^6)~`=`~",
                formula = formula, parse = TRUE)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 formula <- y ~ poly(x, 5, raw = TRUE)
 ggplot(my.data, aes(x, y)) +
   geom_point() +
   geom_smooth(method = "lm", formula = formula) +
   stat_poly_eq(aes(label = ..eq.label..), formula = formula, parse = TRUE)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 formula <- y ~ x + I(x^2) + I(x^3) - 1
 ggplot(my.data, aes(x, y)) +
   geom_point() +
@@ -377,7 +377,7 @@ ggplot(my.data, aes(x, y)) +
   stat_poly_eq(aes(label = ..eq.label..), formula = formula, 
                parse = TRUE)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 formula <- y ~ poly(x, 3, raw = TRUE)
 ggplot(my.data, aes(x, y2)) +
   geom_point() +
@@ -386,7 +386,7 @@ ggplot(my.data, aes(x, y2)) +
                formula = formula, parse = TRUE) +
   facet_wrap(~group)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 formula <- y ~ poly(x, 3, raw = TRUE)
 ggplot(my.data, aes(x, y2)) +
   geom_point() +
@@ -395,7 +395,7 @@ ggplot(my.data, aes(x, y2)) +
                formula = formula, parse = TRUE) +
   facet_wrap(~group, scales = "free_y")
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 formula <- y ~ poly(x, 3, raw = TRUE)
 ggplot(my.data, aes(x, y2, colour = group)) +
   geom_point() +
@@ -403,7 +403,7 @@ ggplot(my.data, aes(x, y2, colour = group)) +
   stat_poly_eq(aes(label = ..eq.label..),
                formula = formula, parse = TRUE)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 formula <- y ~ poly(x, 3, raw = TRUE)
 ggplot(my.data, aes(x, y2, colour = group)) +
   geom_point() +
@@ -412,7 +412,7 @@ ggplot(my.data, aes(x, y2, colour = group)) +
                formula = formula, parse = TRUE,
                label.x = "centre")
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 formula <- y ~ poly(x, 3, raw = TRUE)
 ggplot(my.data, aes(x, y2, fill = block)) +
   geom_point(shape = 21, size = 3) +
@@ -422,39 +422,39 @@ ggplot(my.data, aes(x, y2, fill = block)) +
                formula = formula, parse = TRUE) +
   facet_wrap(~group, scales = "free_y")
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 formula <- y ~ poly(x, 3, raw = TRUE)
 ggplot(my.data, aes(x, y2, colour = group, fill = block)) +
   geom_point(shape = 21, size = 3) +
   geom_smooth(method = "lm", formula = formula) +
-  stat_poly_eq(aes(label = ..rr.label..), size = 3,
-               geom = "label_npc", alpha = 0.2,
+  stat_poly_eq(aes(label = ..rr.label..), size = 3, alpha = 0.2,
+               geom = "label_npc", label.y = c(0.95, 0.85, 0.95, 0.85),
                formula = formula, parse = TRUE) +
   facet_wrap(~group, scales = "free_y")
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 formula <- y ~ poly(x, 3, raw = TRUE)
 ggplot(my.data, aes(x, y2, colour = group)) +
   geom_point() +
   geom_smooth(method = "lm", formula = formula) +
   stat_poly_eq(geom = "text", aes(label = ..eq.label..),
-               label.x = 0, label.y = c(1e6, 1.2e6), hjust = 0,
+               label.x = c(100, 90), label.y = c(-1e4, 2.1e6), hjust = "inward",
                formula = formula, parse = TRUE)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 formula <- y ~ poly(x, 3, raw = TRUE)
 ggplot(my.data, aes(x, y, color = group)) +
   geom_hline(yintercept = 0, linetype = "dashed") +
   stat_fit_residuals(formula = formula)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 formula <- y ~ poly(x, 3, raw = TRUE)
 ggplot(my.data, aes(x, y)) +
   geom_smooth(method = "lm", formula = formula) +
   stat_fit_deviations(formula = formula, color = "red") +
   geom_point()
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 formula <- y ~ poly(x, 3, raw = TRUE)
 ggplot(my.data, aes(x, y)) +
   geom_smooth(method = "lm", formula = formula) +
@@ -463,7 +463,7 @@ ggplot(my.data, aes(x, y)) +
                       arrow = arrow(length = unit(0.015, "npc"), 
                                    ends = "both"))
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 # formula <- y ~ poly(x, 3, raw = TRUE)
 # broom::augment does not handle poly() correctly!
 formula <- y ~ x + I(x^2) + I(x^3)
@@ -478,7 +478,7 @@ ggplot(my.data, aes(x, y, color = group)) +
                                     signif(..p.value.., digits = 4), sep = "")),
                   parse = TRUE)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 micmen.formula <- y ~ SSmicmen(x, Vm, K) 
 ggplot(Puromycin, aes(conc, rate, colour = state)) +
   geom_point() +
@@ -492,7 +492,7 @@ ggplot(Puromycin, aes(conc, rate, colour = state)) +
                                     sep = "")),
                   label.x = "centre", label.y = "bottom")
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 micmen.formula <- y ~ SSmicmen(x, Vm, K) 
 ggplot(Puromycin, aes(conc, rate, colour = state)) +
   geom_point() +
@@ -510,7 +510,7 @@ ggplot(Puromycin, aes(conc, rate, colour = state)) +
                                   sep = "")),
                 parse = TRUE)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 micmen.formula <- y ~ SSmicmen(x, Vm, K) 
 ggplot(Puromycin, aes(conc, rate, colour = state)) +
   geom_point() +
@@ -529,7 +529,7 @@ ggplot(Puromycin, aes(conc, rate, colour = state)) +
                 parse = TRUE) +
   labs(x = "C", y = "V")
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 formula <- y ~ x + I(x^2) + I(x^3)
 ggplot(my.data, aes(x, y)) +
   geom_point() +
@@ -544,7 +544,7 @@ ggplot(my.data, aes(x, y)) +
               label.y = "top", label.x = "left",
               parse = TRUE)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 formula <- y ~ x + I(x^2) + I(x^3)
 ggplot(my.data, aes(x, y)) +
   geom_point() +
@@ -560,7 +560,7 @@ ggplot(my.data, aes(x, y)) +
                label.y = "top", label.x = "left",
               parse = TRUE)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 formula <- y ~ x + I(x^2) + I(x^3)
 ggplot(my.data, aes(x, y)) +
   geom_point() +
@@ -570,7 +570,7 @@ ggplot(my.data, aes(x, y)) +
               tb.type = "fit.coefs",
               label.y = "center", label.x = "left")
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 micmen.formula <- y ~ SSmicmen(x, Vm, K)
 ggplot(Puromycin, aes(conc, rate, colour = state)) +
   facet_wrap(~state) +
@@ -586,7 +586,7 @@ ggplot(Puromycin, aes(conc, rate, colour = state)) +
   theme(legend.position = "none") +
   labs(x = "C", y = "V")
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 ggplot(chickwts, aes(factor(feed), weight)) +
   stat_summary(fun.data = "mean_se") +
   stat_fit_tb(tb.type = "fit.anova",
@@ -594,14 +594,14 @@ ggplot(chickwts, aes(factor(feed), weight)) +
               label.y = "bottom") +
   expand_limits(y = 0)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 ggplot(chickwts, aes(factor(feed), weight)) +
   stat_summary(fun.data = "mean_se") +
   stat_fit_tb(tb.type = "fit.anova", label.x = "left", size = 3) +
   scale_x_discrete(expand = expand_scale(mult = c(0.2, 0.5))) +
   coord_flip()
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 ggplot(chickwts, aes(factor(feed), weight)) +
   stat_summary(fun.data = "mean_se") +
   stat_fit_tb(tb.type = "fit.anova",
@@ -617,7 +617,7 @@ ggplot(chickwts, aes(factor(feed), weight)) +
   scale_x_discrete(expand = expand_scale(mult = c(0.1, 0.35))) +
   expand_limits(y = 0)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 # formula <- y ~ poly(x, 3, raw = TRUE)
 # broom::augment does not handle poly correctly!
 formula <- y ~ x + I(x^2) + I(x^3)
@@ -626,14 +626,14 @@ ggplot(my.data, aes(x, y)) +
   stat_fit_augment(method = "lm",
                    method.args = list(formula = formula))
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 formula <- y ~ x + I(x^2) + I(x^3)
 ggplot(my.data, aes(x, y, color = group)) +
   geom_point() +
   stat_fit_augment(method = "lm", 
                    method.args = list(formula = formula))
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 formula <- y ~ x + I(x^2) + I(x^3)
 ggplot(my.data, aes(x, y)) +
   stat_fit_augment(method = "lm",
@@ -641,7 +641,7 @@ ggplot(my.data, aes(x, y)) +
                    geom = "point",
                    y.out = ".resid")
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 formula <- y ~ x + I(x^2) + I(x^3)
 ggplot(my.data, aes(x, y, color = group)) +
   stat_fit_augment(method = "lm",
@@ -649,7 +649,7 @@ ggplot(my.data, aes(x, y, color = group)) +
                    geom = "point",
                    y.out = ".std.resid")
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 args <- list(formula = y ~ k * e ^ x,
              start = list(k = 1, e = 2))
 ggplot(mtcars, aes(wt, mpg)) +
@@ -657,7 +657,7 @@ ggplot(mtcars, aes(wt, mpg)) +
   stat_fit_augment(method = "nls",
                    method.args = args)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 args <- list(formula = y ~ k * e ^ x,
              start = list(k = 1, e = 2))
 ggplot(mtcars, aes(wt, mpg)) +
@@ -666,7 +666,7 @@ ggplot(mtcars, aes(wt, mpg)) +
                    geom = "point",
                    y.out = ".resid")
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 args <- list(model = y ~ SSlogis(x, Asym, xmid, scal),
              fixed = Asym + xmid + scal ~1,
              random = Asym ~1 | group,
@@ -677,7 +677,7 @@ ggplot(Orange, aes(age, circumference, color = Tree)) +
                    method.args = args,
                    augment.args = list(data = quote(data)))
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 random_string <- function(len = 6) {
 paste(sample(letters, len, replace = TRUE), collapse = "")
 }
@@ -691,77 +691,77 @@ d <- tibble::tibble(
   lab = replicate(100, { random_string() })
 )
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 ggplot(data = d, aes(x, y)) +
   geom_point() +
   stat_dens2d_filter(color = "red")
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 ggplot(data = d, aes(x, y, color = group)) +
    stat_dens2d_filter(keep.fraction = 0.25,
                       size = 3,
                       color = "black") +
    geom_point()
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 ggplot(data = d, aes(x + rep(c(-2,2), rep(50,2)), 
                      y, color = group)) +
    geom_point() +
    stat_dens2d_filter(shape = 1, size = 3,
                       keep.fraction = 0.25)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 ggplot(data = d, aes(x + rep(c(-2,2), rep(50,2)), 
                      y, color = group)) +
    geom_point() +
    stat_dens2d_filter_g(shape = 1, size = 3,
                       keep.fraction = 0.25)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 ggplot(data = d, aes(x, y, label = lab, color = group)) +
   geom_point() + 
   stat_dens2d_filter(geom = "text_repel")
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 ggplot(data = d, aes(x, y, label = lab, color = group)) +
   geom_point() +
   stat_dens2d_filter(geom = "text_repel", keep.fraction = 0.5)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 ggplot(data = d, aes(x, y, label = lab, color = group)) +
   geom_point() +
   stat_dens2d_labels()
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 ggplot(data = d, aes(x, y, label = lab, color = group)) +
   geom_point() +
   stat_dens2d_labels(keep.fraction = 0.45)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 ggplot(data = d, aes(x, y, label = lab, color = group)) +
   geom_point() +
   stat_dens2d_labels(keep.fraction = 0.25,
                      vjust = -0.3)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 ggplot(data = d, aes(x, y, label = lab, color = group)) +
   geom_point() +
   stat_dens2d_labels(geom = "text_repel", 
                      keep.fraction = 0.45)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 ggplot(data = d, aes(x, y, label = lab, color = group)) +
   geom_point() +
   stat_dens2d_labels(geom = "label_repel", 
                      keep.fraction = 0.25)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 ggplot(data = d, aes(x, y, label = lab, color = group)) +
 geom_point() +
 stat_dens2d_labels(geom = "text_repel",
 keep.fraction = 0.25, angle = 90)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 ggplot(data = d, aes(x, y, label = lab, color = group)) +
   geom_point() +
   stat_dens2d_labels(geom = "label_repel", 
@@ -769,56 +769,56 @@ ggplot(data = d, aes(x, y, label = lab, color = group)) +
                      alpha = 0.5,
                      label.fill = NA)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 class(austres)
 austres.df <- try_tibble(austres)
 class(austres.df)
 lapply(austres.df, "class")
 head(austres.df, 4)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 austres.df <- try_tibble(austres, as.numeric = TRUE)
 lapply(austres.df, "class")
 head(austres.df, 4)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 class(lynx)
 lynx.df <- try_tibble(lynx)
 class(lynx.df)
 lapply(lynx.df, "class")
 head(lynx.df, 3)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 lynx.df <- try_tibble(lynx, "year")
 head(lynx.df, 3)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 lynx_n.df <- try_tibble(lynx, "year", as.numeric = TRUE)
 lapply(lynx_n.df, "class")
 head(lynx_n.df, 3)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 try_tibble(1:5)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 try_tibble(letters[1:5])
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 try_tibble(factor(letters[1:5]))
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 try_tibble(list(x = rep(1,5), y = 1:5))
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 try_tibble(data.frame(x = rep(1,5), y = 1:5))
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 try_tibble(matrix(1:10, ncol = 2))
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 head(volcano_example.df) 
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 volcano_example.df %>%
   mutate(., outcome.fct = outcome2factor(outcome)) %>%
   ggplot(., aes(logFC, PValue, colour = outcome.fct)) +
@@ -828,7 +828,7 @@ volcano_example.df %>%
   scale_colour_outcome() +
   stat_quadrant_counts(data = . %>% filter(outcome != 0))
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 volcano_example.df %>%
   mutate(., outcome.fct = outcome2factor(outcome, n.levels = 2)) %>%
   ggplot(., aes(logFC, PValue, colour = outcome.fct)) +
@@ -838,10 +838,10 @@ volcano_example.df %>%
   scale_colour_outcome() +
   stat_quadrant_counts(data = . %>% filter(outcome != 0))
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 head(quadrant_example.df)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 quadrant_example.df %>%
   mutate(.,
          outcome.x.fct = outcome2factor(outcome.x),
@@ -858,7 +858,7 @@ quadrant_example.df %>%
   scale_fill_outcome() +
   theme_dark()
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 all_quadrant_counts <- function(...) {
   list(  
     stat_quadrant_counts(data = . %>% filter(outcome.xy.fct == "xy"), ...),
@@ -868,7 +868,7 @@ all_quadrant_counts <- function(...) {
   )
 }
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 all_quadrant_lines <- function(...) { 
   list(
     geom_hline(data =  data.frame(outcome.xy.fct = factor(c("xy", "x", "y", "none"),
@@ -886,7 +886,7 @@ all_quadrant_lines <- function(...) {
   )
 }
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 quadrant_example.df %>%
   mutate(.,
          outcome.x.fct = outcome2factor(outcome.x),
@@ -903,7 +903,7 @@ quadrant_example.df %>%
   facet_wrap(~outcome.xy.fct) +
   theme_dark()
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 make_data_tbl <- function(nrow = 100, rfun = rnorm, ...) {
   if (nrow %% 2) {
     nrow <- nrow + 1
@@ -918,17 +918,17 @@ make_data_tbl <- function(nrow = 100, rfun = rnorm, ...) {
   )
 }
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 old_theme <- theme_set(theme_bw())
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 ggplot(data = make_data_tbl(300), aes(x, y)) +
   geom_point() +
   stat_dens2d_filter(color = "red", 
                      keep.sparse = FALSE, 
                      keep.fraction = 1/3)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 ggplot(data = make_data_tbl(300), aes(x, y)) +
   geom_point() +
   stat_dens2d_filter(color = "red", 
@@ -937,12 +937,12 @@ ggplot(data = make_data_tbl(300), aes(x, y)) +
   stat_dens2d_filter(color = "blue", 
                      keep.fraction = 1/3)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 ggplot(data = make_data_tbl(300, rfun = runif), aes(x, y)) +
   geom_point() +
   stat_dens2d_filter(color = "red", keep.fraction = 1/2)
 
-## ------------------------------------------------------------------------
+## -----------------------------------------------------------------------------
 ggplot(data = make_data_tbl(300, rfun = rgamma, shape = 2), 
        aes(x, y)) +
   geom_point() +

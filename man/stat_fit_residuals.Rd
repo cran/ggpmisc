@@ -4,10 +4,19 @@
 \alias{stat_fit_residuals}
 \title{Residuals from a model fit}
 \usage{
-stat_fit_residuals(mapping = NULL, data = NULL, geom = "point",
-  method = "lm", formula = NULL, resid.type = NULL,
-  position = "identity", na.rm = FALSE, show.legend = FALSE,
-  inherit.aes = TRUE, ...)
+stat_fit_residuals(
+  mapping = NULL,
+  data = NULL,
+  geom = "point",
+  method = "lm",
+  formula = NULL,
+  resid.type = NULL,
+  position = "identity",
+  na.rm = FALSE,
+  show.legend = FALSE,
+  inherit.aes = TRUE,
+  ...
+)
 }
 \arguments{
 \item{mapping}{The aesthetic mapping, usually constructed with
@@ -73,7 +82,6 @@ This stat can be used to automatically plot residuals as points in a
 }
 
 \examples{
-library(gginnards) # needed for geom_debug()
 # generate artificial data
 set.seed(4321)
 x <- 1:100
@@ -87,13 +95,16 @@ my.formula <- y ~ poly(x, 3, raw = TRUE)
 ggplot(my.data, aes(x, y)) +
   stat_fit_residuals(formula = my.formula, resid.type = "working")
 
-# plot
+library(gginnards) # needed for geom_debug()
+# print to the console the returned data
 ggplot(my.data, aes(x, y)) +
-  stat_fit_residuals(formula = my.formula, resid.type = "working", geom = "debug")
+  stat_fit_residuals(formula = my.formula, resid.type = "working",
+                     geom = "debug")
 
 }
 \seealso{
-Other statistics for linear model fits: \code{\link{stat_fit_deviations}},
-  \code{\link{stat_poly_eq}}
+Other statistics for linear model fits: 
+\code{\link{stat_fit_deviations}()},
+\code{\link{stat_poly_eq}()}
 }
 \concept{statistics for linear model fits}

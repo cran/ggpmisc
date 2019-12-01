@@ -4,13 +4,28 @@
 \alias{stat_poly_eq}
 \title{Equation, p-value, R^2, AIC or BIC of fitted polynomial}
 \usage{
-stat_poly_eq(mapping = NULL, data = NULL, geom = "text_npc",
-  position = "identity", ..., formula = NULL,
-  eq.with.lhs = "italic(y)~`=`~", eq.x.rhs = NULL, coef.digits = 3,
-  rr.digits = 2, label.x = "left", label.y = "top",
-  label.x.npc = NULL, label.y.npc = NULL, hstep = 0, vstep = NULL,
-  output.type = "expression", na.rm = FALSE, show.legend = FALSE,
-  inherit.aes = TRUE)
+stat_poly_eq(
+  mapping = NULL,
+  data = NULL,
+  geom = "text_npc",
+  position = "identity",
+  ...,
+  formula = NULL,
+  eq.with.lhs = TRUE,
+  eq.x.rhs = NULL,
+  coef.digits = 3,
+  rr.digits = 2,
+  label.x = "left",
+  label.y = "top",
+  label.x.npc = NULL,
+  label.y.npc = NULL,
+  hstep = 0,
+  vstep = NULL,
+  output.type = "expression",
+  na.rm = FALSE,
+  show.legend = FALSE,
+  inherit.aes = TRUE
+)
 }
 \arguments{
 \item{mapping}{The aesthetic mapping, usually constructed with
@@ -114,7 +129,8 @@ For backward compatibility a logical is accepted as argument for
 
 \section{Computed variables}{
 
-If output.type different from \code{"numeric"} the returned tibble contains columns:
+If output.type different from \code{"numeric"} the returned tibble contains
+columns:
 \describe{
   \item{x,npcx}{x position}
   \item{y,npcy}{y position}
@@ -145,7 +161,6 @@ of \code{\link[gginnards]{geom_debug}} as shown in the example below.
 }
 
 \examples{
-library(gginnards)
 # generate artificial data
 set.seed(4321)
 x <- 1:100
@@ -163,13 +178,6 @@ ggplot(my.data, aes(x, y)) +
   geom_point() +
   geom_smooth(method = "lm", formula = formula) +
   stat_poly_eq(formula = formula, parse = TRUE)
-
-# as above but using geom_debug()
-ggplot(my.data, aes(x, y)) +
-  geom_point() +
-  geom_smooth(method = "lm", formula = formula) +
-  stat_poly_eq(formula = formula,
-               geom = "debug")
 
 ggplot(my.data, aes(x, y)) +
   geom_point() +
@@ -199,15 +207,18 @@ ggplot(my.data, aes(x, y)) +
 ggplot(my.data, aes(x, y)) +
   geom_point() +
   geom_smooth(method = "lm", formula = formula) +
-  stat_poly_eq(aes(label =  paste(stat(eq.label), stat(adj.rr.label), sep = "~~~~")),
+  stat_poly_eq(aes(label =  paste(stat(eq.label),
+                                  stat(adj.rr.label), sep = "~~~~")),
                formula = formula, parse = TRUE)
 
 # user specified label and digits
 ggplot(my.data, aes(x, y)) +
   geom_point() +
   geom_smooth(method = "lm", formula = formula) +
-  stat_poly_eq(aes(label =  paste(stat(eq.label), stat(adj.rr.label), sep = "~~~~")),
-               formula = formula, rr.digits = 3, coef.digits = 2, parse = TRUE)
+  stat_poly_eq(aes(label =  paste(stat(eq.label),
+                                  stat(adj.rr.label), sep = "~~~~")),
+               formula = formula, rr.digits = 3, coef.digits = 2,
+               parse = TRUE)
 
 # geom = "text"
 ggplot(my.data, aes(x, y)) +
@@ -220,20 +231,51 @@ ggplot(my.data, aes(x, y)) +
 # Here we use column "Estimate" from the matrix.
 # Other available columns are "Std. Error", "t value" and "Pr(>|t|)".
 my.format <-
-  "b[0]~`=`~\%.3g*\\", \\"*b[1]~`=`~\%.3g*\\", \\"*b[2]~`=`~\%.3g*\\", \\"*b[3]~`=`~\%.3g"
+  "b[0]~`=`~\%.3g*\", \"*b[1]~`=`~\%.3g*\", \"*b[2]~`=`~\%.3g*\", \"*b[3]~`=`~\%.3g"
 ggplot(my.data, aes(x, y)) +
   geom_point() +
   geom_smooth(method = "lm", formula = formula) +
   stat_poly_eq(formula = formula,
                output.type = "numeric",
                parse = TRUE,
-               mapping = aes(label = sprintf(my.format,
-                                             stat(coef.ls)[[1]][[1, "Estimate"]],
-                                             stat(coef.ls)[[1]][[2, "Estimate"]],
-                                             stat(coef.ls)[[1]][[3, "Estimate"]],
-                                             stat(coef.ls)[[1]][[4, "Estimate"]])
-                                             )
-                             )
+               mapping =
+                aes(label = sprintf(my.format,
+                                    stat(coef.ls)[[1]][[1, "Estimate"]],
+                                    stat(coef.ls)[[1]][[2, "Estimate"]],
+                                    stat(coef.ls)[[1]][[3, "Estimate"]],
+                                    stat(coef.ls)[[1]][[4, "Estimate"]])
+                                    )
+                   )
+
+# Examples using geom_debug() to show computed values
+#
+# This provides a quick way of finding out which variables are available for
+# use in mapping of aesthetics when using other geoms as in the examples
+# above.
+
+library(gginnards)
+
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = formula) +
+  stat_poly_eq(formula = formula, geom = "debug")
+
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = formula) +
+  stat_poly_eq(formula = formula, geom = "debug", output.type = "text")
+
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = formula) +
+  stat_poly_eq(formula = formula, geom = "debug", output.type = "numeric")
+
+# show the content of a list column
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = formula) +
+  stat_poly_eq(formula = formula, geom = "debug", output.type = "numeric",
+               summary.fun = function(x) {x[["coef.ls"]][[1]]})
 
 }
 \references{
@@ -248,7 +290,8 @@ This \code{stat_poly_eq} statistic can return ready formatted labels
   \code{\link{stat_fit_glance}} should be used instead and the mapping of
   aesthetic \code{label} explicitly supplied in the call.
 
-Other statistics for linear model fits: \code{\link{stat_fit_deviations}},
-  \code{\link{stat_fit_residuals}}
+Other statistics for linear model fits: 
+\code{\link{stat_fit_deviations}()},
+\code{\link{stat_fit_residuals}()}
 }
 \concept{statistics for linear model fits}

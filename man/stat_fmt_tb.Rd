@@ -4,10 +4,19 @@
 \alias{stat_fmt_tb}
 \title{Select and slice a tibble nested in \code{data}}
 \usage{
-stat_fmt_tb(mapping = NULL, data = NULL, geom = "table",
-  tb.vars = NULL, tb.rows = NULL, digits = 3,
-  position = "identity", na.rm = FALSE, show.legend = FALSE,
-  inherit.aes = TRUE, ...)
+stat_fmt_tb(
+  mapping = NULL,
+  data = NULL,
+  geom = "table",
+  tb.vars = NULL,
+  tb.rows = NULL,
+  digits = 3,
+  position = "identity",
+  na.rm = FALSE,
+  show.legend = FALSE,
+  inherit.aes = TRUE,
+  ...
+)
 }
 \arguments{
 \item{mapping}{The aesthetic mapping, usually constructed with
@@ -63,11 +72,14 @@ can include aesthetics whose values you want to set, not map. See
 
 \examples{
 library(ggplot2)
-my.df <- tibble::tibble(x = c(1, 2),
-                    y = c(0, 4),
-                    group = c("A", "B"),
-                    tbs = list(a = tibble::tibble(X = 1:6, Y = rep(c("x", "y"), 3)),
-                               b = tibble::tibble(X = 1:3, Y = "x")))
+my.df <-
+  tibble::tibble(
+    x = c(1, 2),
+    y = c(0, 4),
+    group = c("A", "B"),
+    tbs = list(a = tibble::tibble(X = 1:6, Y = rep(c("x", "y"), 3)),
+               b = tibble::tibble(X = 1:3, Y = "x"))
+  )
 
 ggplot(my.df, aes(x, y, label = tbs)) +
   stat_fmt_tb() +

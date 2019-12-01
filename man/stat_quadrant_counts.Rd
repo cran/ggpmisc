@@ -4,10 +4,22 @@
 \alias{stat_quadrant_counts}
 \title{Number of observations in quadrants}
 \usage{
-stat_quadrant_counts(mapping = NULL, data = NULL, geom = "text_npc",
-  position = "identity", quadrants = NULL, pool.along = "none",
-  xintercept = 0, yintercept = 0, label.x = NULL, label.y = NULL,
-  na.rm = FALSE, show.legend = FALSE, inherit.aes = TRUE, ...)
+stat_quadrant_counts(
+  mapping = NULL,
+  data = NULL,
+  geom = "text_npc",
+  position = "identity",
+  quadrants = NULL,
+  pool.along = "none",
+  xintercept = 0,
+  yintercept = 0,
+  label.x = NULL,
+  label.y = NULL,
+  na.rm = FALSE,
+  show.legend = FALSE,
+  inherit.aes = TRUE,
+  ...
+)
 }
 \arguments{
 \item{mapping}{The aesthetic mapping, usually constructed with
@@ -61,20 +73,21 @@ quadrant in a plot panel.
 \details{
 This stat can be used to automatically count observations in each of
   the four quadrants of a plot, and by default add these counts as text
-  labels. Values exactly equal to zero are counted as belonging to the positve
-  quadrant. An argument value of zero, passed to formal parameter
+  labels. Values exactly equal to zero are counted as belonging to the
+  positve quadrant. An argument value of zero, passed to formal parameter
   \code{quadrants} is interpreted as a request for the count of all
   observations in each plot panel.
 
   The default origin of quadrants is at \code{xintercept = 0},
-  \code{yintercept = 0}. Alsoby default, counts are computed for all quadrants
-  within the $x$ and $y$ scale limits, but ignoring any marginal scale
-  expansion. The default positions of the labels is in the farthest corner or
-  edge of each quadrant using npc coordinates. Consequently, when using
-  facets even with free limits for $x$ and $y$ axes, the location of the labels
-  is consistent across panels. This is achieved by use of
-  \code{geom = "text_npc"} or \code{geom = "label_npc"}. To pass the positions in native
-  data units, pass \code{geom = "text"} explicitly as argument.
+  \code{yintercept = 0}. Alsoby default, counts are computed for all
+  quadrants within the $x$ and $y$ scale limits, but ignoring any marginal
+  scale expansion. The default positions of the labels is in the farthest
+  corner or edge of each quadrant using npc coordinates. Consequently, when
+  using facets even with free limits for $x$ and $y$ axes, the location of
+  the labels is consistent across panels. This is achieved by use of
+  \code{geom = "text_npc"} or \code{geom = "label_npc"}. To pass the
+  positions in native data units, pass \code{geom = "text"} explicitly as
+  argument.
 }
 \section{Computed variables}{
  Data frame with one to four rows, one for each
@@ -136,12 +149,13 @@ ggplot(my.data, aes(x, y)) +
 
 }
 \seealso{
-Other Functions for quadrant and volcano plots: \code{\link{FC_format}},
-  \code{\link{geom_quadrant_lines}},
-  \code{\link{outcome2factor}},
-  \code{\link{scale_colour_outcome}},
-  \code{\link{scale_shape_outcome}},
-  \code{\link{scale_y_Pvalue}},
-  \code{\link{xy_outcomes2factor}}
+Other Functions for quadrant and volcano plots: 
+\code{\link{FC_format}()},
+\code{\link{geom_quadrant_lines}()},
+\code{\link{outcome2factor}()},
+\code{\link{scale_colour_outcome}()},
+\code{\link{scale_shape_outcome}()},
+\code{\link{scale_y_Pvalue}()},
+\code{\link{xy_outcomes2factor}()}
 }
 \concept{Functions for quadrant and volcano plots}

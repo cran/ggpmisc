@@ -5,15 +5,39 @@
 \alias{stat_valleys}
 \title{Local maxima (peaks) or minima (valleys)}
 \usage{
-stat_peaks(mapping = NULL, data = NULL, geom = "point", span = 5,
-  ignore_threshold = 0, strict = FALSE, label.fmt = NULL,
-  x.label.fmt = NULL, y.label.fmt = NULL, position = "identity",
-  na.rm = FALSE, show.legend = FALSE, inherit.aes = TRUE, ...)
+stat_peaks(
+  mapping = NULL,
+  data = NULL,
+  geom = "point",
+  span = 5,
+  ignore_threshold = 0,
+  strict = FALSE,
+  label.fmt = NULL,
+  x.label.fmt = NULL,
+  y.label.fmt = NULL,
+  position = "identity",
+  na.rm = FALSE,
+  show.legend = FALSE,
+  inherit.aes = TRUE,
+  ...
+)
 
-stat_valleys(mapping = NULL, data = NULL, geom = "point", span = 5,
-  ignore_threshold = 0, strict = FALSE, label.fmt = NULL,
-  x.label.fmt = NULL, y.label.fmt = NULL, position = "identity",
-  na.rm = FALSE, show.legend = FALSE, inherit.aes = TRUE, ...)
+stat_valleys(
+  mapping = NULL,
+  data = NULL,
+  geom = "point",
+  span = 5,
+  ignore_threshold = 0,
+  strict = FALSE,
+  label.fmt = NULL,
+  x.label.fmt = NULL,
+  y.label.fmt = NULL,
+  position = "identity",
+  na.rm = FALSE,
+  show.legend = FALSE,
+  inherit.aes = TRUE,
+  ...
+)
 }
 \arguments{
 \item{mapping}{The aesthetic mapping, usually constructed with
@@ -41,13 +65,14 @@ all other values in its window to be considered a peak. Default: FALSE.}
 values into character strings by means of function \code{\link{sprintf}}
 or \code{\link{strptime}}, its use is deprecated.}
 
-\item{x.label.fmt}{character  string giving a format definition for converting
-$x$-values into character strings by means of function \code{\link{sprintf}}
-or \code{\link{strftime}}. The default argument varies depending on the
-scale in use.}
+\item{x.label.fmt}{character  string giving a format definition for
+converting $x$-values into character strings by means of function
+\code{\link{sprintf}} or \code{\link{strftime}}. The default argument
+varies depending on the scale in use.}
 
-\item{y.label.fmt}{character  string giving a format definition for converting
-$y$-values into character strings by means of function \code{\link{sprintf}}.}
+\item{y.label.fmt}{character  string giving a format definition for
+converting $y$-values into character strings by means of function
+\code{\link{sprintf}}.}
 
 \item{position}{The position adjustment to use for overlapping points
 on this layer.}
@@ -64,8 +89,8 @@ rather than combining with them. This is most useful for helper functions
 that define both data and aesthetics and shouldn't inherit behaviour from
 the default plot specification, e.g. \code{\link[ggplot2]{borders}}.}
 
-\item{...}{other arguments passed on to \code{\link[ggplot2]{layer}}. This can
-include aesthetics whose values you want to set, not map. See
+\item{...}{other arguments passed on to \code{\link[ggplot2]{layer}}. This
+can include aesthetics whose values you want to set, not map. See
 \code{\link[ggplot2]{layer}} for more details.}
 }
 \description{
@@ -121,6 +146,7 @@ ggplot(lynx.df, aes(year, lynx)) + geom_line() +
 
 }
 \seealso{
-Other peaks and valleys functions: \code{\link{find_peaks}}
+Other peaks and valleys functions: 
+\code{\link{find_peaks}()}
 }
 \concept{peaks and valleys functions}
