@@ -2,10 +2,22 @@
 % Please edit documentation in R/scale-colour-outcome.r
 \name{scale_colour_outcome}
 \alias{scale_colour_outcome}
+\alias{scale_color_outcome}
 \alias{scale_fill_outcome}
 \title{Colour and fill scales for ternary outcomes}
 \usage{
 scale_colour_outcome(
+  ...,
+  name = "Outcome",
+  ns.colour = "grey80",
+  up.colour = "red",
+  down.colour = "dodgerblue2",
+  de.colour = "goldenrod",
+  na.colour = "black",
+  aesthetics = "colour"
+)
+
+scale_color_outcome(
   ...,
   name = "Outcome",
   ns.colour = "grey80",
@@ -32,7 +44,7 @@ scale_fill_outcome(
 
 \item{name}{The name of the scale, used for the axis-label.}
 
-\item{ns.colour, down.colour, up.colour, de.colour}{The colour defintions to use for each
+\item{ns.colour, down.colour, up.colour, de.colour}{The colour definitions to use for each
 of the three possible outcomes.}
 
 \item{na.colour}{colour definition used for NA.}

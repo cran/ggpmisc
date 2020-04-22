@@ -1,7 +1,7 @@
 #' Equation, p-value, R^2, AIC or BIC of fitted polynomial
 #'
 #' \code{stat_poly_eq} fits a polynomial and generates several labels including
-#' the equation and/or p-value, coefficient of determination (R^2), 'AIC' or
+#' the equation, p-value, coefficient of determination (R^2), 'AIC' and
 #' 'BIC'.
 #'
 #' @param mapping The aesthetic mapping, usually constructed with
@@ -31,8 +31,8 @@
 #' @param eq.x.rhs \code{character} this string will be used as replacement for
 #'   \code{"x"} in the model equation when generating the label before parsing
 #'   it.
-#' @param coef.digits,rr.digits integer Number of significant digits to use in
-#'   for the vector of fitted coefficients and for $R^2$ labels.
+#' @param coef.digits,rr.digits,f.digits,p.digits integer Number of significant
+#'   digits to use for the fitted coefficients, R^2, F-value and P-value in labels.
 #' @param label.x,label.y \code{numeric} with range 0..1 "normalized parent
 #'   coordinates" (npc units) or character if using \code{geom_text_npc()} or
 #'   \code{geom_label_npc()}. If using \code{geom_text()} or \code{geom_label()}
@@ -93,6 +93,8 @@
 #'   \item{eq.label}{equation for the fitted polynomial as a character string to be parsed}
 #'   \item{rr.label}{\eqn{R^2} of the fitted model as a character string to be parsed}
 #'   \item{adj.rr.label}{Adjusted \eqn{R^2} of the fitted model as a character string to be parsed}
+#'   \item{f.value.label}{F value and degrees of freedom for the fitted model as a whole.}
+#'   \item{p.value..label}{P-value for the F-value above.}
 #'   \item{AIC.label}{AIC for the fitted model.}
 #'   \item{BIC.label}{BIC for the fitted model.}
 #'   \item{hjust, vjust}{Set to "inward" to override the default of the "text" geom.}}
@@ -102,10 +104,10 @@
 #'   \item{x,npcx}{x position}
 #'   \item{y,npcy}{y position}
 #'   \item{coef.ls}{list containing the "coefficients" matrix from the summary of the fit object}
-#'   \item{r.squared, adj.r.squared, AIC, BIC}{numric values extracted from fit object}
+#'   \item{r.squared, adj.r.squared, f.value, f.df1, f.df2, p.value, AIC, BIC}{numeric values extracted or computed from fit object}
 #'   \item{hjust, vjust}{Set to "inward" to override the default of the "text" geom.}}
 #'
-#' To explore the computed values returned for a given input we sugegst the use
+#' To explore the computed values returned for a given input we suggest the use
 #' of \code{\link[gginnards]{geom_debug}} as shown in the example below.
 #'
 #' @section Parsing may be required: if using the computed labels with
@@ -116,8 +118,9 @@
 #'   depending on the argument passed to \code{output.type}. This is possible
 #'   because only polynomial models are supported. For other types of models,
 #'   statistics \code{\link{stat_fit_glance}},  \code{\link{stat_fit_tidy}} and
-#'   \code{\link{stat_fit_glance}} should be used instead and the mapping of
-#'   aesthetic \code{label} explicitly supplied in the call.
+#'   \code{\link{stat_fit_glance}} should be used instead and the code for
+#'   construction of character strings from numeric values and their mapping to
+#'   aesthetic \code{label} needs to be explicitly supplied in the call.
 #'
 #' @family statistics for linear model fits
 #'
@@ -169,7 +172,14 @@
 #'   geom_point() +
 #'   geom_smooth(method = "lm", formula = formula) +
 #'   stat_poly_eq(aes(label =  paste(stat(eq.label),
-#'                                   stat(adj.rr.label), sep = "~~~~")),
+#'                                   stat(adj.rr.label), sep = "*\", \"*")),
+#'                formula = formula, parse = TRUE)
+#'
+#' ggplot(my.data, aes(x, y)) +
+#'   geom_point() +
+#'   geom_smooth(method = "lm", formula = formula) +
+#'   stat_poly_eq(aes(label =  paste(stat(f.value.label),
+#'                                   stat(p.value.label), sep = "*\", \"*")),
 #'                formula = formula, parse = TRUE)
 #'
 #' # user specified label and digits
@@ -177,8 +187,8 @@
 #'   geom_point() +
 #'   geom_smooth(method = "lm", formula = formula) +
 #'   stat_poly_eq(aes(label =  paste(stat(eq.label),
-#'                                   stat(adj.rr.label), sep = "~~~~")),
-#'                formula = formula, rr.digits = 3, coef.digits = 2,
+#'                                   stat(adj.rr.label), sep = "*\", \"*")),
+#'                formula = formula, rr.digits = 3, coef.digits = 4,
 #'                parse = TRUE)
 #'
 #' # geom = "text"
@@ -249,6 +259,8 @@ stat_poly_eq <- function(mapping = NULL, data = NULL,
                          eq.x.rhs = NULL,
                          coef.digits = 3,
                          rr.digits = 2,
+                         f.digits = 3,
+                         p.digits = 3,
                          label.x = "left", label.y = "top",
                          label.x.npc = NULL, label.y.npc = NULL,
                          hstep = 0,
@@ -279,6 +291,8 @@ stat_poly_eq <- function(mapping = NULL, data = NULL,
                   eq.x.rhs = eq.x.rhs,
                   coef.digits = coef.digits,
                   rr.digits = rr.digits,
+                  f.digits = f.digits,
+                  p.digits = p.digits,
                   label.x = label.x,
                   label.y = label.y,
                   hstep = hstep,
@@ -303,19 +317,21 @@ stat_poly_eq <- function(mapping = NULL, data = NULL,
 #'
 poly_eq_compute_group_fun <- function(data,
                                       scales,
-                                      formula = NULL,
-                                      weight = 1,
-                                      eq.with.lhs = TRUE,
-                                      eq.x.rhs = NULL,
-                                      coef.digits = 3,
-                                      rr.digits = 2,
-                                      label.x = "left",
-                                      label.y = "top",
-                                      hstep = 0,
-                                      vstep = 0.075,
-                                      npc.used = TRUE,
-                                      output.type = "expression",
-                                      na.rm = FALSE) {
+                                      formula,
+                                      weight,
+                                      eq.with.lhs,
+                                      eq.x.rhs,
+                                      coef.digits,
+                                      rr.digits,
+                                      f.digits,
+                                      p.digits,
+                                      label.x,
+                                      label.y,
+                                      hstep,
+                                      vstep,
+                                      npc.used,
+                                      output.type,
+                                      na.rm) {
   force(data)
   if (length(unique(data$x)) < 2) {
     # Not enough data to perform fit
@@ -355,16 +371,29 @@ poly_eq_compute_group_fun <- function(data,
   lm.args <- list(quote(formula), data = quote(data), weights = quote(weight))
   mf <- do.call(stats::lm, lm.args)
 
-  rr <- summary(mf)$r.squared
-  adj.rr <- summary(mf)$adj.r.squared
+  mf.summary <- summary(mf)
+  rr <- mf.summary$r.squared
+  adj.rr <- mf.summary$adj.r.squared
   AIC <- AIC(mf)
   BIC <- BIC(mf)
+  if ("fstatistic" %in% names(mf.summary)) {
+    f.value <- mf.summary$fstatistic["value"]
+    f.df1 <- mf.summary$fstatistic["numdf"]
+    f.df2 <- mf.summary$fstatistic["dendf"]
+    p.value <- 1 - stats::pf(q = f.value, f.df1, f.df2)
+  } else {
+    f.value <- f.df1 <- f.df2 <- p.value <- NA_real_
+  }
 
   if (output.type == "numeric") {
     z <- tibble::tibble(coef.ls = list(summary(mf)[["coefficients"]]),
                         coefs = list(stats::coefficients(mf)),
                         r.squared = rr,
                         adj.r.squared = adj.rr,
+                        f.value = f.value,
+                        f.df1 = f.df1,
+                        f.df2 = f.df2,
+                        p.value = p.value,
                         AIC = AIC,
                         BIC = BIC,
                         rr.label = "") # needed for default 'label' mapping
@@ -408,25 +437,57 @@ poly_eq_compute_group_fun <- function(data,
     if (rr.digits < 2) {
       warning("'rr.digits < 2' Likely information loss!")
     }
+    stopifnot(p.digits > 0)
+    if (f.digits < 2) {
+      warning("'f.digits < 2' Likely information loss!")
+    }
+    stopifnot(p.digits > 0)
+    if (p.digits < 2) {
+      warning("'p.digits < 2' Likely information loss!")
+    }
     rr.char <- format(rr, digits = rr.digits)
     adj.rr.char <- format(adj.rr, digits = rr.digits)
     AIC.char <- sprintf("%.4g", AIC)
     BIC.char <- sprintf("%.4g", BIC)
+    f.value.char <- as.character(signif(f.value, digits = f.digits))
+    f.df1.char <- as.character(f.df1)
+    f.df2.char <- as.character(f.df2)
+    p.value.char <- as.character(signif(p.value, digits = p.digits))
+
     if (output.type == "expression") {
       z <- tibble::tibble(eq.label = gsub("x", eq.x.rhs, eq.char, fixed = TRUE),
                           rr.label = paste("italic(R)^2", rr.char, sep = "~`=`~"),
                           adj.rr.label = paste("italic(R)[adj]^2",
                                                adj.rr.char, sep = "~`=`~"),
                           AIC.label = paste("AIC", AIC.char, sep = "~`=`~"),
-                          BIC.label = paste("BIC", BIC.char, sep = "~`=`~"))
-    } else if (output.type %in% c("latex", "tex", "text", "tikz")) {
-      z <- tibble::tibble(eq.label = gsub("x", eq.x.rhs, eq.char, fixed = TRUE),
-                         rr.label = paste("R^2", rr.char, sep = " = "),
-                         adj.rr.label = paste("R_{adj}^2",
-                                              adj.rr.char, sep = " = "),
-                         AIC.label = paste("AIC", AIC.char, sep = " = "),
-                         BIC.label = paste("BIC", BIC.char, sep = " = "))
-    } else {
+                          BIC.label = paste("BIC", BIC.char, sep = "~`=`~"),
+                          f.value.label =
+      # character(0) instead of "" avoids in paste() the insertion of sep missing labels
+                            ifelse(is.na(f.value), character(0L),
+                                   paste("italic(F)[", f.df1.char,
+                                         "*\",\"*", f.df2.char,
+                                         "]~`=`~", f.value.char, sep = "")),
+                          p.value.label =
+                            ifelse(is.na(p.value), character(0L),
+                                   paste("italic(P)",
+                                         ifelse(p.value < 0.001, "0.001", p.value.char),
+                                         sep = ifelse(p.value < 0.001, "~`<=`~", "~`=`~"))))
+     } else if (output.type %in% c("latex", "tex", "text", "tikz")) {
+       z <- tibble::tibble(eq.label = gsub("x", eq.x.rhs, eq.char, fixed = TRUE),
+                           rr.label = paste("R^2", rr.char, sep = " = "),
+                           adj.rr.label = paste("R_{adj}^2",
+                                                adj.rr.char, sep = " = "),
+                           AIC.label = paste("AIC", AIC.char, sep = " = "),
+                           BIC.label = paste("BIC", BIC.char, sep = " = "),
+                           f.value.label =
+                             ifelse(is.na(f.value), character(0L),
+                                    paste("F_{", f.df1.char, ",", f.df2.char,
+                                          "} = ", f.value.char, sep = "")),
+                           p.value.label =
+                             ifelse(is.na(p.value), character(0L),
+                                    paste("P", p.value.char,
+                                          sep = ifelse(p.value < 0.001, " \\leq ", " = "))))
+     } else {
       warning("Unknown 'output.type' argument: ", output.type)
     }
   }

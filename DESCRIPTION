@@ -1,8 +1,8 @@
 Package: ggpmisc
 Type: Package
 Title: Miscellaneous Extensions to 'ggplot2'
-Version: 0.3.3
-Date: 2019-11-23
+Version: 0.3.4
+Date: 2020-04-22
 Authors@R: 
     c(
     person("Pedro J.", "Aphalo", email = "pedro.aphalo@helsinki.fi", role = c("aut", "cre"), comment = c(ORCID = "0000-0003-3385-972X")),
@@ -26,23 +26,23 @@ License: GPL (>= 2)
 LazyData: TRUE
 LazyLoad: TRUE
 ByteCompile: TRUE
-Depends: R (>= 3.5.0), ggplot2 (>= 3.2.1)
-Imports: grid, rlang (>= 0.4.0), magrittr (>= 1.5), gridExtra (>= 2.3),
-        scales (>= 1.0.0), MASS (>= 7.3-51.3), polynom (>= 1.4-0),
-        splus2R (>= 1.2-2), tibble (>= 2.1.3), plyr (>= 1.8.4), dplyr
-        (>= 0.8.3), xts (>= 0.11-2), zoo (>= 1.8-6), broom (>= 0.5.2),
-        lubridate (>= 1.7.4), stringr (>= 1.4.0)
-Suggests: knitr (>= 1.25), rmarkdown (>= 1.15), nlme (>= 3.1-140),
-        gginnards(>= 0.0.2), ggrepel (>= 0.8.1), magick (>= 2.2)
-URL: https://www.r4photobiology.info,
+Depends: R (>= 3.5.0), ggplot2 (>= 3.3.0)
+Imports: grid, rlang (>= 0.4.5), magrittr (>= 1.5), gridExtra (>= 2.3),
+        scales (>= 1.1.0), MASS (>= 7.3-51.5), polynom (>= 1.4-0),
+        splus2R (>= 1.2-2), tibble (>= 3.0.1), plyr (>= 1.8.6), dplyr
+        (>= 0.8.3), xts (>= 0.12-0), zoo (>= 1.8-7), broom (>= 0.5.5),
+        lubridate (>= 1.7.8), stringr (>= 1.4.0)
+Suggests: knitr (>= 1.28), rmarkdown (>= 2.1), nlme (>= 3.1-147),
+        gginnards(>= 0.0.3), ggrepel (>= 0.8.2), magick (>= 2.3)
+URL: https://docs.r4photobiology.info/ggpmisc/,
         https://bitbucket.org/aphalo/ggpmisc
 BugReports: https://bitbucket.org/aphalo/ggpmisc/issues
 Encoding: UTF-8
-RoxygenNote: 7.0.1
+RoxygenNote: 7.1.0
 VignetteBuilder: knitr
 NeedsCompilation: no
-Packaged: 2019-11-30 14:26:14 UTC; aphalo
+Packaged: 2020-04-22 15:35:23 UTC; Aphalo
 Author: Pedro J. Aphalo [aut, cre] (<https://orcid.org/0000-0003-3385-972X>),
   Kamil Slowikowski [ctb]
 Repository: CRAN
-Date/Publication: 2019-12-01 23:00:21 UTC
+Date/Publication: 2020-04-22 17:04:10 UTC

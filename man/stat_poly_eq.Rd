@@ -15,6 +15,8 @@ stat_poly_eq(
   eq.x.rhs = NULL,
   coef.digits = 3,
   rr.digits = 2,
+  f.digits = 3,
+  p.digits = 3,
   label.x = "left",
   label.y = "top",
   label.x.npc = NULL,
@@ -54,8 +56,8 @@ the equation label before parsing or a \code{logical} (see note).}
 \code{"x"} in the model equation when generating the label before parsing
 it.}
 
-\item{coef.digits, rr.digits}{integer Number of significant digits to use in
-for the vector of fitted coefficients and for $R^2$ labels.}
+\item{coef.digits, rr.digits, f.digits, p.digits}{integer Number of significant
+digits to use for the fitted coefficients, R^2, F-value and P-value in labels.}
 
 \item{label.x, label.y}{\code{numeric} with range 0..1 "normalized parent
 coordinates" (npc units) or character if using \code{geom_text_npc()} or
@@ -86,7 +88,7 @@ default plot specification, e.g. \code{\link[ggplot2]{borders}}.}
 }
 \description{
 \code{stat_poly_eq} fits a polynomial and generates several labels including
-the equation and/or p-value, coefficient of determination (R^2), 'AIC' or
+the equation, p-value, coefficient of determination (R^2), 'AIC' and
 'BIC'.
 }
 \details{
@@ -138,6 +140,8 @@ columns:
   \item{eq.label}{equation for the fitted polynomial as a character string to be parsed}
   \item{rr.label}{\eqn{R^2} of the fitted model as a character string to be parsed}
   \item{adj.rr.label}{Adjusted \eqn{R^2} of the fitted model as a character string to be parsed}
+  \item{f.value.label}{F value and degrees of freedom for the fitted model as a whole.}
+  \item{p.value..label}{P-value for the F-value above.}
   \item{AIC.label}{AIC for the fitted model.}
   \item{BIC.label}{BIC for the fitted model.}
   \item{hjust, vjust}{Set to "inward" to override the default of the "text" geom.}}
@@ -147,10 +151,10 @@ If output.type is \code{"numeric"} the returned tibble contains columns:
   \item{x,npcx}{x position}
   \item{y,npcy}{y position}
   \item{coef.ls}{list containing the "coefficients" matrix from the summary of the fit object}
-  \item{r.squared, adj.r.squared, AIC, BIC}{numric values extracted from fit object}
+  \item{r.squared, adj.r.squared, f.value, f.df1, f.df2, p.value, AIC, BIC}{numeric values extracted or computed from fit object}
   \item{hjust, vjust}{Set to "inward" to override the default of the "text" geom.}}
 
-To explore the computed values returned for a given input we sugegst the use
+To explore the computed values returned for a given input we suggest the use
 of \code{\link[gginnards]{geom_debug}} as shown in the example below.
 }
 
@@ -208,7 +212,14 @@ ggplot(my.data, aes(x, y)) +
   geom_point() +
   geom_smooth(method = "lm", formula = formula) +
   stat_poly_eq(aes(label =  paste(stat(eq.label),
-                                  stat(adj.rr.label), sep = "~~~~")),
+                                  stat(adj.rr.label), sep = "*\", \"*")),
+               formula = formula, parse = TRUE)
+
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = formula) +
+  stat_poly_eq(aes(label =  paste(stat(f.value.label),
+                                  stat(p.value.label), sep = "*\", \"*")),
                formula = formula, parse = TRUE)
 
 # user specified label and digits
@@ -216,8 +227,8 @@ ggplot(my.data, aes(x, y)) +
   geom_point() +
   geom_smooth(method = "lm", formula = formula) +
   stat_poly_eq(aes(label =  paste(stat(eq.label),
-                                  stat(adj.rr.label), sep = "~~~~")),
-               formula = formula, rr.digits = 3, coef.digits = 2,
+                                  stat(adj.rr.label), sep = "*\", \"*")),
+               formula = formula, rr.digits = 3, coef.digits = 4,
                parse = TRUE)
 
 # geom = "text"
@@ -287,8 +298,9 @@ This \code{stat_poly_eq} statistic can return ready formatted labels
   depending on the argument passed to \code{output.type}. This is possible
   because only polynomial models are supported. For other types of models,
   statistics \code{\link{stat_fit_glance}},  \code{\link{stat_fit_tidy}} and
-  \code{\link{stat_fit_glance}} should be used instead and the mapping of
-  aesthetic \code{label} explicitly supplied in the call.
+  \code{\link{stat_fit_glance}} should be used instead and the code for
+  construction of character strings from numeric values and their mapping to
+  aesthetic \code{label} needs to be explicitly supplied in the call.
 
 Other statistics for linear model fits: 
 \code{\link{stat_fit_deviations}()},
