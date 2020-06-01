@@ -4,7 +4,8 @@ opts_chunk$set(fig.align = 'center',
                fig.show = 'hold', fig.width = 7, fig.height = 4)
 options(warnPartialMatchArgs = FALSE,
         tibble.print.max = 4,
-        tibble.print.min = 4)
+        tibble.print.min = 4,
+        dplyr.summarise.inform = FALSE)
 
 ## -----------------------------------------------------------------------------
 library(ggpmisc)
@@ -37,6 +38,14 @@ ggplot(mpg, aes(displ, hwy, colour = factor(cyl))) +
 ## -----------------------------------------------------------------------------
 ggplot(mpg, aes(displ, hwy, colour = factor(cyl))) +
   geom_table(data = data.tb, aes(x, y, label = tb),
+             table.theme = ttheme_gtsimple,
+             table.hjust = 0, colour = "darkred", fill = "#FFFFBB") +
+  geom_point() 
+
+## -----------------------------------------------------------------------------
+ggplot(mpg, aes(displ, hwy, colour = factor(cyl))) +
+  geom_table(data = data.tb, aes(x, y, label = tb),
+             table.theme = ttheme_gtlight,
              size = 3, colour = "darkblue",
              stat = "fmt_tb", tb.vars = c(Cylinders = "cyl", "MPG" = "hwy")) +
   labs(x = "Engine displacement (l)", y = "Fuel use efficiency (MPG)",

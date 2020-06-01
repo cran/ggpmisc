@@ -12,6 +12,11 @@ stat_fmt_tb(
   tb.rows = NULL,
   digits = 3,
   position = "identity",
+  table.theme = NULL,
+  table.rownames = FALSE,
+  table.colnames = TRUE,
+  table.hjust = 0.5,
+  parse = FALSE,
   na.rm = FALSE,
   show.legend = FALSE,
   inherit.aes = TRUE,
@@ -38,6 +43,18 @@ retained in data.}
 
 \item{position}{The position adjustment to use for overlapping points on this
 layer}
+
+\item{table.theme}{NULL, list or function A gridExtra ttheme defintion, or
+a constructor for a ttheme or NULL for default.}
+
+\item{table.rownames, table.colnames}{logical flag to enable or disabling
+printing of row names and column names.}
+
+\item{table.hjust}{numeric Horizontal justification for the core and column
+headings of the table.}
+
+\item{parse}{If TRUE, the labels will be parsed into expressions and
+displayed as described in \code{?plotmath}.}
 
 \item{na.rm}{a logical indicating whether NA values should be stripped before
 the computation proceeds.}
@@ -71,7 +88,6 @@ can include aesthetics whose values you want to set, not map. See
 }
 
 \examples{
-library(ggplot2)
 my.df <-
   tibble::tibble(
     x = c(1, 2),
@@ -86,8 +102,17 @@ ggplot(my.df, aes(x, y, label = tbs)) +
   expand_limits(x = c(0,3), y = c(-2, 6))
 
 ggplot(my.df, aes(x, y, label = tbs)) +
+  stat_fmt_tb(table.theme = ttheme_gtlight) +
+  expand_limits(x = c(0,3), y = c(-2, 6))
+
+ggplot(my.df, aes(x, y, label = tbs)) +
   stat_fmt_tb(tb.vars = c(value = "X", group = "Y"),
                tb.rows = 1:3) +
   expand_limits(x = c(0,3), y = c(-2, 6))
 
+}
+\seealso{
+See \code{\link{geom_table}} for details on how tables respond
+  to mapped aesthetics and table themes. For details on predefined table
+  themes see \code{\link{ttheme_gtdefault}}.
 }

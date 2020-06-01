@@ -38,6 +38,14 @@
 #'   recycled.
 #' @param label.x,label.y \code{numeric} Coordinates (in data units) to be used
 #'   for absolute positioning of the output. If too short they will be recycled.
+#' @param table.theme NULL, list or function A gridExtra ttheme defintion, or
+#'   a constructor for a ttheme or NULL for default.
+#' @param table.rownames,table.colnames logical flag to enable or disabling
+#'   printing of row names and column names.
+#' @param table.hjust numeric Horizontal justification for the core and column
+#'   headings of the table.
+#' @param parse If TRUE, the labels will be parsed into expressions and
+#'   displayed as described in \code{?plotmath}.
 #'
 #' @details \code{stat_fit_tb} Applies a model fitting function per panel,
 #'   using the grouping factors from easthetic mappings in the fitted model.
@@ -52,7 +60,7 @@
 #'   as argument by the user, but instead a data frame with the variables mapped
 #'   to aesthetics. In other words, it respects the grammar of graphics and
 #'   consequently within arguments passed through \code{method.args} names of
-#'   aesthetics like $x$ and $y$ should be used intead of the original variable
+#'   aesthetics like $x$ and $y$ should be used instead of the original variable
 #'   names, while data is automatically passed the data frame. This helps ensure
 #'   that the model is fitted to the same data as plotted in other layers.
 #'
@@ -67,15 +75,15 @@
 #'   \code{\link[gginnards]{geom_debug}}. An example is shown below.
 #'
 #' @seealso \code{\link[broom]{broom}} for details on how the tidying of the
-#'   resulst of model fits is done. See \code{\link{geom_table}} for details
-#'   on how the formating and location of the table can be adjusted.
+#'   result of model fits is done. See \code{\link{geom_table}} for details
+#'   on how inset tables respond to mapped aesthetics and table themes. For
+#'   details on predefined table themes see \code{\link{ttheme_gtdefault}}.
 #'
 #' @family ggplot2 statistics based on 'broom'.
 #'
 #' @export
 #'
 #' @examples
-#' library(gginnards)
 #' # data for examples
 #' x <- c(44.4, 45.9, 41.9, 53.3, 44.7, 44.1, 50.7, 45.2, 60.1)
 #' covariate <- sqrt(x) + rnorm(9)
@@ -88,10 +96,10 @@
 #'   stat_fit_tb() +
 #'   expand_limits(y = 70)
 #'
-#' # Linear regression
+#' # Linear regression using a table theme
 #' ggplot(my.df, aes(covariate, x)) +
 #'   geom_point() +
-#'   stat_fit_tb(geom = "debug") +
+#'   stat_fit_tb(table.theme = ttheme_gtlight) +
 #'   expand_limits(y = 70)
 #'
 #' # Polynomial regression
@@ -143,6 +151,11 @@ stat_fit_tb <- function(mapping = NULL, data = NULL, geom = "table_npc",
                         label.x = "center", label.y = "top",
                         label.x.npc = NULL, label.y.npc = NULL,
                         position = "identity",
+                        table.theme = NULL,
+                        table.rownames = FALSE,
+                        table.colnames = TRUE,
+                        table.hjust = 1,
+                        parse = FALSE,
                         na.rm = FALSE, show.legend = FALSE,
                         inherit.aes = TRUE,
                         ...) {
@@ -166,6 +179,11 @@ stat_fit_tb <- function(mapping = NULL, data = NULL, geom = "table_npc",
                   label.x = label.x,
                   label.y = label.y,
                   npc.used = grepl("_npc", geom),
+                  table.theme = table.theme,
+                  table.rownames = table.rownames,
+                  table.colnames = table.colnames,
+                  table.hjust = table.hjust,
+                  parse = parse,
                   na.rm = na.rm,
                   ...)
   )

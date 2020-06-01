@@ -11,6 +11,10 @@ geom_table(
   stat = "identity",
   position = "identity",
   ...,
+  table.theme = NULL,
+  table.rownames = FALSE,
+  table.colnames = TRUE,
+  table.hjust = 0.5,
   parse = FALSE,
   na.rm = FALSE,
   show.legend = FALSE,
@@ -23,6 +27,10 @@ geom_table_npc(
   stat = "identity",
   position = "identity",
   ...,
+  table.theme = NULL,
+  table.rownames = FALSE,
+  table.colnames = TRUE,
+  table.hjust = 0.5,
   parse = FALSE,
   na.rm = FALSE,
   show.legend = FALSE,
@@ -47,6 +55,15 @@ call to a position adjustment function.}
 can include aesthetics whose values you want to set, not map. See
 \code{\link[ggplot2]{layer}} for more details.}
 
+\item{table.theme}{NULL, list or function A gridExtra ttheme defintion, or
+a constructor for a ttheme or NULL for default.}
+
+\item{table.rownames, table.colnames}{logical flag to enable or disable
+printing of row names and column names.}
+
+\item{table.hjust}{numeric Horizontal justification for the core and column
+headings of the table.}
+
 \item{parse}{If TRUE, the labels will be parsed into expressions and
 displayed as described in \code{?plotmath}.}
 
@@ -66,38 +83,62 @@ default plot specification, e.g. \code{\link[ggplot2]{borders}}.}
 \code{geom_table} adds a textual table directly to the ggplot using syntax
 similar to that of \code{\link[ggplot2]{geom_label}} while
 \code{geom_table_npc} is similar to \code{geom_label_npc} in that \code{x}
-and \code{y} coordinates are given in npc units.
+and \code{y} coordinates are given in npc units. In most respects they
+behave as any other ggplot geometry: a layer con contain multiple tables
+and faceting works as usual.
 }
 \details{
-The "width" and "height" of the table, like for text elements are 0, so
-stacking and dodging tables will not work by default. In addition, axis
-limits are not automatically expanded to include the whole tables, but
-instead only their x and y coordinates. Obviously, tables do have height and
-width, but they are in physical units, not data units. The amount of space
-they occupy on a plot is not constant in data units: when you resize a plot,
-tables stay the same size, but the size of the axes changes.
-}
-\note{
 These geoms work only with tibbles as \code{data}, as they expects a
   list of data frames or tibbles ("tb" objects) to be mapped to the
   \code{label} aesthetic. Aesthetics mappings in the inset plot are
   independent of those in the base plot.
 
   In the case of \code{geom_table()}, \code{x} and \code{y} aesthetics
-  determine the position of the whole inset table, similarly to that of a text
-  label, justification is interpreted as indicating the position of the table
-  with respect to the $x$ and $y$ coordinates in the data, and \code{angle}
-  is used to rotate the table as a whole.
+  determine the position of the whole inset table, similarly to that of a
+  text label, justification is interpreted as indicating the position of the
+  table with respect to the $x$ and $y$ coordinates in the data, and
+  \code{angle} is used to rotate the table as a whole.
 
-  In the case of \code{geom_table_npc()}, \code{npcx} and \code{npcy} aesthetics
-  determine the position of the whole inset table, similarly to that of a text
-  label, justification is interpreted as indicating the position of the table
-  with respect to the $x$ and $y$ coordinates in "npc" units, and \code{angle}
-  is used to rotate the table as a whole.
+  In the case of \code{geom_table_npc()}, \code{npcx} and \code{npcy}
+  aesthetics determine the position of the whole inset table, similarly to
+  that of a text label, justification is interpreted as indicating the
+  position of the table with respect to the $x$ and $y$ coordinates in "npc"
+  units, and \code{angle} is used to rotate the table as a whole.
 
-  \strong{\code{annotate()} cannot be used with \code{geom = "table"}}. Use
-  \code{\link[ggplot2]{annotation_custom}} directly when adding inset tables
-  as annotations.
+  The "width" and "height" of an inset as for a text element are
+  0, so stacking and dodging inset plots will not work by default, and axis
+  limits are not automatically expanded to include all inset plots.
+  Obviously, insets do have height and width, but they are physical units,
+  not data units. The amount of space they occupy on the main plot is not
+  constant in data units of the base plot: when you modify scale limits,
+  inset plots stay the same size relative to the physical size of the base
+  plot.
+}
+\note{
+As all geoms, \code{geom_table()} and \code{geom_table_npc()} add a
+  layer to a plot, and behave as expected in the grammar of graphics: ggplot
+  themes do not affect how layers are rendered. The formatting of the inset
+  table is done according to the the argument passed to \code{table.theme}.
+
+  As the table is built with function gridExtra::gtable(), for formatting
+  details, please, consult \code{\link[gridExtra]{tableGrob}}. If the
+  argument passed to \code{table.theme} is a constructor function, the values
+  mapped to \code{size}, \code{color}, \code{fill}, \code{alpha}, and
+  \code{family} aesthetics will the passed to the theme constructor for each
+  table. In the case of \code{colour} and \code{fill}, the default mapping
+  is to \code{NA} which triggers the use of the default base_colour of the
+  \code{ttheme}.
+
+  The constructor \code{ttheme_gtdefault} is used by default, but others
+  are available predefined or can created by the user. If instead of a
+  constructor a ready constructed ttheme as a list object is passed as
+  argument, it will be used as is. In such a case mapped aesthetics normally
+  mapped aesthetics are ignored if present.
+
+  Complex tables with annotations or different coloring of rows or cells can
+  be constructed with functions in package 'gridExtra' or in any other way
+  as long as they can be saved as grid graphical objects and added to a
+  ggplot as a new layer with \code{\link{geom_grob}}.
 }
 \section{Alignment}{
  You can modify table alignment with the \code{vjust} and
@@ -111,6 +152,13 @@ These geoms work only with tibbles as \code{data}, as they expects a
   aesthetics, which determines the size of text within the table.
 }
 
+\section{Warning!}{
+
+  \strong{\code{annotate()} cannot be used with \code{geom = "table"}}. Use
+  \code{\link[ggplot2]{annotation_custom}} directly when adding inset tables
+  as annotations.
+}
+
 \examples{
 library(dplyr)
 library(tibble)
@@ -122,12 +170,48 @@ mtcars \%>\%
   mutate(wt = sprintf("\%.2f", wt),
          mpg = sprintf("\%.1f", mpg)) -> tb
 
-df <- tibble(x = 0.95, y = 0.95, tb = list(tb))
+df <- tibble(x = 5.45, y = 34, tb = list(tb))
+
+# using defaults
+ggplot(mtcars, aes(wt, mpg, colour = factor(cyl))) +
+  geom_point() +
+  geom_table(data = df, aes(x = x, y = y, label = tb))
 
 ggplot(mtcars, aes(wt, mpg, colour = factor(cyl))) +
   geom_point() +
-  geom_table_npc(data = df, aes(npcx = x, npcy = y, label = tb),
-                 hjust = 1, vjust = 1)
+  geom_table(data = df, aes(x = x, y = y, label = tb),
+             table.rownames = TRUE, table.theme = ttheme_gtstripes)
+
+# settings aesthetics to constants
+ggplot(mtcars, aes(wt, mpg, colour = factor(cyl))) +
+  geom_point() +
+  geom_table(data = df, aes(x = x, y = y, label = tb),
+             color = "red", fill = "#FFCCCC", family = "serif", size = 5,
+             angle = 90, vjust = 0)
+
+# passing a theme constructor as argument
+ggplot(mtcars, aes(wt, mpg, colour = factor(cyl))) +
+  geom_point() +
+  geom_table(data = df, aes(x = x, y = y, label = tb),
+             table.theme = ttheme_gtminimal) +
+  theme_classic()
+
+df2 <- tibble(x = 5.45, y = c(34, 29, 24), cyl = c(4, 6, 8),
+              tb = list(tb[1, 1:3], tb[2, 1:3], tb[3, 1:3]))
+
+# mapped aesthetics
+ggplot(data = mtcars, mapping = aes(wt, mpg, color = factor(cyl))) +
+  geom_point() +
+  geom_table(data = df2,
+             inherit.aes = TRUE,
+             mapping = aes(x = x, y = y, label = tb))
+
+# Using native plot coordinates instead of data coordinates
+dfnpc <- tibble(x = 0.95, y = 0.95, tb = list(tb))
+
+ggplot(mtcars, aes(wt, mpg, colour = factor(cyl))) +
+  geom_point() +
+  geom_table_npc(data = dfnpc, aes(npcx = x, npcy = y, label = tb))
 
 }
 \references{
@@ -142,8 +226,9 @@ This geometry is inspired on answers to two questions in
 function \code{\link[gridExtra]{tableGrob}} as it is used to
   construct the table.
 
-Other Statistics for adding insets to ggplots: 
+Other geometries for adding insets to ggplots: 
 \code{\link{geom_grob}()},
-\code{\link{geom_plot}()}
+\code{\link{geom_plot}()},
+\code{\link{ttheme_gtdefault}()}
 }
-\concept{Statistics for adding insets to ggplots}
+\concept{geometries for adding insets to ggplots}

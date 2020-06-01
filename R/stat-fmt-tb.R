@@ -33,6 +33,18 @@
 #' @param tb.vars character vector, optionally named, used to select and or
 #'   rename the columns of the table returned.
 #' @param tb.rows integer vector of row indexes of rows to be retained.
+#' @param table.theme NULL, list or function A gridExtra ttheme defintion, or
+#'   a constructor for a ttheme or NULL for default.
+#' @param table.rownames,table.colnames logical flag to enable or disabling
+#'   printing of row names and column names.
+#' @param table.hjust numeric Horizontal justification for the core and column
+#'   headings of the table.
+#' @param parse If TRUE, the labels will be parsed into expressions and
+#'   displayed as described in \code{?plotmath}.
+#'
+#' @seealso See \code{\link{geom_table}} for details on how tables respond
+#'   to mapped aesthetics and table themes. For details on predefined table
+#'   themes see \code{\link{ttheme_gtdefault}}.
 #'
 #' @section Computed variables: The output of sequentially applying
 #'   \code{\link[dplyr]{slice}} with \code{tb.rows} as argument and
@@ -43,7 +55,6 @@
 #' @export
 #'
 #' @examples
-#' library(ggplot2)
 #' my.df <-
 #'   tibble::tibble(
 #'     x = c(1, 2),
@@ -58,16 +69,28 @@
 #'   expand_limits(x = c(0,3), y = c(-2, 6))
 #'
 #' ggplot(my.df, aes(x, y, label = tbs)) +
+#'   stat_fmt_tb(table.theme = ttheme_gtlight) +
+#'   expand_limits(x = c(0,3), y = c(-2, 6))
+#'
+#' ggplot(my.df, aes(x, y, label = tbs)) +
 #'   stat_fmt_tb(tb.vars = c(value = "X", group = "Y"),
 #'                tb.rows = 1:3) +
 #'   expand_limits(x = c(0,3), y = c(-2, 6))
 #'
-stat_fmt_tb <- function(mapping = NULL, data = NULL, geom = "table",
+stat_fmt_tb <- function(mapping = NULL,
+                        data = NULL,
+                        geom = "table",
                         tb.vars = NULL,
                         tb.rows = NULL,
                         digits = 3,
                         position = "identity",
-                        na.rm = FALSE, show.legend = FALSE,
+                        table.theme = NULL,
+                        table.rownames = FALSE,
+                        table.colnames = TRUE,
+                        table.hjust = 0.5,
+                        parse = FALSE,
+                        na.rm = FALSE,
+                        show.legend = FALSE,
                         inherit.aes = TRUE,
                         ...) {
   ggplot2::layer(
@@ -76,6 +99,11 @@ stat_fmt_tb <- function(mapping = NULL, data = NULL, geom = "table",
     params = list(tb.vars = tb.vars,
                   tb.rows = tb.rows,
                   digits = digits,
+                  table.theme = table.theme,
+                  table.rownames = table.rownames,
+                  table.colnames = table.colnames,
+                  table.hjust = table.hjust,
+                  parse = parse,
                   na.rm = na.rm,
                   ...)
   )
