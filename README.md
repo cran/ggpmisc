@@ -16,7 +16,7 @@ implemented. New geoms support insets in ggplots. The location of fit
 summaries and graphical insets within the plotting area needs usually to
 be set independently of the `x` and `y` scales. The “natural”
 coordinates to use in such cases are expressed in ‘grid’ “npc” units in
-the range \[0..1\] for which new aesthetics and their scales are made
+the range 0..1 for which new aesthetics and their scales are made
 available.
 
 ## ggplot methods
@@ -171,16 +171,14 @@ ggplot(cars, aes(speed, dist)) +
 A plot with an inset plot.
 
 ``` r
-library(tibble)
 p <- ggplot(mtcars, aes(factor(cyl), mpg, colour = factor(cyl))) +
   stat_boxplot() +
   labs(y = NULL) +
   theme_bw(9) + theme(legend.position = "none")
-df <- tibble(x = 0.01, y = 0.015, plot = list(p))
+
 ggplot(mtcars, aes(wt, mpg, colour = factor(cyl))) +
   geom_point() +
-  geom_plot_npc(data = df, mapping = aes(npcx = x, npcy = y, label = plot),
-                vjust = 0, hjust = 0) +
+  annotate("plot_npc", npcx = "left", npcy = "bottom", label = p) +
   expand_limits(y = 0, x = 0)
 ```
 

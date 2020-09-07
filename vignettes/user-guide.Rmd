@@ -26,7 +26,7 @@ options(warnPartialMatchArgs = FALSE,
 
 We load all the packages used in the examples.
 
-```{r}
+```{r, message=FALSE}
 library(ggpmisc)
 library(ggrepel)
 library(xts)
@@ -35,6 +35,7 @@ library(tibble)
 library(dplyr)
 library(nlme)
 ```
+
 As we will use text and labels on the plotting area we change the default theme
 to an uncluttered one.
 
@@ -76,21 +77,42 @@ to character strings or printed.
 ggplot(lynx, as.numeric = FALSE) + geom_line()
 ```
 
-## geom_table and stat_fmt_table
+## Geometries
 
-The _geometry_ `geom_table()` plots a data frame or tibble, nested in a tibble passed as data
-argument, using _aesthetics_ `x` and `y` for positioning, and `label` for the
-data frame containing the data for the table. The table is created as a 'grid'
-grob and added as usual to the ggplot object. In contrast to "standard"
-geoms, this geom by default does not inherit the globally mapped aesthetics.
+### geom_table and stat_fmt_table
+
+The _geometry_ `geom_table()` plots a data frame or tibble, nested in a tibble
+passed as data argument, using _aesthetics_ `x` and `y` for positioning, and
+`label` for the data frame containing the data for the table. The table is
+created as a 'grid' grob and added as usual to the ggplot object. In contrast to
+"standard" geoms, this geom by default does not inherit the globally mapped
+aesthetics. With these approach in plots with facets the insets can be different
+in each panel. It is also possible to inset more than one table in a single call
+simply by creating a tibble with multiple rows.
 
 ```{r}
 tb <- mpg %>%
   group_by(cyl) %>%
   summarise(hwy = median(hwy), cty = median(cty))
+
 data.tb <- tibble(x = 7, y = 44, tb = list(tb))
+
 ggplot(mpg, aes(displ, hwy, colour = factor(cyl))) +
   geom_table(data = data.tb, aes(x, y, label = tb)) +
+  geom_point() 
+```
+
+In plots with a single panel it is easier to use `annotate()` to add inset 
+tables, giving the same plot as above. In this case single data frames, ggplots 
+or grobs do not need to be wrapped in a list, although lists are also supported. 
+
+```{r, eval=FALSE}
+tb <- mpg %>%
+  group_by(cyl) %>%
+  summarise(hwy = median(hwy), cty = median(cty))
+
+ggplot(mpg, aes(displ, hwy, colour = factor(cyl))) +
+  annotate("table", x = 7, y = 44, label = tb) +
   geom_point() 
 ```
 
@@ -157,26 +179,36 @@ relative to the main plot, so the combined plot can be scaled.
 Please see section **Normalised Parent Coordinates** below for a description of
 `geom_table_npc()`.
 
-## geom_plot
+### geom_plot
 
-The `geom_plot()` _geometry_ plots ggplot objects, nested in a tibble passed as data
-argument, using _aesthetics_ `x` and `y` for positioning, and `label` for the
-ggplot object containing the definition of the plot to be nested. A Grob is 
-created with 'ggplotGrob' and added as usual to the ggplot object.
+The `geom_plot()` _geometry_ plots ggplot objects, nested in a tibble passed as
+data argument, using _aesthetics_ `x` and `y` for positioning, and `label` for
+the ggplot object containing the definition of the plot to be nested. With this
+approach in plots with facets the insets can be different in each panel. It is
+also possible to inset more than one plot in a single call simply by creating a
+tibble with multiple rows.
 
-As an example we produce plot where the inset plot is a zoomed-in detail from
-the main plot. In this case the main and inset plots start as the same plot.
+Behind the scenes, one Grob is created for each plot to be inset. The conversion
+is done with `ggplotGrob()` and the Grobs added the main ggplot object.
+
+As an example we produce a plot where the inset plot is a zoomed-in detail from
+the main plot. In this case the main and inset plots start as the same plot. In
+most cases the size of text and other elements in the inset should be smaller
+than in the main plot. Here we override the default theme setting the
+`base_size` from its default of 11 pt to 8 pt.
 
 ```{r}
 p <- ggplot(mpg, aes(displ, hwy, colour = factor(cyl))) +
   geom_point() 
 
-data.tb <- tibble(x = 7, y = 44, 
-                  plot = list(p + 
-                                coord_cartesian(xlim = c(4.9, 6.2), ylim = c(13, 21)) +
-                                labs(x = NULL, y = NULL) +
-                                theme_bw(8) +
-                                scale_colour_discrete(guide = FALSE)))
+data.tb <- 
+  tibble(x = 7, y = 44, 
+         plot = list(p + 
+                       coord_cartesian(xlim = c(4.9, 6.2), 
+                                       ylim = c(13, 21)) +
+                       labs(x = NULL, y = NULL) +
+                       theme_bw(8) +
+                       scale_colour_discrete(guide = FALSE)))
 
 ggplot(mpg, aes(displ, hwy, colour = factor(cyl))) +
   geom_plot(data = data.tb, aes(x, y, label = plot)) +
@@ -186,8 +218,8 @@ ggplot(mpg, aes(displ, hwy, colour = factor(cyl))) +
   geom_point() 
 ```
 In general, the inset plot can be any ggplot object, allowing the creation of
-very different combinations of main plot and inset plot. Here we use the inset
-to summaries as in the previous example of an inset table.
+very different combinations of main plot and inset plots. Here we use the inset
+to show summaries as in the previous example of an inset table.
 
 ```{r}
 p <- ggplot(mpg, aes(factor(cyl), hwy, fill = factor(cyl))) +
@@ -207,23 +239,40 @@ ggplot(mpg, aes(displ, hwy, colour = factor(cyl))) +
   theme_bw()
 ```
 
+The same plot as above can be created using `annotate()` but be aware that when
+using facets in 'ggplot2' annotations are identical in all panels.
+
+```{r, eval=FALSE}
+p <- ggplot(mpg, aes(factor(cyl), hwy, fill = factor(cyl))) +
+  stat_summary(geom = "col", fun = mean, width = 2/3) +
+  labs(x = "Number of cylinders", y = NULL, title = "Means") +
+  scale_fill_discrete(guide = FALSE)
+
+ggplot(mpg, aes(displ, hwy, colour = factor(cyl))) +
+  annotate("plot", x = 7, y = 44, label = p + theme_bw(8)) +
+  geom_point() +
+  labs(x = "Engine displacement (l)", y = "Fuel use efficiency (MPG)",
+       colour = "Engine cylinders\n(number)") +
+  theme_bw()
+```
+
 As implemented, there is no limitation to the number of insets, and faceting is
-respected. If the base plot shows a map, multiple small plots could be
-superimposed on different countries or regions. The size of the insets is set
+respected. If the base plot shows a map or a bitmap, multiple small plots could
+be superimposed on different countries or regions. The size of the insets is set
 relative to the main plot, so the combined plot can be scaled. A possible
 unintuitive but useful feature, is that the theme is linked to each plot.
 
 Please see section **Normalised Parent Coordinates** below for a description of
 `geom_plot_npc()`.
 
-## geom_grob
+### geom_grob
 
 The `geom_grob()` _geometry_ plots grobs (graphical objects as created with
 'grid'), nested in a tibble passed as data argument, using _aesthetics_ `x` and
 `y` for positioning, and `label` for the Grob object. While `geom_table()` and
 `geom_plot()` take as values to plot tibbles or data frames, and ggplots,
 respectively, and convert them into Grobs before adding them to the plot,
-`geom_grob()` expects Grobs ready to be rendered.
+`geom_grob()` expects Grobs ready to be rendered. 
 
 ```{r}
 file.name <- 
@@ -246,21 +295,37 @@ ggplot() +
   scale_x_continuous(expand = expansion(mult = 0.2, add = 0)) +
  theme_bw(12)
 ```
+
+As shown above for inset tables and inset plots, it is also possible to use
+`annotate()` with Grobs. The next example insets a single `Grob`. Here we reuse
+the bitmap `Isoquercitin` read in the previous example. The Grob is contained in
+a viewport. Here setting `width = 1` ("npc" units) when creating the `Grob` from
+the bitmap ensures that the bitmap fills the width of the viewport (to ensure
+that the inset is not distorted, set only one of `width` or `height`). The
+argument to `vp.width` or `vp.height`, also in "npc" units, determines the size
+of the `Grob` relative to the size of the plotting area.
+
+```{r}
+ggplot() +
+  annotate("grob", x = 1, y = 3, vp.width = 0.5,
+           label = grid::rasterGrob(image = Isoquercitin, width = 1)) +
+ theme_bw(12)
+```
+
 `geom_grob()` is designed thinking that its main use will in graphical annotations,
 although one could use it for infographics with multiple copies of each grob, this
 would go against the grammar of graphics. In this implementation grobs cannot
 to mapped to an aesthetic through a scale.
 
 As implemented, there is no limitation to the number of insets, and faceting is
-respected. If the base plot shows a map, multiple simple grobs (e.g. national
-flags) could be
-superimposed on different countries. The size of the insets is set
-relative to the main plot, so the combined plot can be scaled.
+respected. If the base plot shows a map or a bitmap, multiple simple grobs (e.g.
+national flags) could be superimposed on different countries. The size of the
+insets is set relative to the main plot, so the combined plot can be scaled.
 
-Please see next section for a description of
+Please see section **Normalised Parent Coordinates** below for a description of
 `geom_grob_npc()`.
 
-## geom_vhlines
+### geom_vhlines
 
 This is a convenience geometry that adds both vertical and horizontal
 guide lines on the same plot layer, using the same syntax as `geom_hline()` and
@@ -276,47 +341,58 @@ ggplot(mpg, aes(displ, hwy, colour = factor(cyl))) +
 
 ```
 
-
-## Normalised Parent Coordinates
+### Normalised Parent Coordinates
 
 R's 'grid' package defines several units that can be used to describe the locations
 of plot elements. In 'ggplot2' the _x_ and _y_ aesthetics are directly mapped
 to `"native"` or data units. For consistent location of **annotations** with
 respect to the plotting area we need to rely on `"npc"` which are expressed
-relative to the size of the grid viewport, as the plotting area in a ggplot
-if implemented as viewport.
+relative to the size of the grid viewport. The plotting area in a ggplot
+is implemented as viewport and support for `"npc"` coordinates is relatively
+easy to implement.
 
-To support this we have implemented _scales_ for two new _aesthetics_, `npcx`
-and `npcy`. These are very simple continuous scales which do not support any
-transformation or change to their limits, which are meaningless for `"npc"`
-units. Variables mapped to these aesthetics can be either numerical with
-values in the range zero to one or
-character. A limited set of strings are recognised and converted to "npc" units:
-`"top"`, `"bottom"`, `"left"`, `"right"` and `"centre"` (or its synonyms 
-`"center"` and `"middle"`). Justification defaults to "inward".
+To support `"npc"` positions we have implemented _scales_ for two new
+_aesthetics_, `npcx` and `npcy`. These are very simple continuous scales which
+do not support any transformation or changes to their limits, both of which
+would be meaningless for `"npc"` units. Variables mapped to these aesthetics can
+be either numerical with values in the range zero to one or character. A limited
+set of strings are recognised and converted to `"npc"` units: `"bottom"`,
+`"center"`, `"top"`, `"left"`, `"middle"`, `"right"` (`"centre"` is a synonym
+for `"center"`). 
 
 To make these scales useful we need also to define _geometries_ that use these
 new aesthetics. Package 'ggpmisc' currently provides `geom_text_npc()`,
 `geom_label_npc()`, `geom_table_npc()`, `geom_plot_npc()` and `geom_grob_npc()`.
 
-These are used internally by several of the statistics described below. They 
-can also be useful on their own right in those cases when we want to
-add annotations at specific positions within the plotting area, while the
-usual _x_ and _y_ aesthetics should be used whenever the positions of plot
-elements represent data values. When writing scripts or functions that may
-be applied to different data sets they help in keeping the code concise and
-reusable.
+As is the case for `geom_text()` and `geom_text()` from package 'ggplot2',
+`"bottom"`, `"center"`, `"top"`, `"left"`, `"middle"`, `"right"`, plus
+`"inward"` and `"outward"` can be used, as well as numeric values, to control
+the justification. Justification defaults to `"inward"` in the geometries
+described here.
 
-As an example let's imagine that we want to add an institutional logo to a plot. 
-Its position has nothing to
-do with the data mapped to _x_ and _y_, so it is conceptually better to use
-`"npc"` coordinates. The big practical advantage is that this also allows to
-keep this part of the plot definition independent of the data being plotted,
-giving a major advantage in the case of plots with facets with free scale
-limits.
+While the usual _x_ and _y_ aesthetics are used whenever the positions of plot
+elements represent data values, these new scales and geometries are useful only
+for annotations, i.e., in those cases when we want to elements at specific
+positions within the plotting area irrespective of the ranges of the data mapped
+to the _x_ and _y_ aesthetics. When writing scripts or functions that may be
+applied to different data sets these new _aesthetics_ help by keeping the code
+concise and reusable. These _geometries_ are used by default by several of the
+statistics described in later sections.
 
-We assume here that the tiger is being used as a logo, and we simply map
-all aesthetics to constant values.
+As an example let's imagine that we want to add the structure of a metabolite to
+a plot. Its position has nothing to do with the data mapped to _x_ and _y_, so
+it is conceptually better to use `"npc"` coordinates. The big practical
+advantage is that this also allows to keep this part of the plot definition
+independent of the data being plotted, giving a major advantage in the case of
+plots with facets with free scale limits. This example can be easily adapted to
+`geom_plot_npc()` where a ggplot should mapped to `label`, and to
+`geom_table_npc()` where a data frame should be mapped to `label`.
+
+We produce the example plot by first constructing a tibble to contain the
+grob and the coordinate data, and then map these variables to aesthetics using
+`aes()`. In the example the tibble has a single row, but this is not a 
+requirement. In this respect these geoms behave as normal geoms, with facets 
+also supported.
 
 ```{r}
 file.name <- 
@@ -327,17 +403,6 @@ Robinin <- magick::image_read(file.name)
 set.seed(123456)
 data.tb <- tibble(x = 1:20, y = (1:20) + rnorm(20, 0, 10))
 
-ggplot(data.tb, aes(x, y)) +
-  geom_grob_npc(label = list(grid::rasterGrob(image = Robinin)), 
-                npcx = 0.01, npcy = 0.95, hjust = 0, vp.width = 0.5) +
-  geom_point() +
-  expand_limits(y = 45, x = 0)
-```
-
-Alternatively we produce the same plot by creating a data frame to contain the
-grob and the coordinates, and then map these variable to the aesthetics using
-`aes()`.
-```{r}
 flavo.tb <- tibble(x = 0.02,
                    y = 0.95,
                    width = 1/2,
@@ -352,10 +417,34 @@ ggplot(data.tb, aes(x, y)) +
   expand_limits(y = 55, x = 0)
 ```
 
-Two geometries are based on existing 'ggplot2' geometries. They are almost like
-wrappers built on top of `geom_text()` and `geom_label()`. We give an example
-using `geom_text_npc()` to produce a "classic" labelling for facets matching 
-the style of `theme_classic()` and traditional scientific journals' design.
+Alternatively, we can pass constant values to `geom_grob_npc()` to obtain the
+same plot. This approach can be handy in simple cases.
+
+```{r}
+ggplot(data.tb, aes(x, y)) +
+  geom_grob_npc(label = list(grid::rasterGrob(image = Robinin, width = 1)), 
+                npcx = 0.01, npcy = 0.95, hjust = 0, vp.width = 0.5) +
+  geom_point() +
+  expand_limits(y = 45, x = 0)
+```
+
+We can also use `annotate()` if the annotation should be the same for all 
+panels, or if we have a single figure panel. In this case there is no need to
+wrap a single `grob` in a list.
+
+```{r}
+ggplot(data.tb, aes(x, y)) +
+  annotate("grob_npc", label = grid::rasterGrob(image = Robinin, width = 1), 
+                npcx = 0.01, npcy = 0.95, hjust = 0, vp.width = 0.5) +
+  geom_point() +
+  expand_limits(y = 45, x = 0)
+
+```
+
+Two geometries are based on existing 'ggplot2' geometries. They are based on
+`geom_text()` and `geom_label()`. We give an example using `geom_text_npc()` to
+produce a "classic" labelling for facets matching the style of `theme_classic()`
+and traditional scientific journals' design.
 
 ```{r}
 corner_letters.tb <- tibble(label = LETTERS[1:4],
@@ -372,7 +461,7 @@ ggplot(mpg, aes(displ, hwy)) +
         strip.text.x = element_blank())
 ```
 
-## Marginal markings
+### Marginal markings
 
 'ggplot2' provides `geom_rug()`, `geom_vline()` and `geom_hline()`. Rug plots
 are intended to be used to represent distributions along the margins of plot.
@@ -400,12 +489,39 @@ ggplot(mpg, aes(displ, hwy, colour = factor(cyl))) +
   geom_point() 
 ```
 
-## stat_peaks and stat_valleys
+## Statistics
 
-Two statistics make it possible to highlight and/or label peaks and valleys (local maxima
-and local minima) in a curve. Here we use a time series, using POSIXct for `time` 
-and the default formatting of labels. We also instruct `geom_text()` not to
-render overlapping labels.
+### stat_centroid
+
+It can be useful to mark the centroid of a group of observations with a point
+or with a label. By default `stat_centroid()` applies function `mean()` to
+both `x` and `y` by group. If all the values mapped to `label` within each group
+are identical, this value is copied to the returned `data`.
+
+```{r}
+ggplot(mpg, aes(displ, hwy, colour = factor(cyl))) +
+  geom_point(alpha = 0.33) +
+  stat_centroid(shape = "cross", size = 4)
+```
+
+Other functions can be passed to this statistic as long as they return a single
+value that can be mapped to the `x` and `y` aesthetics (numeric, time or a
+factor).
+
+```{r}
+ggplot(mpg, aes(displ, hwy, colour = factor(cyl))) +
+  geom_point(alpha = 0.33) +
+  stat_centroid(shape = "cross", size = 4, .fun = median)
+```
+
+The very similar `stat_summary_xy()` accepts different functions for `x` and `y`.
+
+### stat_peaks and stat_valleys
+
+Two statistics make it possible to highlight and/or label peaks and valleys
+(local maxima and local minima) in a curve. Here we use a time series, using
+POSIXct for `time` and the default formatting of labels. We also instruct
+`geom_text()` not to render overlapping labels.
 
 ```{r}
 ggplot(lynx, as.numeric = FALSE) + geom_line() + 
@@ -454,7 +570,7 @@ ggplot(lynx, as.numeric = FALSE) + geom_line() +
   stat_valleys(geom = "rug", colour = "blue")
 ```
 
-## stat_quadrant_counts and geom_quadrant_lines
+### stat_quadrant_counts and geom_quadrant_lines
 
 This statistic automates the annotation of plots with number of observations,
 either by quadrant, by pairs of quadrants or the four quadrants taken together
@@ -510,9 +626,10 @@ ggplot(my.data, aes(x, y)) +
   stat_quadrant_counts(colour = "red", quadrants = c(2, 4)) +
   geom_point()
 ```
-Using facets, even with free scale limits, the labels are placed consistently. This achieved
-by the default use of `geom_text_npc()` or as shown below by use of `geom_label_npc(). We
-expand the _y_ limits to ensure that no observations are occluded by the labels.
+Using facets, even with free scale limits, the labels are placed consistently.
+This achieved by the default use of `geom_text_npc()` or as shown below by use
+of `geom_label_npc(). We expand the _y_ limits to ensure that no observations
+are occluded by the labels.
 
 ```{r}
 ggplot(my.data, aes(x, y, colour = group)) +
@@ -523,7 +640,7 @@ ggplot(my.data, aes(x, y, colour = group)) +
   facet_wrap(~group)
 ```
 
-## stat_poly_eq
+### stat_poly_eq
 
 We generate another set of artificial data.
 
@@ -651,7 +768,7 @@ ggplot(my.data, aes(x, y)) +
                parse = TRUE)
 ```
 
-Next, one example how to remove the left hand side (_lhs_).
+Next, one example of how to remove the left hand side (_lhs_).
 
 ```{r}
 formula <- y ~ poly(x, 3, raw = TRUE)
@@ -675,7 +792,8 @@ ggplot(my.data, aes(x, y)) +
                formula = formula, parse = TRUE)
 ```
 
-And a final example replacing both the  _lhs_ and the variable symbol used on the _rhs_.
+And a final example replacing both the  _lhs_ and the variable symbol used on
+the _rhs_.
 
 ```{r}
 formula <- y ~ poly(x, 3, raw = TRUE)
@@ -769,6 +887,33 @@ ggplot(my.data, aes(x, y2, colour = group)) +
   stat_poly_eq(aes(label = stat(eq.label)),
                formula = formula, parse = TRUE)
 ```
+To add a label to the equation for each group, we map it to a pseudo-aesthetic
+named `grp.label`. (Equation labelling uses a "back door" in 'ggplot2' that may
+be closed in future versions, meaning that this approach to labelling may stop
+working in the future.)
+
+```{r}
+formula <- y ~ poly(x, 3, raw = TRUE)
+ggplot(my.data, aes(x, y2, colour = group, grp.label = group)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = formula) +
+  stat_poly_eq(aes(label = stat(paste("bold(", grp.label, "*\":\")~~", 
+                                      eq.label, sep = ""))),
+               formula = formula, parse = TRUE)
+```
+
+Being able to label equations allows us to dispense with the use of color,
+which in many cases is needed for printed output.
+
+```{r}
+formula <- y ~ poly(x, 3, raw = TRUE)
+ggplot(my.data, aes(x, y2, linetype = group, grp.label = group)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = formula, color = "black") +
+  stat_poly_eq(aes(label = stat(paste("bold(", grp.label, "*':')~~~", 
+                                      eq.label, sep = ""))),
+               formula = formula, parse = TRUE)
+```
 
 Label positions relative to the ranges of the _x_ and _y_ scales are also
 supported, both through string constants and numeric values in the range
@@ -798,12 +943,12 @@ ggplot(my.data, aes(x, y2, fill = block)) +
                formula = formula, parse = TRUE) +
   facet_wrap(~group, scales = "free_y")
 ```
-If grouping is not the same within each panel created by faceting the automatic
-location of labels results in "spillover" of the automatic positioning of
-labels, and consistent positioning requires passing explicitly positions for
-each individual group. In the plot below the simultaneous mapping to both colour
-and fill aesthetics creates four groups, two with data in panel A
-and the other two in panel B.
+If grouping is not the same within each panel created by faceting, the automatic
+location of labels results in "holes" for the factor levels not present in a
+given panel. In this case, consistent positioning requires passing explicitly
+the positions for each individual group. In the plot below the simultaneous
+mapping to both colour and fill aesthetics creates four groups, two with data in
+panel A and the other two in panel B.
 
 ```{r}
 formula <- y ~ poly(x, 3, raw = TRUE)
@@ -835,10 +980,10 @@ ggplot(my.data, aes(x, y2, colour = group)) +
 supported when faceting uses free scales. In this case `geom_text_npc()` and/or 
 `geom_label_npc()` must be used.
 
-## stat_fit_residuals
+### stat_fit_residuals
 
-I had the need to quickly plot residuals matching fits plotted with `geom_smooth()`
-using grouping and facets, so a new (simple) statistic was born.
+I had the need to quickly plot residuals matching fits plotted with
+`geom_smooth()` using grouping and facets, so a new (simple) statistic was born.
 
 ```{r}
 formula <- y ~ poly(x, 3, raw = TRUE)
@@ -847,7 +992,7 @@ ggplot(my.data, aes(x, y, colour = group)) +
   stat_fit_residuals(formula = formula)
 ```
 
-## stat_fit_deviations
+### stat_fit_deviations
 
 As I also had the need to highlight residuals in slides and notes to be used in
 teaching, another statistic was born.
@@ -872,7 +1017,7 @@ ggplot(my.data, aes(x, y)) +
                                    ends = "both"))
 ```
 
-## stat_fit_glance
+### stat_fit_glance
 
 Package 'broom' provides consistently formatted output from different model fitting
 functions. These makes possible to write model-annotation statistic that are 
@@ -919,7 +1064,7 @@ ggplot(Puromycin, aes(conc, rate, colour = state)) +
                   label.x = "centre", label.y = "bottom")
 ```
 
-## stat_fit_tidy
+### stat_fit_tidy
 
 This stat makes it possible to add the equation for any fitted model for which
 `broom::tidy()` is implemented. Alternatively, individual values such as
@@ -947,6 +1092,8 @@ ggplot(Puromycin, aes(conc, rate, colour = state)) +
                                   sep = "")),
                 parse = TRUE)
 ```
+Using paste we can build a string that can be parsed into an R expression, in
+this case for a non-linear equation.
 
 ```{r}
 micmen.formula <- y ~ SSmicmen(x, Vm, K) 
@@ -968,7 +1115,7 @@ ggplot(Puromycin, aes(conc, rate, colour = state)) +
   labs(x = "C", y = "V")
 ```
 
-## stat_fit_tb
+### stat_fit_tb
 
 This stat makes it possible to add summary or ANOVA tables for any fitted model
 for which `broom::tidy()` is implemented. The output from `tidy()` is embedded
@@ -1078,7 +1225,8 @@ ggplot(chickwts, aes(factor(feed), weight)) +
   coord_flip()
 ```
 
-It is also possible to rotate the table using `angle`.
+It is also possible to rotate the table using `angle`. Here we also show how to
+replace the column headers with strings to be parsed into R expressions.
 
 ```{r}
 ggplot(chickwts, aes(factor(feed), weight)) +
@@ -1097,7 +1245,7 @@ ggplot(chickwts, aes(factor(feed), weight)) +
   expand_limits(y = 0)
 ```
 
-## stat_fit_augment
+### stat_fit_augment
 
 **Experimental!** 
 Use `ggplot2::stat_smooth` instead of `stat_fit_augment` if possible.
@@ -1168,7 +1316,8 @@ ggplot(mtcars, aes(wt, mpg)) +
                    y.out = ".resid")
 ```
 
-```{r}
+```{r, echo=FALSE, eval=FALSE}
+# augment no longer available for "nlme"
 args <- list(model = y ~ SSlogis(x, Asym, xmid, scal),
              fixed = Asym + xmid + scal ~1,
              random = Asym ~1 | group,
@@ -1180,15 +1329,37 @@ ggplot(Orange, aes(age, circumference, colour = Tree)) +
                    augment.args = list(data = quote(data)))
 ```
 
-## stat_dens2d_labels and stat_dens2d_filter
+### stat_apply_group and stat_apply_panel
+
+These statistics apply a function to `x` and `y` data. The function is expected
+to return a vector of the same length as its input. It is usually better to
+apply such functions through mappings using `aes()` when they are independent of
+grouping or to use a transformation for the scale. However, when grouping is
+important, these statistics solve a problem that would otherwise require
+pre-computation of the data. Here we plot the difference in circumference
+between dates for each tree. (As the vector returned by `diff()` is one element
+shorter than its input, we prepend `NA`.)
+
+```{r}
+ggplot(Orange, aes(age, circumference, colour = Tree)) +
+  stat_apply_group(.fun.y = function(x) {c(NA, diff(x))}, na.rm = TRUE)
+```
+
+### stat_dens2d_labels and stat_dens2d_filter
 
 These stats had their origin in an enhancement suggestion for 'ggrepel' from 
 Hadley Wickham and discussion with Kamil Slowikowski (ggrepel's author) and 
 others. In fact the code is based on code Kamil gave during the discussion,
 but simplified and taking a few further ideas from `ggplot::stat_dens2d`.
 
-**Warning!** Which observations are selected by the algorithm used, based on 
-`MASS:kde2d`, depends strongly on the values of parameters `h` and `n`. You may need to alter the defaults by passing explicit arguments to these stats. Beware, though, that what are good values, may depend on individual data sets even if they include the same number of observations. For the selection of observations to work cleanly, the argument for `n` must create a dense grid. Much larger values of `n` than in the examples in the documentation of `MASS::kde2d` and `ggplot2::stat_dens2d` will be needed in most cases.
+**Warning!** Which observations are selected by the algorithm used, based on
+`MASS:kde2d`, depends strongly on the values of parameters `h` and `n`. You may
+need to alter the defaults by passing explicit arguments to these stats. Beware,
+though, that what are good values, may depend on individual data sets even if
+they include the same number of observations. For the selection of observations
+to work cleanly, the argument for `n` must create a dense grid. Much larger
+values of `n` than in the examples in the documentation of `MASS::kde2d` and
+`ggplot2::stat_dens2d` will be needed in most cases.
 
 Some random data with random labels.
 
@@ -1350,92 +1521,31 @@ ggplot(data = d, aes(x, y, label = lab, colour = group)) +
                      label.fill = NA)
 ```
 
-## try_tibble
+## Scales
 
-### Time series
+Volcano and quadrant plots are scatter plots with some peculiarities. 
+Creating these plots from scratch using 'ggplot2' can be time consuming, but allows flexibility in design. Rather than providing a 'canned' function to produce volcano plots, package 'ggpmisc' provides several building blocks that facilitate the production of volcano and quadrant plots as wrappers on _scales_ with suitable defaults plus helper functions to create factors from numeric outcomes.
 
-Several different formats for storing time series data are used in R. Here we
-use in the examples objects of class `ts` but several other classes are
-supported as `try.xts()` is used internally. The first example is a quarterly
-series.
+### scale_color_outcome, scale_fill_outcome
 
-```{r}
-class(austres)
-austres.df <- try_tibble(austres)
-class(austres.df)
-lapply(austres.df, "class")
-head(austres.df, 4)
-```
+Manual scales for color and fill aesthetics with defaults suitable for the three
+way outcomes from statistical tests.
 
-The next chunk demonstrates that numeric times are expressed as decimal years in
-the returned data frame.
+### scale_x_FDR, scale_y_FDR, scale_x_logFC, scale_y_logFC, scale_x_Pvalue, scale_y_Pvalue
 
-```{r}
-austres.df <- try_tibble(austres, as.numeric = TRUE)
-lapply(austres.df, "class")
-head(austres.df, 4)
-```
+Scales for _x_ or _y_ aesthetics mapped to _P_-values, FDR (false discovery
+rate) or log FC (logarithm of fold-change) as used in volcano and quadrant plots
+of transcriptomics and metabolomics data.
 
-This second example is for a series of yearly values.
+### symmetric_limits
 
-```{r}
-class(lynx)
-lynx.df <- try_tibble(lynx)
-class(lynx.df)
-lapply(lynx.df, "class")
-head(lynx.df, 3)
-```
+A simple function to expand scale limits to be symetric around zero. Can be
+passed as argument to parameter limits of continuous scales from packages
+'ggpmisc', 'ggplot2' or 'scales' (and extensions).
 
-Above there is a small rounding error of 1 s for these old dates. We can correct
-this by rounding to year.
+### Volcano-plot examples
 
-```{r}
-lynx.df <- try_tibble(lynx, "year")
-head(lynx.df, 3)
-```
-
-In addition we can convert the POSIXct values into numeric values in calendar
-years plus a decimal fraction.
-
-```{r}
-lynx_n.df <- try_tibble(lynx, "year", as.numeric = TRUE)
-lapply(lynx_n.df, "class")
-head(lynx_n.df, 3)
-```
-
-### Other classes
-
-`try_tibble()` attempts to handle gracefully objects that are not time series.
-
-```{r}
-try_tibble(1:5)
-```
-
-```{r}
-try_tibble(letters[1:5])
-```
-
-```{r}
-try_tibble(factor(letters[1:5]))
-```
-
-```{r}
-try_tibble(list(x = rep(1,5), y = 1:5))
-```
-
-```{r}
-try_tibble(data.frame(x = rep(1,5), y = 1:5))
-```
-
-```{r}
-try_tibble(matrix(1:10, ncol = 2))
-```
-
-## Volcano plots
-
-Volcano plots are scatter plots with some peculiarities. They are frequently used for transcriptomics and metabolomics. They are used to show _P_-values or FDR (false discovery rate) as a function of effect size, which can be either an increase or a decrease. Effect sizes are expressed as fold-changes compared to a control or reference condition. Colours are frequently used to highlight significant responses. Counts of significant increases and decreases are frequently also added.
-
-Creating volcano plots from scratch using 'ggplot2' can be time consuming, but allows flexibility in design. Rather than providing a 'canned' function to produce volcano plots, package 'ggpmisc' provides several building blocks that facilitate the production of volcano and quadrant plots: Wrappers on _scales_ with suitable defaults plus helper functions to create factors from numeric outcomes.
+Volcano plots are frequently used for transcriptomics and metabolomics. They are used to show _P_-values or FDR (false discovery rate) as a function of effect size, which can be either an increase or a decrease. Effect sizes are expressed as fold-changes compared to a control or reference condition. Colors are frequently used to highlight significant responses. Counts of significant increases and decreases are frequently also added.
 
 Outcomes encoded as -1, 0 or 1, as seen in the tibble below need to be converted into factors with suitable labels for levels. This can be easily achieved with function `outcome2factor()`.
 
@@ -1472,8 +1582,8 @@ volcano_example.df %>%
   stat_quadrant_counts(data = . %>% filter(outcome != 0))
 ```
 
-By default `outcome2factor()` creates a factor with three levels as in the example above,
-but this default can be overridden as shown below.
+By default `outcome2factor()` creates a factor with three levels as in the
+example above, but this default can be overridden as shown below.
 
 ```{r}
 volcano_example.df %>%
@@ -1486,7 +1596,7 @@ volcano_example.df %>%
   stat_quadrant_counts(data = . %>% filter(outcome != 0))
 ```
 
-## Quadrant plots
+### Quadrant-plot examples
 
 Quadrant plots are scatter plots with comparable variables on both axes and usually include the four quadrants. When used for transcriptomics and metabolomics, they are used to compare responses expressed as fold-change to two different conditions or treatments. They are useful when many responses are measured as in transcriptomics (many different genes) or metabolomics (many different metabolites). 
 
@@ -1567,6 +1677,88 @@ quadrant_example.df %>%
   scale_fill_outcome() +
   facet_wrap(~outcome.xy.fct) +
   theme_dark()
+```
+
+
+## try_tibble
+
+### Time series
+
+Several different formats for storing time series data are used in R. Here we
+use in the examples objects of class `ts` but several other classes are
+supported as `try.xts()` is used internally. The first example is a quarterly
+series.
+
+```{r}
+class(austres)
+austres.df <- try_tibble(austres)
+class(austres.df)
+lapply(austres.df, "class")
+head(austres.df, 4)
+```
+
+The next chunk demonstrates that numeric times are expressed as decimal years in
+the returned data frame.
+
+```{r}
+austres.df <- try_tibble(austres, as.numeric = TRUE)
+lapply(austres.df, "class")
+head(austres.df, 4)
+```
+
+This second example is for a series of yearly values.
+
+```{r}
+class(lynx)
+lynx.df <- try_tibble(lynx)
+class(lynx.df)
+lapply(lynx.df, "class")
+head(lynx.df, 3)
+```
+
+Above there is a small rounding error of 1 s for these old dates. We can correct
+this by rounding to year.
+
+```{r}
+lynx.df <- try_tibble(lynx, "year")
+head(lynx.df, 3)
+```
+
+In addition we can convert the POSIXct values into numeric values in calendar
+years plus a decimal fraction.
+
+```{r}
+lynx_n.df <- try_tibble(lynx, "year", as.numeric = TRUE)
+lapply(lynx_n.df, "class")
+head(lynx_n.df, 3)
+```
+
+### Other classes
+
+`try_tibble()` attempts to handle gracefully objects that are not time series.
+
+```{r}
+try_tibble(1:5)
+```
+
+```{r}
+try_tibble(letters[1:5])
+```
+
+```{r}
+try_tibble(factor(letters[1:5]))
+```
+
+```{r}
+try_tibble(list(x = rep(1,5), y = 1:5))
+```
+
+```{r}
+try_tibble(data.frame(x = rep(1,5), y = 1:5))
+```
+
+```{r}
+try_tibble(matrix(1:10, ncol = 2))
 ```
 
 ## Appendix: Additional examples of the use density filtering

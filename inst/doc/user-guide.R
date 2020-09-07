@@ -7,7 +7,7 @@ options(warnPartialMatchArgs = FALSE,
         tibble.print.min = 4,
         dplyr.summarise.inform = FALSE)
 
-## -----------------------------------------------------------------------------
+## ---- message=FALSE-----------------------------------------------------------
 library(ggpmisc)
 library(ggrepel)
 library(xts)
@@ -30,10 +30,21 @@ ggplot(lynx, as.numeric = FALSE) + geom_line()
 tb <- mpg %>%
   group_by(cyl) %>%
   summarise(hwy = median(hwy), cty = median(cty))
+
 data.tb <- tibble(x = 7, y = 44, tb = list(tb))
+
 ggplot(mpg, aes(displ, hwy, colour = factor(cyl))) +
   geom_table(data = data.tb, aes(x, y, label = tb)) +
   geom_point() 
+
+## ---- eval=FALSE--------------------------------------------------------------
+#  tb <- mpg %>%
+#    group_by(cyl) %>%
+#    summarise(hwy = median(hwy), cty = median(cty))
+#  
+#  ggplot(mpg, aes(displ, hwy, colour = factor(cyl))) +
+#    annotate("table", x = 7, y = 44, label = tb) +
+#    geom_point()
 
 ## -----------------------------------------------------------------------------
 ggplot(mpg, aes(displ, hwy, colour = factor(cyl))) +
@@ -67,12 +78,14 @@ ggplot(mpg, aes(displ, cty)) +
 p <- ggplot(mpg, aes(displ, hwy, colour = factor(cyl))) +
   geom_point() 
 
-data.tb <- tibble(x = 7, y = 44, 
-                  plot = list(p + 
-                                coord_cartesian(xlim = c(4.9, 6.2), ylim = c(13, 21)) +
-                                labs(x = NULL, y = NULL) +
-                                theme_bw(8) +
-                                scale_colour_discrete(guide = FALSE)))
+data.tb <- 
+  tibble(x = 7, y = 44, 
+         plot = list(p + 
+                       coord_cartesian(xlim = c(4.9, 6.2), 
+                                       ylim = c(13, 21)) +
+                       labs(x = NULL, y = NULL) +
+                       theme_bw(8) +
+                       scale_colour_discrete(guide = FALSE)))
 
 ggplot(mpg, aes(displ, hwy, colour = factor(cyl))) +
   geom_plot(data = data.tb, aes(x, y, label = plot)) +
@@ -98,6 +111,19 @@ ggplot(mpg, aes(displ, hwy, colour = factor(cyl))) +
        colour = "Engine cylinders\n(number)") +
   theme_bw()
 
+## ---- eval=FALSE--------------------------------------------------------------
+#  p <- ggplot(mpg, aes(factor(cyl), hwy, fill = factor(cyl))) +
+#    stat_summary(geom = "col", fun = mean, width = 2/3) +
+#    labs(x = "Number of cylinders", y = NULL, title = "Means") +
+#    scale_fill_discrete(guide = FALSE)
+#  
+#  ggplot(mpg, aes(displ, hwy, colour = factor(cyl))) +
+#    annotate("plot", x = 7, y = 44, label = p + theme_bw(8)) +
+#    geom_point() +
+#    labs(x = "Engine displacement (l)", y = "Fuel use efficiency (MPG)",
+#         colour = "Engine cylinders\n(number)") +
+#    theme_bw()
+
 ## -----------------------------------------------------------------------------
 file.name <- 
   system.file("extdata", "Isoquercitin.png", 
@@ -120,6 +146,12 @@ ggplot() +
  theme_bw(12)
 
 ## -----------------------------------------------------------------------------
+ggplot() +
+  annotate("grob", x = 1, y = 3, vp.width = 0.5,
+           label = grid::rasterGrob(image = Isoquercitin, width = 1)) +
+ theme_bw(12)
+
+## -----------------------------------------------------------------------------
 ggplot(mpg, aes(displ, hwy, colour = factor(cyl))) +
   geom_vhlines(xintercept = c(2.75, 4), yintercept = 27, linetype = "dashed") +
   geom_point() +
@@ -137,13 +169,6 @@ Robinin <- magick::image_read(file.name)
 set.seed(123456)
 data.tb <- tibble(x = 1:20, y = (1:20) + rnorm(20, 0, 10))
 
-ggplot(data.tb, aes(x, y)) +
-  geom_grob_npc(label = list(grid::rasterGrob(image = Robinin)), 
-                npcx = 0.01, npcy = 0.95, hjust = 0, vp.width = 0.5) +
-  geom_point() +
-  expand_limits(y = 45, x = 0)
-
-## -----------------------------------------------------------------------------
 flavo.tb <- tibble(x = 0.02,
                    y = 0.95,
                    width = 1/2,
@@ -156,6 +181,21 @@ ggplot(data.tb, aes(x, y)) +
                     vp.width = width, vp.height = height)) +
   geom_point() +
   expand_limits(y = 55, x = 0)
+
+## -----------------------------------------------------------------------------
+ggplot(data.tb, aes(x, y)) +
+  geom_grob_npc(label = list(grid::rasterGrob(image = Robinin, width = 1)), 
+                npcx = 0.01, npcy = 0.95, hjust = 0, vp.width = 0.5) +
+  geom_point() +
+  expand_limits(y = 45, x = 0)
+
+## -----------------------------------------------------------------------------
+ggplot(data.tb, aes(x, y)) +
+  annotate("grob_npc", label = grid::rasterGrob(image = Robinin, width = 1), 
+                npcx = 0.01, npcy = 0.95, hjust = 0, vp.width = 0.5) +
+  geom_point() +
+  expand_limits(y = 45, x = 0)
+
 
 ## -----------------------------------------------------------------------------
 corner_letters.tb <- tibble(label = LETTERS[1:4],
@@ -180,6 +220,16 @@ ggplot(mpg, aes(displ, hwy, colour = factor(cyl))) +
                       aes(xintercept = displ, fill = factor(cyl))) +
   expand_limits(y = 10) +
   geom_point() 
+
+## -----------------------------------------------------------------------------
+ggplot(mpg, aes(displ, hwy, colour = factor(cyl))) +
+  geom_point(alpha = 0.33) +
+  stat_centroid(shape = "cross", size = 4)
+
+## -----------------------------------------------------------------------------
+ggplot(mpg, aes(displ, hwy, colour = factor(cyl))) +
+  geom_point(alpha = 0.33) +
+  stat_centroid(shape = "cross", size = 4, .fun = median)
 
 ## -----------------------------------------------------------------------------
 ggplot(lynx, as.numeric = FALSE) + geom_line() + 
@@ -416,6 +466,24 @@ ggplot(my.data, aes(x, y2, colour = group)) +
   geom_point() +
   geom_smooth(method = "lm", formula = formula) +
   stat_poly_eq(aes(label = stat(eq.label)),
+               formula = formula, parse = TRUE)
+
+## -----------------------------------------------------------------------------
+formula <- y ~ poly(x, 3, raw = TRUE)
+ggplot(my.data, aes(x, y2, colour = group, grp.label = group)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = formula) +
+  stat_poly_eq(aes(label = stat(paste("bold(", grp.label, "*\":\")~~", 
+                                      eq.label, sep = ""))),
+               formula = formula, parse = TRUE)
+
+## -----------------------------------------------------------------------------
+formula <- y ~ poly(x, 3, raw = TRUE)
+ggplot(my.data, aes(x, y2, linetype = group, grp.label = group)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = formula, color = "black") +
+  stat_poly_eq(aes(label = stat(paste("bold(", grp.label, "*':')~~~", 
+                                      eq.label, sep = ""))),
                formula = formula, parse = TRUE)
 
 ## -----------------------------------------------------------------------------
@@ -681,16 +749,21 @@ ggplot(mtcars, aes(wt, mpg)) +
                    geom = "point",
                    y.out = ".resid")
 
+## ---- echo=FALSE, eval=FALSE--------------------------------------------------
+#  # augment no longer available for "nlme"
+#  args <- list(model = y ~ SSlogis(x, Asym, xmid, scal),
+#               fixed = Asym + xmid + scal ~1,
+#               random = Asym ~1 | group,
+#               start = c(Asym = 200, xmid = 725, scal = 350))
+#  ggplot(Orange, aes(age, circumference, colour = Tree)) +
+#    geom_point() +
+#    stat_fit_augment(method = "nlme",
+#                     method.args = args,
+#                     augment.args = list(data = quote(data)))
+
 ## -----------------------------------------------------------------------------
-args <- list(model = y ~ SSlogis(x, Asym, xmid, scal),
-             fixed = Asym + xmid + scal ~1,
-             random = Asym ~1 | group,
-             start = c(Asym = 200, xmid = 725, scal = 350))
 ggplot(Orange, aes(age, circumference, colour = Tree)) +
-  geom_point() +
-  stat_fit_augment(method = "nlme",
-                   method.args = args,
-                   augment.args = list(data = quote(data)))
+  stat_apply_group(.fun.y = function(x) {c(NA, diff(x))}, na.rm = TRUE)
 
 ## -----------------------------------------------------------------------------
 random_string <- function(len = 6) {
@@ -785,52 +858,6 @@ ggplot(data = d, aes(x, y, label = lab, colour = group)) +
                      label.fill = NA)
 
 ## -----------------------------------------------------------------------------
-class(austres)
-austres.df <- try_tibble(austres)
-class(austres.df)
-lapply(austres.df, "class")
-head(austres.df, 4)
-
-## -----------------------------------------------------------------------------
-austres.df <- try_tibble(austres, as.numeric = TRUE)
-lapply(austres.df, "class")
-head(austres.df, 4)
-
-## -----------------------------------------------------------------------------
-class(lynx)
-lynx.df <- try_tibble(lynx)
-class(lynx.df)
-lapply(lynx.df, "class")
-head(lynx.df, 3)
-
-## -----------------------------------------------------------------------------
-lynx.df <- try_tibble(lynx, "year")
-head(lynx.df, 3)
-
-## -----------------------------------------------------------------------------
-lynx_n.df <- try_tibble(lynx, "year", as.numeric = TRUE)
-lapply(lynx_n.df, "class")
-head(lynx_n.df, 3)
-
-## -----------------------------------------------------------------------------
-try_tibble(1:5)
-
-## -----------------------------------------------------------------------------
-try_tibble(letters[1:5])
-
-## -----------------------------------------------------------------------------
-try_tibble(factor(letters[1:5]))
-
-## -----------------------------------------------------------------------------
-try_tibble(list(x = rep(1,5), y = 1:5))
-
-## -----------------------------------------------------------------------------
-try_tibble(data.frame(x = rep(1,5), y = 1:5))
-
-## -----------------------------------------------------------------------------
-try_tibble(matrix(1:10, ncol = 2))
-
-## -----------------------------------------------------------------------------
 head(volcano_example.df) 
 
 ## -----------------------------------------------------------------------------
@@ -917,6 +944,52 @@ quadrant_example.df %>%
   scale_fill_outcome() +
   facet_wrap(~outcome.xy.fct) +
   theme_dark()
+
+## -----------------------------------------------------------------------------
+class(austres)
+austres.df <- try_tibble(austres)
+class(austres.df)
+lapply(austres.df, "class")
+head(austres.df, 4)
+
+## -----------------------------------------------------------------------------
+austres.df <- try_tibble(austres, as.numeric = TRUE)
+lapply(austres.df, "class")
+head(austres.df, 4)
+
+## -----------------------------------------------------------------------------
+class(lynx)
+lynx.df <- try_tibble(lynx)
+class(lynx.df)
+lapply(lynx.df, "class")
+head(lynx.df, 3)
+
+## -----------------------------------------------------------------------------
+lynx.df <- try_tibble(lynx, "year")
+head(lynx.df, 3)
+
+## -----------------------------------------------------------------------------
+lynx_n.df <- try_tibble(lynx, "year", as.numeric = TRUE)
+lapply(lynx_n.df, "class")
+head(lynx_n.df, 3)
+
+## -----------------------------------------------------------------------------
+try_tibble(1:5)
+
+## -----------------------------------------------------------------------------
+try_tibble(letters[1:5])
+
+## -----------------------------------------------------------------------------
+try_tibble(factor(letters[1:5]))
+
+## -----------------------------------------------------------------------------
+try_tibble(list(x = rep(1,5), y = 1:5))
+
+## -----------------------------------------------------------------------------
+try_tibble(data.frame(x = rep(1,5), y = 1:5))
+
+## -----------------------------------------------------------------------------
+try_tibble(matrix(1:10, ncol = 2))
 
 ## -----------------------------------------------------------------------------
 make_data_tbl <- function(nrow = 100, rfun = rnorm, ...) {
