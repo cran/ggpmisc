@@ -9,7 +9,7 @@ version](https://www.r-pkg.org/badges/version/ggpmisc)](https://cran.r-project.o
 ## Purpose
 
 Package ‘**ggpmisc**’ (Miscellaneous Extensions to ‘ggplot2’) is a set
-of extensions to R package ‘ggplot2’ (\>= 3.0.0) with emphasis on
+of extensions to R package ‘ggplot2’ (&gt;= 3.0.0) with emphasis on
 annotations and highlighting related to fitted models and data
 summaries. Data summaries shown as text, tables or equations are
 implemented. New geoms support insets in ggplots. The location of fit
@@ -60,13 +60,13 @@ Statistics that help with reporting the results of model fits are
 `stat_fit_tb()`.
 
 Two statistics, `stat_dens2d_filter()` and `stat_dens2d_label()`,
-implement tagging or selective labelling of observations based on the
+implement tagging or selective labeling of observations based on the
 local 2D density of observations. These two stats are designed to work
 well together with `geom_text_repel()` and `geom_label_repel()` from
 package ‘ggrepel’.
 
 A summary statistic using special grouping for quadrants
-`stat_quadrant_counts()` can be used to automate labelling with the
+`stat_quadrant_counts()` can be used to automate labeling with the
 number of observations.
 
 The statistics `stat_apply_panel()` and `stat_apply_group()` can be
@@ -93,7 +93,7 @@ Scales `scale_colour_outcome()`, `scale_fill_outcome()` and
 `scale_shape_outcome()` and functions `outome2factor()`,
 `threshold2factor()`, `xy_outcomes2factor()` and
 `xy_thresholds2factor()` used together make it easy to map ternary
-numeric outputs and logical binary outcomes to colour, fill and shape
+numeric outputs and logical binary outcomes to color, fill and shape
 aesthetics. Default arguments are suitable for volcano, quadrant and
 other plots as used for genomics, metabolomics and similar data.
 
@@ -161,9 +161,12 @@ ggplot(cars, aes(speed, dist)) +
                           "M.S." = "meansq", 
                           "italic(F)" = "statistic", 
                           "italic(P)" = "p.value"),
+              tb.params = c(x = 1, "x^2" = 2),
               label.y.npc = "top", label.x.npc = "left",
               size = 2.5,
               parse = TRUE)
+#> Dropping column(s) from table.
+#> Warning in f(...): Dropping row(s) from table.
 ```
 
 ![](man/figures/README-readme-05-1.png)<!-- -->

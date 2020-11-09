@@ -1,12 +1,9 @@
-# dplyr::select and dplyr::filter -----------------------------------------------------
-
 #' @title Select and slice a tibble nested in \code{data}
 #'
-#' @description \code{stat_partial_tb} selects columns and/or remanes them
-#'   and/or slices rows from a tible nested in \code{data}. This stat is
-#'   designed to be used to pre-process \code{tibble} objects mapped to the
-#'   \code{label} aesthetic before adding them to a plot with
-#'   \code{geom_table}.
+#' @description \code{stat_fmt_tb} selects, reorders and/or renames columns and
+#'   or rows of a tibble nested in \code{data}. This stat is intended to be used
+#'   to pre-process \code{tibble} objects mapped to the \code{label} aesthetic
+#'   before adding them to a plot with \code{geom_table}.
 #'
 #' @param mapping The aesthetic mapping, usually constructed with
 #'   \code{\link[ggplot2]{aes}} or \code{\link[ggplot2]{aes_}}. Only needs to be
@@ -30,10 +27,10 @@
 #'   the computation proceeds.
 #' @param digits integer indicating the number of significant digits to be
 #'   retained in data.
-#' @param tb.vars character vector, optionally named, used to select and or
-#'   rename the columns of the table returned.
-#' @param tb.rows integer vector of row indexes of rows to be retained.
-#' @param table.theme NULL, list or function A gridExtra ttheme defintion, or
+#' @param tb.vars,tb.rows character or numeric vectors, optionally named, used
+#'   to select and/or rename the columns or rows in the table
+#'   returned.
+#' @param table.theme NULL, list or function A gridExtra ttheme definition, or
 #'   a constructor for a ttheme or NULL for default.
 #' @param table.rownames,table.colnames logical flag to enable or disabling
 #'   printing of row names and column names.
@@ -52,6 +49,9 @@
 #'   list mapped to \code{label} and containing a single tibble per row
 #'   in \code{data}.
 #'
+#' @return The returned value is a copy code{data} in which the data frames mapped
+#'    to \code{label} have been modified.
+#'
 #' @export
 #'
 #' @examples
@@ -60,18 +60,38 @@
 #'     x = c(1, 2),
 #'     y = c(0, 4),
 #'     group = c("A", "B"),
-#'     tbs = list(a = tibble::tibble(X = 1:6, Y = rep(c("x", "y"), 3)),
-#'                b = tibble::tibble(X = 1:3, Y = "x"))
+#'     tbs = list(a = tibble::tibble(Xa = 1:6, Y = rep(c("x", "y"), 3)),
+#'                b = tibble::tibble(Xb = 1:3, Y = "x"))
 #'   )
 #'
 #' ggplot(my.df, aes(x, y, label = tbs)) +
 #'   stat_fmt_tb() +
 #'   expand_limits(x = c(0,3), y = c(-2, 6))
 #'
+#' # Hide column names, diplay row names
+#' ggplot(my.df, aes(x, y, label = tbs)) +
+#'   stat_fmt_tb(table.colnames = FALSE,
+#'               table.rownames = TRUE) +
+#'   expand_limits(x = c(0,3), y = c(-2, 6))
+#'
+#' # Use a theme for the table
 #' ggplot(my.df, aes(x, y, label = tbs)) +
 #'   stat_fmt_tb(table.theme = ttheme_gtlight) +
 #'   expand_limits(x = c(0,3), y = c(-2, 6))
 #'
+#' # selection and renaming by column position
+#' ggplot(my.df, aes(x, y, label = tbs)) +
+#'   stat_fmt_tb(tb.vars = c(value = 1, group = 2),
+#'                tb.rows = 1:3) +
+#'   expand_limits(x = c(0,3), y = c(-2, 6))
+#'
+#' # selection, reordering and renaming by column position
+#' ggplot(my.df, aes(x, y, label = tbs)) +
+#'   stat_fmt_tb(tb.vars = c(group = 2, value = 1),
+#'                tb.rows = 1:3) +
+#'   expand_limits(x = c(0,3), y = c(-2, 6))
+#'
+#' # selection and renaming, using partial matching to column name
 #' ggplot(my.df, aes(x, y, label = tbs)) +
 #'   stat_fmt_tb(tb.vars = c(value = "X", group = "Y"),
 #'                tb.rows = 1:3) +
@@ -124,28 +144,89 @@ fmt_tb_compute_group_fun <- function(data,
   stopifnot(is.list(data$label))
 
   for (tb.idx in seq_along(data$label)) {
-    if (!is.data.frame(data$label[tb.idx][[1]])) {
+    temp_tb <- data$label[tb.idx][[1]]
+
+    if (!is.data.frame(temp_tb)) {
+      message("Skipping object of class ", class(temp_tb))
       next()
     }
 
-    num.cols <- sapply(data$label[tb.idx][[1]], is.numeric)
-    data$label[tb.idx][[1]][num.cols] <-
-      signif(data$label[tb.idx][[1]][num.cols], digits = digits)
+    num.cols <- sapply(temp_tb, is.numeric)
+    temp_tb[num.cols] <-
+      signif(temp_tb[num.cols], digits = digits)
 
     if (!is.null(tb.vars)) {
-      data$label[tb.idx][[1]] <-
-        dplyr::select(data$label[tb.idx][[1]], !!tb.vars)
+      if (is.character(tb.vars)) {
+        idxs <- pmatch(tb.vars, colnames(temp_tb))
+        if (length(idxs) < length(tb.vars) || anyNA(idxs)) {
+          warning("Attempt to select nonexistent columns")
+          idxs <- stats::na.omit(idxs)
+          # no renaming possible, as we do not know which name was not matched
+          tb.vars <- unname(tb.vars)
+        }
+      } else {
+        idxs <- unname(tb.vars)
+        if (any(idxs > ncol(temp_tb))) {
+          warning("Attempt to select nonexistent columns")
+          idxs <- idxs[idxs <= ncol(temp_tb)]
+          tb.vars <- tb.vars[idxs]
+        }
+      }
+      if (length(idxs) < ncol(temp_tb)) {
+        message("Dropping column(s) from table.")
+      }
+      if (length(idxs) < 1L) {
+        message("No matching column(s).")
+        temp_tb <- NULL
+      } else {
+        temp_tb <- temp_tb[ , idxs]
+        if (!is.null(names(tb.vars))) {
+          # support renaming of only some selected columns
+          selector <- names(tb.vars) != ""
+          colnames(temp_tb)[selector] <- names(tb.vars)[selector]
+        }
+      }
     }
 
-    if (!is.null(tb.rows)) {
-      data$label[tb.idx][[1]] <-
-        dplyr::slice(data$label[tb.idx][[1]], !!tb.rows)
+    if (!is.null(tb.rows) && !is.null(temp_tb)) {
+      if (is.character(tb.rows)) {
+        idxs <- pmatch(tb.rows, rownames(temp_tb))
+        if (length(idxs) < length(tb.rows) || anyNA(idxs)) {
+          warning("Attempt to select nonexistent rows")
+          idxs <- stats::na.omit(idxs)
+          # no renaming possible, as we do not know which name was not matched
+          tb.rows <- unname(tb.rows)
+        }
+      } else {
+        idxs <- unname(tb.rows)
+        if (any(idxs > nrow(temp_tb))) {
+          warning("Attempt to select nonexistent rows")
+          idxs <- idxs[idxs <= nrow(temp_tb)]
+          tb.rows <- tb.rows[idxs]
+        }
+      }
+      if (length(tb.rows) < nrow(temp_tb)) {
+        message("Dropping row(s) from table.")
+      }
+      if (length(idxs) < 1L) {
+        warning("No matching row(s).")
+        temp_tb <- NULL
+      } else {
+        temp_tb <- temp_tb[idxs, ]
+        if (!is.null(names(tb.rows))) {
+          # support renaming of only some selected rows
+          selector <- names(tb.rows) != ""
+          colnames(temp_tb)[selector] <- names(tb.rows)[selector]
+        }
+      }
     }
+
+    data$label[tb.idx] <- list(temp_tb)
 
   }
 
   data
-  }
+}
 
 #' @rdname ggpmisc-ggproto
 #' @format NULL

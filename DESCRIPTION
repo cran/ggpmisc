@@ -1,8 +1,8 @@
 Package: ggpmisc
 Type: Package
 Title: Miscellaneous Extensions to 'ggplot2'
-Version: 0.3.6
-Date: 2020-09-06
+Version: 0.3.7
+Date: 2020-11-09
 Authors@R: 
     c(
     person("Pedro J.", "Aphalo", email = "pedro.aphalo@helsinki.fi", role = c("aut", "cre"), comment = c(ORCID = "0000-0003-3385-972X")),
@@ -41,8 +41,8 @@ Encoding: UTF-8
 RoxygenNote: 7.1.1
 VignetteBuilder: knitr
 NeedsCompilation: no
-Packaged: 2020-09-07 10:37:09 UTC; Aphalo
+Packaged: 2020-11-09 00:45:01 UTC; Aphalo
 Author: Pedro J. Aphalo [aut, cre] (<https://orcid.org/0000-0003-3385-972X>),
   Kamil Slowikowski [ctb]
 Repository: CRAN
-Date/Publication: 2020-09-07 12:10:03 UTC
+Date/Publication: 2020-11-09 09:40:02 UTC
