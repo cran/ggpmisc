@@ -10,6 +10,7 @@ stat_fit_glance(
   geom = "text_npc",
   method = "lm",
   method.args = list(formula = y ~ x),
+  glance.args = list(),
   label.x = "left",
   label.y = "top",
   hstep = 0,
@@ -31,9 +32,10 @@ the plot defaults.}
 
 \item{geom}{The geometric object to use display the data}
 
-\item{method}{character.}
+\item{method}{character or function.}
 
-\item{method.args}{list of arguments to pass to \code{method}.}
+\item{method.args, glance.args}{list of arguments to pass to \code{method}
+and to [generics::glance()], respectively.}
 
 \item{label.x, label.y}{\code{numeric} with range 0..1 "normalized parent
 coordinates" (npc units) or character if using \code{geom_text_npc()} or
@@ -63,8 +65,9 @@ can include aesthetics whose values you want to set, not map. See
 \code{\link[ggplot2]{layer}} for more details.}
 }
 \description{
-\code{stat_fit_glance} fits a model and returns a summary
-  "glance" of the model's statistics, using package 'broom'.
+\code{stat_fit_glance} fits a model and returns a "tidy" version
+  of the model's fit, using '\code{glance()} methods from packages 'broom',
+  'broom.mixed', or other sources.
 }
 \details{
 \code{stat_fit_glance} together with \code{\link{stat_fit_tidy}}
@@ -83,13 +86,26 @@ can include aesthetics whose values you want to set, not map. See
   names, while data is automatically passed the data frame. This helps ensure
   that the model is fitted to the same data as plotted in other layers.
 }
+\note{
+Although arguments passed to parameter \code{glance.args} will be
+  passed to [generics::glance()] whether they are silently ignored or obeyed
+  depends on each specialization of [glance()], so do carefully read the
+  documentation for the version of [glance()] corresponding to the `method`
+  used to fit the model.
+}
+\section{Warning!}{
+ Not all `glance()` methods are defined in package 'broom'.
+  `glance()` especializations for mixed models fits of classes `lme`, `nlme`,
+  `lme4`, and many others are defined in package 'broom.mixed'.
+}
+
 \section{Handling of grouping}{
  \code{stat_fit_glance} applies the function
   given by \code{method} separately to each group of observations, and
   factors mapped to aesthetics generate a separate group for each factor
   level. Because of this, \code{stat_fit_glance} is not useful for annotating
   plots with results from \code{t.test()}, ANOVA or ANCOVA. In such cases use
-  the \code{stat_fit_tb()} statistic which applie the model fitting per
+  the \code{stat_fit_tb()} statistic which applies the model fitting per
   panel.
 }
 
@@ -118,7 +134,10 @@ can include aesthetics whose values you want to set, not map. See
 }
 
 \examples{
+library(broom)
 library(gginnards)
+library(quantreg)
+
 # Regression by panel example, using geom_debug.
 ggplot(mtcars, aes(x = disp, y = mpg)) +
   stat_smooth(method = "lm") +
@@ -160,13 +179,43 @@ ggplot(mtcars, aes(x = disp, y = mpg, weight = cyl)) +
                                 stat(r.squared), stat(p.value))),
                   parse = TRUE)
 
+# correlation test
+ggplot(mtcars, aes(x = disp, y = mpg)) +
+  geom_point() +
+  stat_fit_glance(method = "cor.test",
+                  label.y = "bottom",
+                  method.args = list(formula = ~ x + y),
+                  mapping = aes(label = sprintf('r[Pearson]~"="~\%.3f~~italic(P)~"="~\%.2g',
+                                stat(estimate), stat(p.value))),
+                  parse = TRUE)
+
+ggplot(mtcars, aes(x = disp, y = mpg)) +
+  geom_point() +
+  stat_fit_glance(method = "cor.test",
+                  label.y = "bottom",
+                  method.args = list(formula = ~ x + y, method = "spearman", exact = FALSE),
+                  mapping = aes(label = sprintf('r[Spearman]~"="~\%.3f~~italic(P)~"="~\%.2g',
+                                stat(estimate), stat(p.value))),
+                  parse = TRUE)
+
+# Quantile regression by group example
+ggplot(mtcars, aes(x = disp, y = mpg)) +
+  stat_smooth(method = "lm") +
+  geom_point() +
+  stat_fit_glance(method = "rq",
+                  label.y = "bottom",
+                  method.args = list(formula = y ~ x),
+                  mapping = aes(label = sprintf('AIC = \%.3g, BIC = \%.3g',
+                                stat(AIC), stat(BIC))))
+
 }
 \seealso{
-\code{\link[broom]{broom}}
+\code{\link[broom]{broom}} and \code{broom.mixed} for details on how
+  the tidying of the result of model fits is done.
 
-Other ggplot2 statistics based on 'broom'.: 
+Other Statistics calling generic tidier methods.: 
 \code{\link{stat_fit_augment}()},
 \code{\link{stat_fit_tb}()},
 \code{\link{stat_fit_tidy}()}
 }
-\concept{ggplot2 statistics based on 'broom'.}
+\concept{Statistics calling generic tidier methods.}

@@ -1,9 +1,10 @@
-# broom::glance -----------------------------------------------------------
+# generics::glance -----------------------------------------------------------
 
 #' @title One row summary data frame for a fitted model
 #'
-#' @description \code{stat_fit_glance} fits a model and returns a summary
-#'   "glance" of the model's statistics, using package 'broom'.
+#' @description \code{stat_fit_glance} fits a model and returns a "tidy" version
+#'   of the model's fit, using '\code{glance()} methods from packages 'broom',
+#'   'broom.mixed', or other sources.
 #'
 #' @param mapping The aesthetic mapping, usually constructed with
 #'   \code{\link[ggplot2]{aes}} or \code{\link[ggplot2]{aes_}}. Only needs
@@ -25,8 +26,9 @@
 #'   \code{\link[ggplot2]{layer}} for more details.
 #' @param na.rm	a logical indicating whether NA values should be stripped before
 #'   the computation proceeds.
-#' @param method character.
-#' @param method.args list of arguments to pass to \code{method}.
+#' @param method character or function.
+#' @param method.args,glance.args list of arguments to pass to \code{method}
+#'   and to [generics::glance()], respectively.
 #' @param label.x,label.y \code{numeric} with range 0..1 "normalized parent
 #'   coordinates" (npc units) or character if using \code{geom_text_npc()} or
 #'   \code{geom_label_npc()}. If using \code{geom_text()} or \code{geom_label()}
@@ -50,12 +52,16 @@
 #'   names, while data is automatically passed the data frame. This helps ensure
 #'   that the model is fitted to the same data as plotted in other layers.
 #'
+#' @section Warning!: Not all `glance()` methods are defined in package 'broom'.
+#'   `glance()` especializations for mixed models fits of classes `lme`, `nlme`,
+#'   `lme4`, and many others are defined in package 'broom.mixed'.
+#'
 #' @section Handling of grouping: \code{stat_fit_glance} applies the function
 #'   given by \code{method} separately to each group of observations, and
 #'   factors mapped to aesthetics generate a separate group for each factor
 #'   level. Because of this, \code{stat_fit_glance} is not useful for annotating
 #'   plots with results from \code{t.test()}, ANOVA or ANCOVA. In such cases use
-#'   the \code{stat_fit_tb()} statistic which applie the model fitting per
+#'   the \code{stat_fit_tb()} statistic which applies the model fitting per
 #'   panel.
 #'
 #' @section Model formula required: The current implementation works only with
@@ -78,14 +84,24 @@
 #'   function and model formula we suggest the use of
 #'   \code{\link[gginnards]{geom_debug}}. An example is shown below.
 #'
-#' @family ggplot2 statistics based on 'broom'.
+#' @note Although arguments passed to parameter \code{glance.args} will be
+#'   passed to [generics::glance()] whether they are silently ignored or obeyed
+#'   depends on each specialization of [glance()], so do carefully read the
+#'   documentation for the version of [glance()] corresponding to the `method`
+#'   used to fit the model.
 #'
-#' @seealso \code{\link[broom]{broom}}
+#' @family Statistics calling generic tidier methods.
+#'
+#' @seealso \code{\link[broom]{broom}} and \code{broom.mixed} for details on how
+#'   the tidying of the result of model fits is done.
 #'
 #' @export
 #'
 #' @examples
+#' library(broom)
 #' library(gginnards)
+#' library(quantreg)
+#'
 #' # Regression by panel example, using geom_debug.
 #' ggplot(mtcars, aes(x = disp, y = mpg)) +
 #'   stat_smooth(method = "lm") +
@@ -127,9 +143,39 @@
 #'                                 stat(r.squared), stat(p.value))),
 #'                   parse = TRUE)
 #'
+#' # correlation test
+#' ggplot(mtcars, aes(x = disp, y = mpg)) +
+#'   geom_point() +
+#'   stat_fit_glance(method = "cor.test",
+#'                   label.y = "bottom",
+#'                   method.args = list(formula = ~ x + y),
+#'                   mapping = aes(label = sprintf('r[Pearson]~"="~%.3f~~italic(P)~"="~%.2g',
+#'                                 stat(estimate), stat(p.value))),
+#'                   parse = TRUE)
+#'
+#' ggplot(mtcars, aes(x = disp, y = mpg)) +
+#'   geom_point() +
+#'   stat_fit_glance(method = "cor.test",
+#'                   label.y = "bottom",
+#'                   method.args = list(formula = ~ x + y, method = "spearman", exact = FALSE),
+#'                   mapping = aes(label = sprintf('r[Spearman]~"="~%.3f~~italic(P)~"="~%.2g',
+#'                                 stat(estimate), stat(p.value))),
+#'                   parse = TRUE)
+#'
+#' # Quantile regression by group example
+#' ggplot(mtcars, aes(x = disp, y = mpg)) +
+#'   stat_smooth(method = "lm") +
+#'   geom_point() +
+#'   stat_fit_glance(method = "rq",
+#'                   label.y = "bottom",
+#'                   method.args = list(formula = y ~ x),
+#'                   mapping = aes(label = sprintf('AIC = %.3g, BIC = %.3g',
+#'                                 stat(AIC), stat(BIC))))
+#'
 stat_fit_glance <- function(mapping = NULL, data = NULL, geom = "text_npc",
                             method = "lm",
                             method.args = list(formula = y ~ x),
+                            glance.args = list(),
                             label.x = "left", label.y = "top",
                             hstep = 0,
                             vstep = 0.075,
@@ -141,6 +187,7 @@ stat_fit_glance <- function(mapping = NULL, data = NULL, geom = "text_npc",
     position = position, show.legend = show.legend, inherit.aes = inherit.aes,
     params = list(method = method,
                   method.args = method.args,
+                  glance.args = glance.args,
                   label.x = label.x,
                   label.y = label.y,
                   hstep = hstep,
@@ -162,6 +209,7 @@ fit_glance_compute_group_fun <- function(data,
                                          scales,
                                          method,
                                          method.args,
+                                         glance.args,
                                          label.x,
                                          label.y,
                                          hstep,
@@ -199,18 +247,27 @@ fit_glance_compute_group_fun <- function(data,
   }
 
   if (is.character(method)) method <- match.fun(method)
-  if (!any(grepl("formula|fixed|random", names(method.args)))) {
-    warning("Only the 'formula' interface of methods is supported.")
-    return(data.frame())
-  }
   if ("data" %in% names(method.args)) {
-    message("External 'data' passed to method, possibly inconsistent with plot!\n",
+    message("External 'data' passed can be inconsistent with plot!\n",
             "These data must be available at the time of printing!!!")
+  } else if (any(grepl("formula|fixed|random|model", names(method.args)))) {
+#    method.args <- c(method.args, list(data = quote(data)))  works in most cases and avoids copying data
+    method.args <- c(method.args, list(data = data)) # cor.test() needs the actual data
   } else {
-    method.args <- c(method.args, list(data = quote(data)))
+    message("Only the 'formula' interface of methods is well supported.")
+    if ("x" %in% names(method.args)) {
+      message("Passing data$x as 'x'.")
+      method.args[["x"]] <- data[["x"]]
+    }
+    if ("y" %in% names(method.args)) {
+      message("Passing data$y as 'y'.")
+      method.args[["y"]] <- data[["y"]]
+    }
   }
   mf <- do.call(method, method.args)
-  z <- broom::glance(mf)
+
+  glance.args <- c(list(x = quote(mf), glance.args))
+  z <- do.call(generics::glance, glance.args)
 
   n.labels <- nrow(z)
   if (length(label.x) != n.labels) {
@@ -302,12 +359,14 @@ StatFitGlance <-
                    required_aes = c("x", "y")
   )
 
-# broom::augment ----------------------------------------------------------
+# generics::augment ----------------------------------------------------------
 
 #' @title Augment data with fitted values and statistics
 #'
-#' @description \code{stat_fit_augment} fits a model and returns the data
-#'   augmented with information from the fitted model, using package 'broom'.
+#' @description \code{stat_fit_augment} fits a model and returns a "tidy"
+#'   version of the model's data with prediction added, using '\code{augmnent()}
+#'   methods from packages 'broom', 'broom.mixed', or other sources. The
+#'   prediction can be added to the plot as a curve.
 #'
 #' @param mapping The aesthetic mapping, usually constructed with
 #'   \code{\link[ggplot2]{aes}} or \code{\link[ggplot2]{aes_}}. Only needs
@@ -329,9 +388,9 @@ StatFitGlance <-
 #'   \code{\link[ggplot2]{layer}} for more details.
 #' @param na.rm	logical indicating whether NA values should be stripped before
 #'   the computation proceeds.
-#' @param method character.
-#' @param method.args list of arguments to pass to \code{method}.
-#' @param augment.args list of arguments to pass to \code{broom:augment}.
+#' @param method character or function.
+#' @param method.args,augment.args list of arguments to pass to \code{method}
+#'   and to to \code{broom:augment}.
 #' @param level numeric Level of confidence interval to use (0.95 by default)
 #' @param y.out character (or numeric) index to column to return as \code{y}.
 #'
@@ -351,6 +410,10 @@ StatFitGlance <-
 #'   names, while data is automatically passed the data frame. This helps ensure
 #'   that the model is fitted to the same data as plotted in other layers.
 #'
+#' @section Warning!: Not all `glance()` methods are defined in package 'broom'.
+#'   `glance()` especializations for mixed models fits of classes `lme`, `nlme`,
+#'   `lme4`, and many others are defined in package 'broom.mixed'.
+#'
 #' @section Handling of grouping: \code{stat_fit_augment} applies the function
 #'   given by \code{method} separately to each group of observations; in ggplot2
 #'   factors mapped to aesthetics generate a separate group for each level.
@@ -361,7 +424,7 @@ StatFitGlance <-
 #' @section Computed variables: The output of \code{augment()} is
 #'   returned as is, except for \code{y} which is set based on \code{y.out} and
 #'   \code{y.observed} which preserves the \code{y} returned by the
-#'   \code{broom::augment} methods. This renaming is needed so that the geom
+#'   \code{generics::augment} methods. This renaming is needed so that the geom
 #'   works as expected.
 #'
 #'   To explore the values returned by this statistic, which vary depending
@@ -374,14 +437,24 @@ StatFitGlance <-
 #'   \code{stat_fit_augment} in production code if the additional features are
 #'   not needed.
 #'
-#' @family ggplot2 statistics based on 'broom'.
+#' @note Although arguments passed to parameter \code{augment.args} will be
+#'   passed to [generics::augment()] whether they are silently ignored or obeyed
+#'   depends on each specialization of [augment()], so do carefully read the
+#'   documentation for the version of [augment()] corresponding to the `method`
+#'   used to fit the model.
 #'
-#' @seealso \code{\link[broom]{broom}}
+#' @family Statistics calling generic tidier methods.
+#'
+#' @seealso \code{\link[broom]{broom}} and \code{broom.mixed} for details on how
+#'   the tidying of the result of model fits is done.
 #'
 #' @export
 #'
 #' @examples
+#' library(broom)
 #' library(gginnards)
+#' library(quantreg)
+#'
 #' # Regression by panel, using geom_debug() to explore computed variables
 #' ggplot(mtcars, aes(x = disp, y = mpg)) +
 #'   geom_point(aes(colour = factor(cyl))) +
@@ -432,6 +505,12 @@ StatFitGlance <-
 #'                                  weights = quote(weight)),
 #'                    y.out = ".resid")
 #'
+#' # Quantile regression
+#' ggplot(mtcars, aes(x = disp, y = mpg)) +
+#'   geom_point() +
+#'   stat_fit_augment(method = "rq",
+#'                   label.y = "bottom")
+#'
 stat_fit_augment <- function(mapping = NULL, data = NULL, geom = "smooth",
                              method = "lm",
                              method.args = list(formula = y ~ x),
@@ -481,12 +560,30 @@ fit_augment_compute_group_fun <- function(data,
     # Not enough data to perform fit
     return(data.frame())
   }
-  data <- data[order(data[["x"]]), ]
-  method.args <- c(method.args, list(data = quote(data)))
   if (is.character(method)) method <- match.fun(method)
+#  data <- data[order(data[["x"]]), ]
+  if ("data" %in% names(method.args)) {
+    message("External 'data' passed can be inconsistent with plot!\n",
+            "These data must be available at the time of printing!!!")
+  } else if (any(grepl("formula|fixed|random|model", names(method.args)))) {
+#    method.args <- c(method.args, list(data = quote(data)))
+    method.args <- c(method.args, list(data = data))
+  } else {
+    message("Only the 'formula' interface of methods is well supported.")
+    if ("x" %in% names(method.args)) {
+      message("Passing data$x as 'x'.")
+      method.args[["x"]] <- data[["x"]]
+    }
+    if ("y" %in% names(method.args)) {
+      message("Passing data$y as 'y'.")
+      method.args[["y"]] <- data[["y"]]
+    }
+  }
   mf <- do.call(method, method.args)
+
   augment.args <- c(list(x = mf), augment.args)
-  z <- do.call(broom::augment, augment.args)
+  z <- do.call(generics::augment, augment.args)
+
   z <- plyr::colwise(unAsIs)(z)
   tibble::as_tibble(z)
   z[["y.observed"]] <- z[["y"]]
@@ -516,13 +613,14 @@ StatFitAugment <-
                    required_aes = c("x", "y")
 )
 
-# broom::tidy -------------------------------------------------------------
+# generics::tidy -------------------------------------------------------------
 
 #' @title One row data frame with fitted parameter estimates
 #'
 #' @description \code{stat_fit_tidy} fits a model and returns a "tidy" version
-#'   of the model's summary, using package 'broom'. To add the summary in
-#'   tabular form use \code{\link{stat_fit_tb}}. When using
+#'   of the model's summary, using '\code{tidy()} methods from packages 'broom',
+#'   'broom.mixed', or other sources.#' To add the summary in tabular form use
+#'   \code{\link{stat_fit_tb}} instead of this statistic. When using
 #'   \code{stat_fit_tidy()} you will most likely want to change the default
 #'   mapping for label.
 #'
@@ -546,8 +644,9 @@ StatFitAugment <-
 #'   \code{\link[ggplot2]{layer}} for more details.
 #' @param na.rm	a logical indicating whether NA values should be stripped
 #'   before the computation proceeds.
-#' @param method character.
-#' @param method.args list of arguments to pass to \code{method}.
+#' @param method character or function.
+#' @param method.args,tidy.args list of arguments to pass to \code{method},
+#'   and to [generics::tidy], respectively.
 #' @param label.x,label.y \code{numeric} with range 0..1 or character.
 #'   Coordinates to be used for positioning the output, expressed in "normalized
 #'   parent coordinates" or character string. If too short they will be
@@ -571,6 +670,10 @@ StatFitAugment <-
 #'   names, while data is automatically passed the data frame. This helps ensure
 #'   that the model is fitted to the same data as plotted in other layers.
 #'
+#' @section Warning!: Not all `glance()` methods are defined in package 'broom'.
+#'   `glance()` especializations for mixed models fits of classes `lme`, `nlme`,
+#'   `lme4`, and many others are defined in package 'broom.mixed'.
+#'
 #' @section Handling of grouping: \code{stat_fit_tidy} applies the function
 #'   given by \code{method} separately to each group of observations; in ggplot2
 #'   factors mapped to aesthetics generate a separate group for each level.
@@ -588,20 +691,30 @@ StatFitAugment <-
 #'   on the model fitting function and model formula we suggest the use of
 #'   \code{\link[gginnards]{geom_debug}}. An example is shown below.
 #'
-#' @note The statistic \code{stat_fit_augment} can be used only with
+#' @note The statistic \code{stat_fit_tidy} can be used only with
 #'   \code{methods} that accept formulas under any formal parameter name and a
 #'   \code{data} argument. Use \code{ggplot2::stat_smooth()} instead of
 #'   \code{stat_fit_augment} in production code if the additional features are
 #'   not needed.
 #'
-#' @family ggplot2 statistics based on 'broom'.
+#' @note Although arguments passed to parameter \code{tidy.args} will be
+#'   passed to [generics::tidy()] whether they are silently ignored or obeyed
+#'   depends on each specialization of [tidy()], so do carefully read the
+#'   documentation for the version of [tidy()] corresponding to the `method`
+#'   used to fit the model.
 #'
-#' @seealso \code{\link[broom]{broom}}
+#' @family Statistics calling generic tidier methods.
+#'
+#' @seealso \code{\link[broom]{broom}} and \code{broom.mixed} for details on how
+#'   the tidying of the result of model fits is done.
 #'
 #' @export
 #'
 #' @examples
+#' library(broom)
 #' library(gginnards)
+#' library(quantreg)
+#'
 #' # Regression by panel, exploring computed variables with geom_debug()
 #' ggplot(mtcars, aes(x = disp, y = mpg)) +
 #'   stat_smooth(method = "lm") +
@@ -643,9 +756,33 @@ StatFitAugment <-
 #'                                               stat(x_estimate),
 #'                                               stat(x_p.value))))
 #'
+#' # Correlation test
+#' ggplot(mtcars, aes(x = disp, y = mpg)) +
+#'   stat_smooth(method = "lm") +
+#'   geom_point() +
+#'   stat_fit_tidy(method = "cor.test",
+#'                 label.y = "bottom",
+#'                 method.args = list(formula = ~ x + y),
+#'                 mapping = aes(label = sprintf("R = %.3g\np-value = %.3g",
+#'                                               stat(`_estimate`),
+#'                                               stat(`_p.value`))))
+#'
+#' # Quantile regression
+#' ggplot(mtcars, aes(x = disp, y = mpg)) +
+#'   stat_smooth(method = "lm") +
+#'   geom_point() +
+#'   stat_fit_tidy(method = "rq",
+#'                 label.y = "bottom",
+#'                 method.args = list(formula = y ~ x),
+#'                 tidy.args = list(se.type = "nid"),
+#'                 mapping = aes(label = sprintf("Slope = %.3g\np-value = %.3g",
+#'                                               stat(x_estimate),
+#'                                               stat(x_p.value))))
+#'
 stat_fit_tidy <- function(mapping = NULL, data = NULL, geom = "text_npc",
                           method = "lm",
                           method.args = list(formula = y ~ x),
+                          tidy.args = list(),
                           label.x = "left", label.y = "top",
                           hstep = 0,
                           vstep = NULL,
@@ -657,6 +794,7 @@ stat_fit_tidy <- function(mapping = NULL, data = NULL, geom = "text_npc",
     position = position, show.legend = show.legend, inherit.aes = inherit.aes,
     params = list(method = method,
                   method.args = method.args,
+                  tidy.args = tidy.args,
                   label.x = label.x,
                   label.y = label.y,
                   hstep = hstep,
@@ -682,6 +820,7 @@ fit_tidy_compute_group_fun <- function(data,
                                        scales,
                                        method,
                                        method.args,
+                                       tidy.args,
                                        label.x,
                                        label.y,
                                        hstep,
@@ -716,25 +855,45 @@ fit_tidy_compute_group_fun <- function(data,
     label.y <- label.y[1]
   }
 
-  method.args <- c(method.args, list(data = quote(data)))
   if (is.character(method)) method <- match.fun(method)
+  if ("data" %in% names(method.args)) {
+    message("External 'data' passed can be inconsistent with plot!\n",
+            "These data must be available at the time of printing!!!")
+  } else if (any(grepl("formula|fixed|random|model", names(method.args)))) {
+#    method.args <- c(method.args, list(data = quote(data)))
+    method.args <- c(method.args, list(data = data))
+  } else {
+    message("Only the 'formula' interface of methods is well supported.")
+    if ("x" %in% names(method.args)) {
+      message("Passing data$x as 'x'.")
+      method.args[["x"]] <- quote(data[["x"]])
+    }
+    if ("y" %in% names(method.args)) {
+      message("Passing data$y as 'y'.")
+      method.args[["y"]] <- quote(data[["y"]])
+    }
+  }
   mf <- do.call(method, method.args)
-  mf.td <- broom::tidy(mf)
-  z.estimate <- as.data.frame(t(mf.td[["estimate"]]))
-  z.std.error <- as.data.frame(t(mf.td[["std.error"]]))
+  tidy.args <- c(list(x = quote(mf)), tidy.args)
+  mf.td <- do.call(generics::tidy, tidy.args)
+  col.names <- colnames(mf.td)
   clean.term.names <- gsub("(Intercept)", "Intercept", mf.td[["term"]], fixed = TRUE)
-  names(z.estimate) <- paste(clean.term.names, "estimate", sep = "_")
-  names(z.std.error) <- paste(clean.term.names, "se", sep = "_")
-  z <- cbind(z.estimate, z.std.error)
+  z <- as.data.frame(t(mf.td[["estimate"]]))
+  names(z) <- paste(clean.term.names, "estimate", sep = "_")
+  if ("std.error" %in% col.names) {
+    z.std.error <- as.data.frame(t(mf.td[["std.error"]]))
+    names(z.std.error) <- paste(clean.term.names, "se", sep = "_")
+    z <- cbind(z, z.std.error)
+  }
   if (exists("statistic", mf.td, inherits = FALSE)) {
     z.statistic <- as.data.frame(t(mf.td[["statistic"]]))
     names(z.statistic) <- paste(clean.term.names, "stat", sep = "_")
     z <- cbind(z, z.statistic)
   }
-  if (exists("p.value", mf.td, inherits = FALSE)) {
-    z.p.value <- as.data.frame(t(mf.td[["p.value"]]))
-    names(z.p.value) <- paste(clean.term.names, "p.value", sep = "_")
-    z <- cbind(z, z.p.value)
+  for (col in setdiff(col.names, c("term", "estimate", "intercept", "std.error", "statistic"))) {
+    zz <- as.data.frame(t(mf.td[[col]]))
+    names(zz) <- paste(clean.term.names, col, sep = "_")
+    z <- cbind(z, zz)
   }
 
   if (npc.used) {

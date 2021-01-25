@@ -1,10 +1,11 @@
-# broom::tidy as tibble -----------------------------------------------------
+# generics::tidy as tibble -----------------------------------------------------
 
 #' @title Model-fit summary or ANOVA
 #'
 #' @description \code{stat_fit_tb} fits a model and returns a "tidy" version of
-#'   the model's summary or ANOVA table, using package 'broom'. The annotation
-#'   is added to the plots in tabular form.
+#'   the model's summary or ANOVA table, using '\code{tidy()} methods from
+#'   packages 'broom', 'broom.mixed', or other sources. The annotation is added
+#'   to the plots in tabular form.
 #'
 #' @param mapping The aesthetic mapping, usually constructed with
 #'   \code{\link[ggplot2]{aes}} or \code{\link[ggplot2]{aes_}}. Only needs to be
@@ -27,9 +28,15 @@
 #' @param na.rm	a logical indicating whether NA values should be stripped before
 #'   the computation proceeds.
 #' @param method character.
-#' @param method.args list of arguments to pass to \code{method}.
+#' @param method.args,tidy.args lists of arguments to pass to \code{method}
+#'   and to \code{tidy()}.
 #' @param tb.type character One of "fit.summary", "fit.anova" or "fit.coefs".
-#' @param digits integer indicating the number of significant digits to be used.
+#' @param digits integer indicating the number of significant digits
+#'   to be used for all numeric values in the table.
+#' @param p.digits integer indicating the number of decimal places to round
+#'   p-values to, with those rounded to zero displayed as the next larger
+#'   possible value preceded by "<". If \code{p.digits} is outside the
+#'   range 1..22 no rounding takes place.
 #' @param tb.vars,tb.params character or numeric vectors, optionally named, used
 #'   to select and/or rename the columns or the parameters in the table
 #'   returned.
@@ -75,16 +82,19 @@
 #'   on the model fitting function and model formula we suggest the use of
 #'   \code{\link[gginnards]{geom_debug}}. An example is shown below.
 #'
-#' @seealso \code{\link[broom]{broom}} for details on how the tidying of the
-#'   result of model fits is done. See \code{\link{geom_table}} for details
-#'   on how inset tables respond to mapped aesthetics and table themes. For
-#'   details on predefined table themes see \code{\link{ttheme_gtdefault}}.
+#' @seealso \code{\link[broom]{broom}} and
+#'   \code{broom.mixed} for details on how the tidying of the
+#'   result of model fits is done. See \code{\link{geom_table}} for details on
+#'   how inset tables respond to mapped aesthetics and table themes. For details
+#'   on predefined table themes see \code{\link{ttheme_gtdefault}}.
 #'
-#' @family ggplot2 statistics based on 'broom'.
+#' @family Statistics calling generic tidier methods.
 #'
 #' @export
 #'
 #' @examples
+#' library(broom)
+#'
 #' # data for examples
 #' x <- c(44.4, 45.9, 41.9, 53.3, 44.7, 44.1, 50.7, 45.2, 60.1)
 #' covariate <- sqrt(x) + rnorm(9)
@@ -95,6 +105,12 @@
 #' ggplot(my.df, aes(covariate, x)) +
 #'   geom_point() +
 #'   stat_fit_tb() +
+#'   expand_limits(y = 70)
+#'
+#' # Linear regression fit summary, by default
+#' ggplot(my.df, aes(covariate, x)) +
+#'   geom_point() +
+#'   stat_fit_tb(digits = 2, p.digits = 4) +
 #'   expand_limits(y = 70)
 #'
 #' # Linear regression fit summary
@@ -207,10 +223,12 @@
 stat_fit_tb <- function(mapping = NULL, data = NULL, geom = "table_npc",
                         method = "lm",
                         method.args = list(formula = y ~ x),
+                        tidy.args = list(),
                         tb.type = "fit.summary",
                         tb.vars = NULL,
                         tb.params = NULL,
                         digits = 3,
+                        p.digits = digits,
                         label.x = "center", label.y = "top",
                         label.x.npc = NULL, label.y.npc = NULL,
                         position = "identity",
@@ -236,10 +254,12 @@ stat_fit_tb <- function(mapping = NULL, data = NULL, geom = "table_npc",
     position = position, show.legend = show.legend, inherit.aes = inherit.aes,
     params = list(method = method,
                   method.args = method.args,
+                  tidy.args = tidy.args,
                   tb.type = tb.type,
                   tb.vars = tb.vars,
                   tb.params = tb.params,
                   digits = digits,
+                  p.digits = p.digits,
                   label.x = label.x,
                   label.y = label.y,
                   npc.used = grepl("_npc", geom),
@@ -264,10 +284,12 @@ fit_tb_compute_panel_fun <- function(data,
                                      scales,
                                      method,
                                      method.args,
+                                     tidy.args,
                                      tb.type,
                                      tb.vars,
                                      tb.params,
                                      digits,
+                                     p.digits,
                                      npc.used = TRUE,
                                      label.x,
                                      label.y) {
@@ -291,28 +313,85 @@ fit_tb_compute_panel_fun <- function(data,
     label.y <- label.y[1]
   }
 
-  method.args <- c(method.args, list(data = quote(data)))
   if (is.character(method)) method <- match.fun(method)
+  if ("data" %in% names(method.args)) {
+    message("External 'data' passed can be inconsistent with plot!\n",
+            "These data must be available at the time of printing!!!")
+  } else if (any(grepl("formula|fixed|random|model", names(method.args)))) {
+    #    method.args <- c(method.args, list(data = quote(data)))  works in most cases and avoids copying data
+    method.args <- c(method.args, list(data = data)) # cor.test() needs the actual data
+  } else {
+    message("Only the 'formula' interface of methods is well supported.")
+    if ("x" %in% names(method.args)) {
+      message("Passing data$x as 'x'.")
+      method.args[["x"]] <- data[["x"]]
+    }
+    if ("y" %in% names(method.args)) {
+      message("Passing data$y as 'y'.")
+      method.args[["y"]] <- data[["y"]]
+    }
+  }
   mf <- do.call(method, method.args)
 
   if (tolower(tb.type) %in% c("fit.anova", "anova")) {
-    mf_tb <- broom::tidy(stats::anova(mf))
+    tidy.args <- c(x = quote(stats::anova(mf)), tidy.args)
+    mf_tb <- do.call(generics::tidy, tidy.args)
   } else if (tolower(tb.type) %in% c("fit.summary", "summary")) {
-    mf_tb <- broom::tidy(mf)
+    tidy.args <- c(x = quote(mf), tidy.args)
+    mf_tb <- do.call(generics::tidy, tidy.args)
   } else if (tolower(tb.type) %in% c("fit.coefs", "coefs")) {
-    mf_tb <- broom::tidy(mf)[c("term", "estimate")]
+    tidy.args <- c(x = quote(mf), tidy.args)
+    mf_tb <- do.call(generics::tidy, tidy.args)[c("term", "estimate")]
   }
 
-  # reduce number of significant digits to all numeric columns
+  # reduce number of significant digits of all numeric columns
   num.cols <- sapply(mf_tb, is.numeric)
   mf_tb[num.cols] <- signif(mf_tb[num.cols], digits = digits)
   # treat p.value as a special case
-  if ("p.value" %in% colnames(mf_tb)) {
-    mf_tb[["p.value"]] <- round(mf_tb[["p.value"]], digits = digits)
-    limit.text <- paste("<", format(1 * 10^-digits, nsmall = digits))
+  if ("p.value" %in% colnames(mf_tb) && p.digits > 0 && p.digits <= 22) {
+    mf_tb[["p.value"]] <- round(mf_tb[["p.value"]], digits = p.digits)
+    limit.text <- paste("<", format(1 * 10^-p.digits, nsmall = p.digits))
     mf_tb[["p.value"]] <- ifelse(mf_tb[["p.value"]] > 0,
-                                 format(mf_tb[["p.value"]], nsmall = digits),
+                                 format(mf_tb[["p.value"]], nsmall = p.digits),
                                  limit.text)
+  }
+
+  if (!is.null(tb.params) && !is.null(mf_tb)) {
+    if (is.character(tb.params)) {
+      idxs <- pmatch(tb.params, mf_tb[[1]])
+      if (length(idxs) < length(tb.params) || anyNA(idxs)) {
+        warning("Attempt to select nonexistent params")
+        idxs <- stats::na.omit(idxs)
+        # no renaming possible, as we do not know which name was not matched
+        tb.params <- unname(tb.params)
+      }
+    } else {
+      idxs <- unname(tb.params)
+      if (any(idxs > nrow(mf_tb))) {
+        warning("Attempt to select nonexistent params")
+        idxs <- idxs[idxs <= nrow(mf_tb)]
+        tb.params <- tb.params[idxs]
+      }
+    }
+    if (length(idxs) < nrow(mf_tb)) {
+      message("Dropping params/terms (rows) from table!")
+    }
+    if (is.character(tb.params)) {
+      idxs <- pmatch(tb.params, mf_tb[[1]])
+    } else {
+      idxs <- unname(tb.params)
+    }
+    if (length(idxs) < 1L) {
+      warning("No matching parameters(s).")
+      mf_tb <- NULL
+    } else {
+      mf_tb <- mf_tb[idxs, ]
+      if (!is.null(names(tb.params))) {
+        # support renaming of only some selected columns
+        selector <- names(tb.params) != ""
+        mf_tb[[1]][selector] <- names(tb.params)[selector]
+      }
+    }
   }
 
   if (!is.null(tb.vars)) {
@@ -332,8 +411,8 @@ fit_tb_compute_panel_fun <- function(data,
         tb.vars <- tb.vars[idxs]
       }
     }
-    if (length(idxs) < ncol(mf_tb)) {
-      message("Dropping column(s) from table.")
+    if (!(1L %in% idxs)) {
+      message("Dropping param names from table!")
     }
     if (length(idxs) < 1L) {
       warning("No matching column(s).")
@@ -344,43 +423,6 @@ fit_tb_compute_panel_fun <- function(data,
         # support renaming of only some selected columns
         selector <- names(tb.vars) != ""
         colnames(mf_tb)[selector] <- names(tb.vars)[selector]
-      }
-    }
-  }
-  if (!is.null(tb.params) && !is.null(mf_tb)) {
-    if (is.character(tb.params)) {
-      idxs <- pmatch(tb.params, mf_tb[[1]])
-      if (length(idxs) < length(tb.params) || anyNA(idxs)) {
-        warning("Attempt to select nonexistent params")
-        idxs <- stats::na.omit(idxs)
-        # no renaming possible, as we do not know which name was not matched
-        tb.params <- unname(tb.params)
-      }
-    } else {
-      idxs <- unname(tb.params)
-      if (any(idxs > nrow(mf_tb))) {
-        warning("Attempt to select nonexistent params")
-        idxs <- idxs[idxs <= nrow(mf_tb)]
-        tb.params <- tb.params[idxs]
-      }
-    }
-    if (length(tb.params) < nrow(mf_tb)) {
-      warning("Dropping row(s) from table.")
-    }
-    if (is.character(tb.params)) {
-      idxs <- pmatch(tb.params, mf_tb[[1]])
-    } else {
-      idxs <- unname(tb.params)
-    }
-    if (length(idxs) < 1L) {
-      warning("No matching parameters(s).")
-      mf_tb <- NULL
-    } else {
-      mf_tb <- mf_tb[idxs, ]
-      if (!is.null(names(tb.params))) {
-        # support renaming of only some selected columns
-        selector <- names(tb.params) != ""
-        mf_tb[[1]][selector] <- names(tb.params)[selector]
       }
     }
   }

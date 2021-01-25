@@ -10,10 +10,12 @@ stat_fit_tb(
   geom = "table_npc",
   method = "lm",
   method.args = list(formula = y ~ x),
+  tidy.args = list(),
   tb.type = "fit.summary",
   tb.vars = NULL,
   tb.params = NULL,
   digits = 3,
+  p.digits = digits,
   label.x = "center",
   label.y = "top",
   label.x.npc = NULL,
@@ -42,7 +44,8 @@ the plot defaults.}
 
 \item{method}{character.}
 
-\item{method.args}{list of arguments to pass to \code{method}.}
+\item{method.args, tidy.args}{lists of arguments to pass to \code{method}
+and to \code{tidy()}.}
 
 \item{tb.type}{character One of "fit.summary", "fit.anova" or "fit.coefs".}
 
@@ -50,7 +53,13 @@ the plot defaults.}
 to select and/or rename the columns or the parameters in the table
 returned.}
 
-\item{digits}{integer indicating the number of significant digits to be used.}
+\item{digits}{integer indicating the number of significant digits
+to be used for all numeric values in the table.}
+
+\item{p.digits}{integer indicating the number of decimal places to round
+p-values to, with those rounded to zero displayed as the next larger
+possible value preceded by "<". If \code{p.digits} is outside the
+range 1..22 no rounding takes place.}
 
 \item{label.x, label.y}{\code{numeric} Coordinates (in data units) to be used
 for absolute positioning of the output. If too short they will be recycled.}
@@ -93,8 +102,9 @@ can include aesthetics whose values you want to set, not map. See
 }
 \description{
 \code{stat_fit_tb} fits a model and returns a "tidy" version of
-  the model's summary or ANOVA table, using package 'broom'. The annotation
-  is added to the plots in tabular form.
+  the model's summary or ANOVA table, using '\code{tidy()} methods from
+  packages 'broom', 'broom.mixed', or other sources. The annotation is added
+  to the plots in tabular form.
 }
 \details{
 \code{stat_fit_tb} Applies a model fitting function per panel,
@@ -127,6 +137,8 @@ can include aesthetics whose values you want to set, not map. See
 }
 
 \examples{
+library(broom)
+
 # data for examples
 x <- c(44.4, 45.9, 41.9, 53.3, 44.7, 44.1, 50.7, 45.2, 60.1)
 covariate <- sqrt(x) + rnorm(9)
@@ -137,6 +149,12 @@ my.df <- data.frame(x, group, covariate)
 ggplot(my.df, aes(covariate, x)) +
   geom_point() +
   stat_fit_tb() +
+  expand_limits(y = 70)
+
+# Linear regression fit summary, by default
+ggplot(my.df, aes(covariate, x)) +
+  geom_point() +
+  stat_fit_tb(digits = 2, p.digits = 4) +
   expand_limits(y = 70)
 
 # Linear regression fit summary
@@ -248,14 +266,15 @@ ggplot(my.df, aes(covariate, x)) +
 
 }
 \seealso{
-\code{\link[broom]{broom}} for details on how the tidying of the
-  result of model fits is done. See \code{\link{geom_table}} for details
-  on how inset tables respond to mapped aesthetics and table themes. For
-  details on predefined table themes see \code{\link{ttheme_gtdefault}}.
+\code{\link[broom]{broom}} and
+  \code{broom.mixed} for details on how the tidying of the
+  result of model fits is done. See \code{\link{geom_table}} for details on
+  how inset tables respond to mapped aesthetics and table themes. For details
+  on predefined table themes see \code{\link{ttheme_gtdefault}}.
 
-Other ggplot2 statistics based on 'broom'.: 
+Other Statistics calling generic tidier methods.: 
 \code{\link{stat_fit_augment}()},
 \code{\link{stat_fit_glance}()},
 \code{\link{stat_fit_tidy}()}
 }
-\concept{ggplot2 statistics based on 'broom'.}
+\concept{Statistics calling generic tidier methods.}

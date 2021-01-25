@@ -1,10 +1,12 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# ggpmisc
+# ggpmisc <img src="man/figures/logo-ggpmisc.png" align="right" width="150" />
 
 [![cran
 version](https://www.r-pkg.org/badges/version/ggpmisc)](https://cran.r-project.org/package=ggpmisc)
+[![R build
+status](https://github.com/aphalo/ggpmisc/workflows/R-CMD-check/badge.svg)](https://github.com/aphalo/ggpmisc/actions)
 
 ## Purpose
 
@@ -12,33 +14,65 @@ Package ‘**ggpmisc**’ (Miscellaneous Extensions to ‘ggplot2’) is a set
 of extensions to R package ‘ggplot2’ (&gt;= 3.0.0) with emphasis on
 annotations and highlighting related to fitted models and data
 summaries. Data summaries shown as text, tables or equations are
-implemented. New geoms support insets in ggplots. The location of fit
-summaries and graphical insets within the plotting area needs usually to
-be set independently of the `x` and `y` scales. The “natural”
-coordinates to use in such cases are expressed in ‘grid’ “npc” units in
-the range 0..1 for which new aesthetics and their scales are made
-available.
+implemented. New geoms support insets in ggplots. The grammar of
+graphics is extended to support native plot coordinates (npc) so that
+annotations can be easily positioned using special geometries and
+scales. New position functions facilitate the labeling of observations
+by nudging data labels away or towards curves or a focal virtual center.
 
-## ggplot methods
+## Extended Grammar of graphics
 
-Being `ggplot()` defined as a generic method in ‘ggplot2’ makes it
-possible to define specializations, and we provide two for time series
-stored in objects of classes `ts` and `xts` which automatically convert
-these objects into tibbles and set the as default the aesthetic mappings
-for `x` and `y`. A companion function `try_tibble()` is also exported.
+The position of annotations within the plotting area depends in most
+cases on graphic design considerations rather than on properties such as
+the range of values in the data being plotted. In particular, the
+location within the plotting area of large annotation objects like
+model-fit summaries, location maps, plots, and tables needs usually to
+be set independently of the `x` and `y` scales, re-scaling or any
+transformations. To acknowledge this, the Grammar of Graphics is here
+expanded by supporting *x* and *y* positions expressed in ‘grid’ “npc”
+units in the range 0..1. This is implemented with new
+(pseudo-)aesthetics *npcx* and *npcy* and their corresponding scales,
+plus geometries and a revised `annotate()` function. The new aesthetics
+function in “parallel” with the *x* and *y* aesthetics used for plotting
+data. The advantage of this approach is that the syntax used for
+annotations becomes identical to that used for plotting data and that
+annotations with approach *cleanly* support facets in a way consistent
+with the rest of the grammar.
+
+## Aesthetics and scales
+
+Scales `scale_npcx_continuous()` and `scale_npcy_continuous()` and the
+corresponding new aesthetics `npcx` and `npcy` make it possible to add
+graphic elements and text to plots using coordinates expressed in `npc`
+units for the location within the plotting area.
+
+Scales `scale_x_logFC()` and `scale_y_logFC()` are suitable for plotting
+of log fold change data. Scales `scale_x_Pvalue()`, `scale_y_Pvalue()`,
+`scale_x_FDR()` and `scale_y_FDR()` are suitable for plotting *p*-values
+and adjusted *p*-values or false discovery rate (FDR). Default arguments
+are suitable for volcano and quadrant plots as used for transcriptomics,
+metabolomics and similar data.
+
+Scales `scale_colour_outcome()`, `scale_fill_outcome()` and
+`scale_shape_outcome()` and functions `outome2factor()`,
+`threshold2factor()`, `xy_outcomes2factor()` and
+`xy_thresholds2factor()` used together make it easy to map ternary
+numeric outputs and logical binary outcomes to color, fill and shape
+aesthetics. Default arguments are suitable for volcano, quadrant and
+other plots as used for genomics, metabolomics and similar data.
 
 ## Geometries
 
 Geometries `geom_table()`, `geom_plot()` and `geom_grob()` make it
 possible to add inset tables, inset plots, and arbitrary ‘grid’
-graphical objects as layers to a ggplot using native coordinates for `x`
-and `y`.
+graphical objects including bitmaps and vector graphics as layers to a
+ggplot using native coordinates for `x` and `y`.
 
 Geometries `geom_text_npc()`, `geom_label_npc()`, `geom_table_npc()`,
 `geom_plot_npc()` and `geom_grob_npc()`, `geom_text_npc()` and
-`geom_label_npc()` are versions of geometries that interpret positions
-on *x* and *y* axes using aesthetics `npcx` and `npcy` values expressed
-in “npc” units.
+`geom_label_npc()` are versions of geometries that accept positions on
+*x* and *y* axes using aesthetics `npcx` and `npcy` values expressed in
+“npc” units.
 
 Geometries `geom_x_margin_arrow()`, `geom_y_margin_arrow()`,
 `geom_x_margin_grob()`, `geom_y_margin_grob()`, `geom_x_margin_point()`
@@ -59,11 +93,14 @@ Statistics that help with reporting the results of model fits are
 `stat_fit_glance()`, `stat_fit_augment()`, `stat_fit_tidy()` and
 `stat_fit_tb()`.
 
-Two statistics, `stat_dens2d_filter()` and `stat_dens2d_label()`,
-implement tagging or selective labeling of observations based on the
-local 2D density of observations. These two stats are designed to work
-well together with `geom_text_repel()` and `geom_label_repel()` from
-package ‘ggrepel’.
+Four statistics, `stat_dens2d_filter()`, `stat_dens2d_label()`,
+`stat_dens1d_filter()` and `stat_dens1d_label()`, implement tagging or
+selective labeling of observations based on the local 2D density of
+observations in a panel. Another two statistics,
+`stat_dens1d_filter_g()` and `stat_dens1d_filter_g()` compute the
+density by group instead of by plot panel. These six stats are designed
+to work well together with `geom_text_repel()` and `geom_label_repel()`
+from package ‘ggrepel’.
 
 A summary statistic using special grouping for quadrants
 `stat_quadrant_counts()` can be used to automate labeling with the
@@ -74,34 +111,30 @@ useful for applying arbitrary functions returning numeric vectors. They
 are specially useful with functions lime `cumsum()`, `cummax()` and
 `diff()`.
 
-## Aesthetics and scales
+## Positions
 
-Scales `scale_npcx_continuous()` and `scale_npcy_continuous()` and the
-corresponding new aesthetics `npcx` and `npcy` make it possible to add
-graphic elements and text to plots using coordinates expressed in `npc`
-units for the location within the plotting area, improving support for
-annotations, most notably when using facets.
+Two enhanced versions of `position_nudge()` are provided,
+`position_nudge_center()` and `position_nudge_line()`. These functions
+make it possible to apply nudging that varies automatically according to
+the relative position of points with respect to arbitrary points or
+lines, or with respect to a polynomial or smoothing spline fitted
+on-the-fly to the the observations.
 
-Scales `scale_x_logFC()` and `scale_y_logFC()` are suitable for plotting
-of log fold change data. Scales `scale_x_Pvalue()`, `scale_y_Pvalue()`,
-`scale_x_FDR()` and `scale_y_FDR()` are suitable for plotting *p*-values
-and adjusted *p*-values or false discovery rate (FDR). Default arguments
-are suitable for volcano and quadrant plots as used for transcriptomics,
-metabolomics and similar data.
+## ggplot methods
 
-Scales `scale_colour_outcome()`, `scale_fill_outcome()` and
-`scale_shape_outcome()` and functions `outome2factor()`,
-`threshold2factor()`, `xy_outcomes2factor()` and
-`xy_thresholds2factor()` used together make it easy to map ternary
-numeric outputs and logical binary outcomes to color, fill and shape
-aesthetics. Default arguments are suitable for volcano, quadrant and
-other plots as used for genomics, metabolomics and similar data.
+Being `ggplot()` defined as a generic method in ‘ggplot2’ makes it
+possible to define specializations, and we provide two for time series
+stored in objects of classes `ts` and `xts` which automatically convert
+these objects into tibbles and set by default the aesthetic mappings for
+`x` and `y` automatically. A companion function `try_tibble()` is also
+exported.
 
 ## MIGRATED
 
-Functions for the manipulation of layers in ggplot objects and
-statistics and geometries that echo their data input to the R console,
-earlier included in this package are now in package ‘gginnards’. [![cran
+Functions for the manipulation of layers in ggplot objects, together
+with statistics and geometries useful for debugging extensions to
+package ‘ggplot2’, earlier included in this package are now in package
+‘gginnards’. [![cran
 version](https://www.r-pkg.org/badges/version/gginnards)](https://cran.r-project.org/package=gginnards)
 
 ## Examples
@@ -165,8 +198,7 @@ ggplot(cars, aes(speed, dist)) +
               label.y.npc = "top", label.x.npc = "left",
               size = 2.5,
               parse = TRUE)
-#> Dropping column(s) from table.
-#> Warning in f(...): Dropping row(s) from table.
+#> Dropping params/terms (rows) from table!
 ```
 
 ![](man/figures/README-readme-05-1.png)<!-- -->
@@ -195,8 +227,8 @@ ggplot(quadrant_example.df, aes(logFC.x, logFC.y)) +
   geom_point(alpha = 0.3) +
   geom_quadrant_lines() +
   stat_quadrant_counts() +
-  stat_dens2d_filter(color = "red", keep.fraction = 0.03) +
-  stat_dens2d_labels(aes(label = gene), keep.fraction = 0.03, 
+  stat_dens2d_filter(color = "red", keep.fraction = 0.02) +
+  stat_dens2d_labels(aes(label = gene), keep.fraction = 0.02, 
                      geom = "text_repel", size = 2, colour = "red") +
   scale_x_logFC(name = "Transcript abundance after A%unit") +
   scale_y_logFC(name = "Transcript abundance after B%unit")
@@ -212,11 +244,11 @@ Installation of the most recent stable version from CRAN:
 install.packages("ggpmisc")
 ```
 
-Installation of the current unstable version from Bitbucket:
+Installation of the current unstable version from GitHub:
 
 ``` r
 # install.packages("devtools")
-devtools::install_bitbucket("aphalo/ggpmisc")
+devtools::install_github("aphalo/ggpmisc")
 ```
 
 ## Documentation
@@ -230,8 +262,8 @@ News about updates are regularly posted at
 ## Contributing
 
 Please report bugs and request new features at
-(<https://bitbucket.org/aphalo/ggpmisc/issues>). Pull requests are
-welcome at (<https://bitbucket.org/aphalo/ggpmisc>).
+(<https://github.com/aphalo/ggpmisc/issues>). Pull requests are welcome
+at (<https://github.com/aphalo/ggpmisc>).
 
 ## Citation
 
@@ -243,23 +275,23 @@ citation("ggpmisc")
 #> 
 #> To cite package 'ggpmisc' in publications use:
 #> 
-#>   Pedro J. Aphalo (2020). ggpmisc: Miscellaneous Extensions to
+#>   Pedro J. Aphalo (2021). ggpmisc: Miscellaneous Extensions to
 #>   'ggplot2'. https://docs.r4photobiology.info/ggpmisc/,
-#>   https://bitbucket.org/aphalo/ggpmisc.
+#>   https://github.com/aphalo/ggpmisc.
 #> 
 #> A BibTeX entry for LaTeX users is
 #> 
 #>   @Manual{,
 #>     title = {ggpmisc: Miscellaneous Extensions to 'ggplot2'},
 #>     author = {Pedro J. Aphalo},
-#>     year = {2020},
+#>     year = {2021},
 #>     note = {https://docs.r4photobiology.info/ggpmisc/,
-#> https://bitbucket.org/aphalo/ggpmisc},
+#> https://github.com/aphalo/ggpmisc},
 #>   }
 ```
 
 ## License
 
-© 2016-2020 Pedro J. Aphalo (<pedro.aphalo@helsinki.fi>). Released under
+© 2016-2021 Pedro J. Aphalo (<pedro.aphalo@helsinki.fi>). Released under
 the GPL, version 2 or greater. This software carries no warranty of any
 kind.

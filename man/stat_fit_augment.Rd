@@ -30,11 +30,10 @@ the plot defaults.}
 
 \item{geom}{The geometric object to use display the data}
 
-\item{method}{character.}
+\item{method}{character or function.}
 
-\item{method.args}{list of arguments to pass to \code{method}.}
-
-\item{augment.args}{list of arguments to pass to \code{broom:augment}.}
+\item{method.args, augment.args}{list of arguments to pass to \code{method}
+and to to \code{broom:augment}.}
 
 \item{level}{numeric Level of confidence interval to use (0.95 by default)}
 
@@ -60,8 +59,10 @@ can include aesthetics whose values you want to set, not map. See
 \code{\link[ggplot2]{layer}} for more details.}
 }
 \description{
-\code{stat_fit_augment} fits a model and returns the data
-  augmented with information from the fitted model, using package 'broom'.
+\code{stat_fit_augment} fits a model and returns a "tidy"
+  version of the model's data with prediction added, using '\code{augmnent()}
+  methods from packages 'broom', 'broom.mixed', or other sources. The
+  prediction can be added to the plot as a curve.
 }
 \details{
 \code{stat_fit_augment} together with \code{\link{stat_fit_glance}}
@@ -86,7 +87,19 @@ The statistic \code{stat_fit_augment} can be used only with
   \code{data} argument. Use \code{ggplot2::stat_smooth()} instead of
   \code{stat_fit_augment} in production code if the additional features are
   not needed.
+
+Although arguments passed to parameter \code{augment.args} will be
+  passed to [generics::augment()] whether they are silently ignored or obeyed
+  depends on each specialization of [augment()], so do carefully read the
+  documentation for the version of [augment()] corresponding to the `method`
+  used to fit the model.
 }
+\section{Warning!}{
+ Not all `glance()` methods are defined in package 'broom'.
+  `glance()` especializations for mixed models fits of classes `lme`, `nlme`,
+  `lme4`, and many others are defined in package 'broom.mixed'.
+}
+
 \section{Handling of grouping}{
  \code{stat_fit_augment} applies the function
   given by \code{method} separately to each group of observations; in ggplot2
@@ -100,7 +113,7 @@ The statistic \code{stat_fit_augment} can be used only with
  The output of \code{augment()} is
   returned as is, except for \code{y} which is set based on \code{y.out} and
   \code{y.observed} which preserves the \code{y} returned by the
-  \code{broom::augment} methods. This renaming is needed so that the geom
+  \code{generics::augment} methods. This renaming is needed so that the geom
   works as expected.
 
   To explore the values returned by this statistic, which vary depending
@@ -109,7 +122,10 @@ The statistic \code{stat_fit_augment} can be used only with
 }
 
 \examples{
+library(broom)
 library(gginnards)
+library(quantreg)
+
 # Regression by panel, using geom_debug() to explore computed variables
 ggplot(mtcars, aes(x = disp, y = mpg)) +
   geom_point(aes(colour = factor(cyl))) +
@@ -160,13 +176,20 @@ ggplot(mtcars, aes(x = disp, y = mpg, weight = cyl)) +
                                  weights = quote(weight)),
                    y.out = ".resid")
 
+# Quantile regression
+ggplot(mtcars, aes(x = disp, y = mpg)) +
+  geom_point() +
+  stat_fit_augment(method = "rq",
+                  label.y = "bottom")
+
 }
 \seealso{
-\code{\link[broom]{broom}}
+\code{\link[broom]{broom}} and \code{broom.mixed} for details on how
+  the tidying of the result of model fits is done.
 
-Other ggplot2 statistics based on 'broom'.: 
+Other Statistics calling generic tidier methods.: 
 \code{\link{stat_fit_glance}()},
 \code{\link{stat_fit_tb}()},
 \code{\link{stat_fit_tidy}()}
 }
-\concept{ggplot2 statistics based on 'broom'.}
+\concept{Statistics calling generic tidier methods.}
