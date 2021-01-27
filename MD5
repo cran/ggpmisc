@@ -1,6 +1,6 @@
-72b2fe2032554ac13696d9ceca418e4e *DESCRIPTION
+58abffb7527b2d948c29b72d7b4cce2d *DESCRIPTION
 f5c17df4657f4acdd03f8e4f88b98320 *NAMESPACE
-94f79494af8cd0fd9359b2673536c7e5 *NEWS.md
+e7e66d7072e932a74b5965f931d9c9b0 *NEWS.md
 3f610e07c8baa3a00591af2db815977f *R/annotate.r
 e90a566a1839a2aff33d4ce4d2711c04 *R/compute-npc.r
 814f0966ba26f8f4d5fa8a646bc92396 *R/example-data.R
@@ -41,10 +41,10 @@ f9798dcb60cca4f18de36771982f728f *data/quadrant-example-df.rda
 c880b6b4ad74bb70d639066b1cc9f061 *data/volcano-example-df.rda
 105f5dde9152d1f9360992e34a9b4f23 *inst/doc/grammar-extensions.R
 5155010abf6f44aaf2ab77ebf535cce8 *inst/doc/grammar-extensions.Rmd
-5406fe6c325c16b549fb5e44db1b0e31 *inst/doc/grammar-extensions.html
-4effa2d50aa25b42d4be065b0c1c286d *inst/doc/model-based-annotations.R
-0414fd57f0301dc0b1d7ed75717c8a4d *inst/doc/model-based-annotations.Rmd
-1c2f52e7f98af67e8a1de25c94631434 *inst/doc/model-based-annotations.html
+daae8addda26a094521c114ee1cfb656 *inst/doc/grammar-extensions.html
+1b890a27736dc687d9aaee94895b8f0f *inst/doc/model-based-annotations.R
+5d45a459e8664424afeb88290e3d8fba *inst/doc/model-based-annotations.Rmd
+01200da7e782b9f9a0a95dd65b97d355 *inst/doc/model-based-annotations.html
 ce14b91c9fd39db7e36f03e524c580c0 *inst/extdata/Isoquercitin.png
 80741f548e590d5fa19cb5cb7892af35 *inst/extdata/Robinin.png
 d077f67f758c942614a3f1e8ae1d8b09 *man/FC_format.Rd
@@ -100,4 +100,4 @@ b2310de7ee1e4661a4469c55dc68b2cd *man/ttheme_set.Rd
 a33ae6ffb039291b85ea1c09e6ac1014 *man/volcano_example.df.Rd
 95432e84dc9a503d1465b5fad85c6906 *man/xy_outcomes2factor.Rd
 5155010abf6f44aaf2ab77ebf535cce8 *vignettes/grammar-extensions.Rmd
-0414fd57f0301dc0b1d7ed75717c8a4d *vignettes/model-based-annotations.Rmd
+5d45a459e8664424afeb88290e3d8fba *vignettes/model-based-annotations.Rmd
