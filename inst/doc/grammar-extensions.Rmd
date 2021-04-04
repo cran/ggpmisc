@@ -23,6 +23,7 @@ options(warnPartialMatchArgs = FALSE,
         tibble.print.max = 4,
         tibble.print.min = 4,
         dplyr.summarise.inform = FALSE)
+eval_flag <- FALSE  # evaluate all code chunks
 ```
 
 ## Preliminaries
@@ -32,11 +33,8 @@ We load all the packages used in the examples.
 ```{r, message=FALSE}
 library(ggpmisc)
 library(ggrepel)
-library(xts)
-library(lubridate)
 library(tibble)
 library(dplyr)
-library(nlme)
 ```
 
 As we will use text and labels on the plotting area we change the
@@ -248,6 +246,10 @@ requirement.
 |--------------------------------|--------------------|-----------------------------|
 | `ggplot2::geom_text()`         | `geom_text_npc()`  | `character` vector          |
 | `ggplot2::geom_label()`        | `geom_label_npc()` | `character` vector          |
+| `ggrepel::geom_text_repel()`   |                    | `character` vector          |
+| `ggrepel::geom_label_repel()`  |                    | `character` vector          |
+| `ggplot2::geom_label()`        | `geom_label_npc()` | `character` vector          |
+| `geom_linked_text()`           | _coming soon_      | `character` vector          |  
 | `geom_plot()`                  | `geom_plot_npc()`  | `list()` of `ggplot2::gg`   |
 | `geom_table()`                 | `geom_table_npc()` | `list()` of `data.frame`    |
 | `geom_grob()`                  | `geom_grob_npc()`  | `list()` of `grid::grob`    |
@@ -363,20 +365,20 @@ ggplot(lynx, as.numeric = FALSE) + geom_line()
 
 ## Geometries
 
-Three on the geometries described below allow the addition of plot
+Three of the geometries described below allow the addition of plot
 layers containing insets. Insets can be plots, tables, bitmaps, or grid
 objects. Insets can be also added as annotations. Using for `data` a
 tibble with a list column containing data frames or tibbles allows like
-any other geom, the use of grouping, multiples insets per panel,
-faceting with different tables, and different number of insets in each
+any other geom, the use of grouping, multiple insets per panel,
+faceting with different tables per panel, and different number of insets in each
 panel, i.e., individual tables added to a plot with `geom_table` behave
-similarly to individual character values added with `geom_text`.
+similarly to individual `character` values added with `geom_text`.
 
-Other geometries also described in this section support the use of
-native plot coordinates for positioning elements in the plotting area.
-Obviously these geometries are not meant to display data, but instead to
-be able to add annotations to plots consistently across data sets and
-varying scales used.
+Other geometries also described in this section support the use of native plot
+coordinates for positioning elements in the plotting area. Obviously these
+geometries are not meant to be used to display data, but instead they make it
+possible to add annotations to plots consistently across data sets and varying
+scales used.
 
 ### geom_table() and stat_fmt_table()
 
@@ -404,7 +406,7 @@ inset tables, giving the same plot as above. In this case single data
 frames, ggplots or grobs do not need to be wrapped in a list, although
 lists are also supported.
 
-```{r, eval=FALSE}
+```{r, eval=eval_flag}
 tb <- mpg %>%
   group_by(cyl) %>%
   summarise(hwy = median(hwy), cty = median(cty))
@@ -551,7 +553,7 @@ The same plot as above can be created using `annotate()` but be aware
 that when using facets in 'ggplot2' annotations are identical in all
 panels.
 
-```{r, eval=FALSE}
+```{r, eval=eval_flag}
 p <- ggplot(mpg, aes(factor(cyl), hwy, fill = factor(cyl))) +
   stat_summary(geom = "col", fun = mean, width = 2/3) +
   labs(x = "Number of cylinders", y = NULL, title = "Means") +
@@ -617,7 +619,7 @@ distorted, set only one of `width` or `height`). The argument to
 `vp.width` or `vp.height`, also in "npc" units, determines the size of
 the `Grob` relative to the size of the plotting area.
 
-```{r}
+```{r, eval=eval_flag}
 ggplot() +
   annotate("grob", x = 1, y = 3, vp.width = 0.5,
            label = grid::rasterGrob(image = Isoquercitin, width = 1)) +
@@ -639,7 +641,7 @@ plot, so the combined plot can be scaled.
 Please see section **Normalised Parent Coordinates** below for a
 description of `geom_grob_npc()`.
 
-### geom_vhlines
+### geom_vhlines()
 
 This is a convenience geometry that adds both vertical and horizontal
 guide lines on the same plot layer, using the same syntax as
@@ -650,9 +652,41 @@ ggplot(mpg, aes(displ, hwy, colour = factor(cyl))) +
   geom_vhlines(xintercept = c(2.75, 4), yintercept = 27, linetype = "dashed") +
   geom_point() +
   labs(x = "Engine displacement (l)", y = "Fuel use efficiency (MPG)",
-       colour = "Engine cylinders\n(number)") +
-  theme_bw()
+       colour = "Engine cylinders\n(number)") 
 
+```
+
+### geom_linked_text()
+
+With package 'ggrepel' we have become used to easily add text and labels linked
+to the labeled observations or points by a line segment or arrow. However,
+sometimes a plot has few text labels and repulsion is unnecessary. In such
+cases nudging or dodging may be enough, or even preferable so as to achieve
+consistency.
+
+We can achieve this with `geom_linked_text()` together with a suitable position
+function that retains the original _x_ and _y_ coordinates of the point. We
+currently provide two different, and flexible nudge functions described in
+a later section. One of them is used by default providing the same default
+behaviour as `geom_text()` from 'ggplot2' but drawing linking segments if
+nudging is set to a value different to the default of zero.
+
+**Please, be aware that this is a preliminary implementation, whose user interface
+and behavior are very likely to change in coming months.**
+
+```{r}
+my.cars <- mtcars[c(TRUE, FALSE, FALSE, FALSE), ]
+my.cars$name <- rownames(my.cars)
+my.cars <- my.cars[order(my.cars$wt), ]
+ggplot(my.cars, aes(wt, mpg, label = name)) +
+  geom_point() +
+  geom_linked_text(aes(colour = factor(cyl)),
+                   angle = 90,
+                   hjust = 1.04, nudge_y = -1, 
+                   nudge_x = c(0, 0, -0.05, +0.05, 0, 0 ,0, 0),
+                   arrow = arrow(length = grid::unit(1.5, "mm"))) +
+  scale_colour_discrete(l = 40) +
+  expand_limits(y = 0)
 ```
 
 ### Normalised Parent Coordinates
@@ -737,7 +771,7 @@ ggplot(data.tb, aes(x, y)) +
 Alternatively, we can pass constant values to `geom_grob_npc()` to
 obtain the same plot. This approach can be handy in simple cases.
 
-```{r}
+```{r, eval=eval_flag}
 ggplot(data.tb, aes(x, y)) +
   geom_grob_npc(label = list(grid::rasterGrob(image = Robinin, width = 1)), 
                 npcx = 0.02, npcy = 0.95,
@@ -750,7 +784,7 @@ We can also use `annotate()` if the annotation should be the same for
 all panels, or if we have a single figure panel. In this case there is
 no need to wrap a single `grob` in a list.
 
-```{r}
+```{r, eval=eval_flag}
 ggplot(data.tb, aes(x, y)) +
   annotate("grob_npc", label = grid::rasterGrob(image = Robinin, width = 1), 
                 npcx = 0.02, npcy = 0.95, vp.width = 1/2, vp.height = 1/4) +
@@ -829,7 +863,7 @@ Other functions can be passed to this statistic as long as they return a
 single value that can be mapped to the `x` and `y` aesthetics (numeric,
 time or a factor).
 
-```{r}
+```{r, eval = FALSE}
 ggplot(mpg, aes(displ, hwy, colour = factor(cyl))) +
   geom_point(alpha = 0.33) +
   stat_centroid(shape = "cross", size = 4, .fun = median)
@@ -871,7 +905,7 @@ ggplot(my.data, aes(x, y)) +
 Pooling quadrants along the *x*-axis. (`pool.along = "y"` pools along
 *y*.)
 
-```{r}
+```{r, eval=eval_flag}
 ggplot(my.data, aes(x, y)) +
   geom_quadrant_lines(colour = "red", pool.along = "x") +
   stat_quadrant_counts(colour = "red", pool.along = "x") +
@@ -890,7 +924,7 @@ ggplot(my.data, aes(x, y)) +
 
 Annotation of only specific quadrants.
 
-```{r}
+```{r, eval=eval_flag}
 ggplot(my.data, aes(x, y)) +
   geom_quadrant_lines(colour = "red") +
   stat_quadrant_counts(colour = "red", quadrants = c(2, 4)) +
@@ -921,11 +955,15 @@ scale. However, when grouping is important, these statistics solve a
 problem that would otherwise require pre-computation of the data. Here
 we plot the difference in circumference between dates for each tree. (As
 the vector returned by `diff()` is one element shorter than its input,
-we prepend `NA`.)
+we prepend `NA`.) However, scale limits are not recomputed and modifying
+them would exclude observations. Consequently, in this case we need to
+manualy set the limit in `coord_cartesian()`.
 
 ```{r}
 ggplot(Orange, aes(age, circumference, colour = Tree)) +
-  stat_apply_group(.fun.y = function(x) {c(NA, diff(x))}, na.rm = TRUE)
+  stat_apply_group(.fun.y = function(x) {c(NA, diff(x))}, na.rm = TRUE) +
+  coord_cartesian(xlim = c(420, NA))
+  
 ```
 
 ### stat_peaks() and stat_valleys()
@@ -945,9 +983,9 @@ ggplot(lynx, as.numeric = FALSE) + geom_line() +
   ylim(-100, 7300)
 ```
 
-Using numeric values for `time` and the default formatting of labels. We
-can also pass other aesthetics recognised the `geom_text()` such as
-`angle`. Here we also highlight and label the valleys.
+A plot using `numeric` values for `time` and the default formatting of labels.
+We can also pass other aesthetics recognised the `geom_text()` such as `angle`.
+Here we also highlight and label the valleys.
 
 ```{r}
 ggplot(lynx) + geom_line() + 
@@ -960,10 +998,10 @@ ggplot(lynx) + geom_line() +
   expand_limits(y = c(-900, 8000))
 ```
 
-Using Date for `time` but supplying a format string. In addition marking
-both peaks and valleys.
+We can obtain a very similar plot using `Date` for `time` but supplying a format
+string. In addition marking both peaks and valleys.
 
-```{r}
+```{r, eval=eval_flag}
 ggplot(lynx, as.numeric = FALSE) + geom_line() + 
   stat_peaks(colour = "red") +
   stat_peaks(geom = "text", colour = "red", hjust = -0.2, vjust = 0.5, 
@@ -1032,9 +1070,9 @@ ggplot(data = d, aes(x, y)) +
   stat_dens2d_filter(keep.fraction = 1/4, colour = "red")
 ```
 
-Keep at most 20 observations.
+Keep at most 50 observations.
 
-```{r}
+```{r, eval=eval_flag}
 ggplot(data = d, aes(x, y)) +
   geom_point() +
   stat_dens2d_filter(keep.fraction = 1/4, keep.number = 50, colour = "red")
@@ -1042,7 +1080,7 @@ ggplot(data = d, aes(x, y)) +
 
 Keep always 50 observations.
 
-```{r}
+```{r, eval=eval_flag}
 ggplot(data = d, aes(x, y)) +
   geom_point() +
   stat_dens2d_filter(keep.fraction = 1, keep.number = 50, colour = "red")
@@ -1051,7 +1089,7 @@ ggplot(data = d, aes(x, y)) +
 Highlighting 1/4 of the observations by under-plotting with larger black
 points.
 
-```{r}
+```{r, eval=eval_flag}
 ggplot(data = d, aes(x, y, colour = group)) +
    stat_dens2d_filter(keep.fraction = 0.25,
                       size = 3,
@@ -1098,7 +1136,7 @@ geom used requires a `label` aesthetic.
 
 Label 1/10 of observations from lowest density areas of the plot panels.
 
-```{r}
+```{r, eval=eval_flag}
 ggplot(data = d, aes(x, y, label = lab, colour = group)) +
   stat_dens2d_labels(keep.fraction = 1/10, 
                      hjust = "outward", vjust = "outward") +
@@ -1138,10 +1176,10 @@ and transparency, the occlusion can remain easily unnoticed with
 `geom_label` and `geom_label_repel`. We keep `geom_point` as the topmost
 layer to ensure that all observations are visible.
 
-```{r}
+```{r, eval=eval_flag}
 ggplot(data = d, aes(x, y, label = lab, colour = group)) +
   stat_dens2d_labels(geom = "label_repel", 
-                     keep.fraction = 0.35, 
+                     keep.fraction = 0.2, 
                      label.fill = NA) +
     geom_point()
 ```
@@ -1198,7 +1236,7 @@ ggplot(data = d, aes(x, y)) +
 We repeat the example above, we highlight 1/4 of observations, but now
 from lowest density region along the *y* axis of the plot panel.
 
-```{r}
+```{r, eval=eval_flag}
 ggplot(data = d, aes(x, y)) +
   geom_point() +
   stat_dens1d_filter(keep.fraction = 0.25,
@@ -1234,7 +1272,7 @@ ggplot(data = d, aes(x, y, label = lab, colour = group)) +
 
 Similarly along the *y* axis.
 
-```{r}
+```{r, eval=eval_flag}
 ggplot(data = d, aes(x, y, label = lab, colour = group)) +
   geom_point() +
   stat_dens1d_labels(geom = "text_repel", orientation = "y")
@@ -1244,12 +1282,346 @@ In other respects than `orientation` and the parameters passed
 internally to `stats::density()` the examples given earlier for
 `stat_dens2d_labels()` also apply.
 
-### Repulsion with ggrepel
+## Position functions
 
-When observations are at high density, one needs to use similar
-functions included in 'ggrepel' (\>= 0.9.2) together with repulsive
-*geoms*. If density is very high, then one can additionally use one of
-the "density-filter" *stats* also provided by the package 'ggpmisc'.
+Function `position_nudge()` from package 'ggplot2' simply applies the nudge, or
+*x* and *y* shift based directly on the values passed to its parameters `x` and
+`y`. A new variation on simple nudge is provided by function
+`position_nudge_to()`.
+
+Two new position functions supporting advanced nudging are made available by
+package 'ggpmisc'. While `position_nudge()` implements shifts along $x$ and $y$
+axes that are the same for every observation, the new functions compute the
+direction of the nudging specifically for each observation.
+
+One can think of this approach as nudging away from a focal point, a line or a
+curve. It is deterministic, while repulsion is aleatory. Advanced nudging works
+very well, but only for some patterns of observations and may require manual
+adjustment of positions, repulsion is more generally applicable.
+
+All the new position functions save the original coordinates to allow linking
+the nudged objects, usually text labels, to be linked to the original
+position. This is currently only supported by `geom_linked_text()`, but they
+may be also supported by 'ggrepel' in the future.
+
+### position_nudge_keep()
+
+`position_nudge_keep()` (and `position_nudge_center()` With the default 
+`direction = "none"`) behaves as `ggplot2::position_nudge()` but saves the 
+original coordinates. Currently the saved original coordinates are used only
+by `geom_linked_text()` as shown in the corresponding section above.
+
+```{r}
+set.seed(84532)
+df <- data.frame(
+  x = rnorm(10),
+  y = rnorm(10, 2, 2),
+  l = letters[1:10]
+)
+```
+
+Here we keep the default justification, with text centred on its location.
+
+```{r}
+ggplot(df, aes(x, y, label = l)) +
+  geom_point() +
+  geom_text(position = position_nudge_keep(x = 0.1, y = 0.15))
+```
+When using `geom_linked_text()` we need to change the default justification.
+
+```{r}
+ggplot(df, aes(x, y, label = l)) +
+  geom_point() +
+  geom_linked_text(position = position_nudge_keep(x = 0.1, y = 0.15),
+                   hjust = -0.8, vjust = 0.2)
+```
+
+As this is also the default position function of this geometry, the code below
+is equivalent.
+
+```{r, eval=eval_flag}
+ggplot(df, aes(x, y, label = l)) +
+  geom_point() +
+  geom_linked_text(nudge_x = 0.1, nudge_y = 0.15, hjust = -0.8, vjust = 0.2)
+```
+### position_nudge_to()
+
+Function `position_nudge_to()` differs from `ggplot2::position_nudge()` in that
+the coordinates of the new positions are supplied directly rather than as a
+displacement.
+
+```{r}
+set.seed(84532)
+df <- data.frame(
+  x = rnorm(8),
+  y = rnorm(8, 2, 2),
+  l = letters[1:8]
+)
+```
+
+We here the pass a vector of length one as argument for `y`, but `x` and `y`
+also accept vectors of the same length as rows has `data`. In other words, it
+allows manual positioning of text and labels. 
+ 
+```{r}
+ggplot(df, aes(x, y, label = l)) +
+  geom_point() +
+  geom_text(position = position_nudge_to(y = 6))
+```
+
+### position_nudge_center()
+
+Function `position_nudge_center()` can nudge radially away from a focal point if
+both `x` and `y` are passed as arguments, or towards opposite sides
+of a boundary line if only one of `x` or `y` is passed an argument.
+By default, the "center" is the centroid computed using `mean()`, but other
+functions or numeric values can be passed to override it. 
+
+```{r}
+set.seed(84532)
+df <- data.frame(
+  x = rnorm(20),
+  y = rnorm(20, 2, 2),
+  l = sample(letters[1:6], 20, replace = TRUE)
+)
+```
+
+When using one of the directions `"split"` or `"radial"` by default a centroid
+computed with `mean()` is used as focal point. If the direction is `"split"`
+then only the sign of `x` and/or `y` are reversed to the left and below the
+focal point, respectively.
+
+```{r}
+ggplot(df, aes(x, y, label = l)) +
+  geom_point() +
+  geom_text(position = position_nudge_center(x = 0.1,
+                                             y = 0.15,
+                                             direction = "split"))
+```
+
+By default `x` and `y` take a value of zero.
+
+```{r}
+ggplot(df, aes(x, y, label = l)) +
+  geom_point() +
+  geom_text(position = position_nudge_center(x = 0.1,
+                                             direction = "split"))
+```
+
+We can override the default center coordinates by passing numeric values to
+`center_x` and/or `center_y`.
+
+```{r, eval=eval_flag}
+ggplot(df, aes(x, y, label = l)) +
+  geom_point() +
+  geom_text(position = position_nudge_center(x = 0.1,
+                                             center_x = 1,
+                                             direction = "split"))
+```
+
+We can override the default center coordinates computed with `mean()` by passing
+as argument a different function.
+
+```{r, eval=eval_flag}
+ggplot(df, aes(x, y, label = l)) +
+  geom_point() +
+  geom_text(position = position_nudge_center(x = 0.1,
+                                             center_x = median,
+                                             direction = "split"))
+```
+
+Direction `"radial"` applies nudge radially away from the focal point.
+
+```{r}
+ggplot(df, aes(x, y, label = l)) +
+  geom_point() +
+  geom_text(position = position_nudge_center(x = 0.1,
+                                             y = 0.3,
+                                             direction = "radial"))
+```
+
+### position_nudge_line()
+
+Function `position_nudge_line()` nudges away from a line, which can be a
+user supplied straight line as well as a smooth spline or a polynomial
+fitted to the observations themselves. The nudging is away and
+perpendicular to the local slope of the straight or curved line. It
+relies on the same assumptions as linear regression, assuming that *x*
+values are not subject to error. This in most cases prevents labels from
+overlaping a curve fitted to the data, even if not exactly based on the
+same model fit. When observations are sparse, this may be enough to
+obtain a nice arrangement of data labels.
+
+```{r}
+set.seed(16532)
+df <- data.frame(
+  x = -10:10,
+  y = (-10:10)^2,
+  yy = (-10:10)^2 + rnorm(21, 0, 4),
+  yyy = (-10:10) + rnorm(21, 0, 4),
+  l = letters[1:21]
+)
+```
+
+The first, simple example shows that `position_nudge_line()` has shifted
+the direction of the nudging based on the alignment of the observations
+along a line. One could, of course, have in this case passed suitable
+values as arguments to *x* and *y* using `position_nudge()` from package
+'ggplot2'.
+
+Function `position_nudge_line()` will work without change irrespective
+of the slope or intercept along which the observations fall.
+
+```{r}
+ggplot(df, aes(x, -3 * x, label = l)) +
+  geom_point() +
+  geom_abline(intercept = 0, slope = -3, linetype = "dotted") +
+  geom_text(position = position_nudge_line(x = -0.5, y = -0.8))
+```
+
+With observations with high variation in *y*, a linear model fit may
+need to be used.
+
+```{r}
+ggplot(subset(df, x >= 0), aes(x, yyy)) +
+  geom_point() +
+  stat_smooth(method = "lm", formula = y ~ x) +
+  geom_text(aes(label = l),
+            vjust = "center", hjust = "center",
+            position = position_nudge_line(x = 0, y = 1.2,
+                                           method = "lm", formula = y ~ x,
+                                           direction = "split"))
+```
+
+With lower variation in *y*, we can pass to `line_nudge` a multiplier to
+keep labels outside of the confidence band.
+
+```{r}
+ggplot(subset(df, x >= 0), aes(y, yy)) +
+  geom_point() +
+  stat_smooth(method = "lm", formula = y ~ x) +
+  geom_text(aes(label = l),
+            position = position_nudge_line(method = "lm",
+                                           x = 3, y = 3, 
+                                           line_nudge = 2.8,
+                                           direction = "split"))
+```
+
+If we want the nudging based on an arbitrary straight line not computed
+from `data`, we can pass the intercept and slope in a numeric vector of
+length two as an argument to parameter `abline`.
+
+```{r}
+ggplot(subset(df, x >= 0), aes(y, yy)) +
+  geom_point() +
+  geom_abline(intercept = 0, slope = 1, linetype = "dotted") +
+  geom_text(aes(label = l),
+            position = position_nudge_line(abline = c(0, 1),
+                                           x = 3, y = 3, 
+                                           direction = "split"))
+```
+
+With observations that follow exactly a simple curve the defaults work well to
+automate the nudging of individual data labels away from the implicit curve.
+Positive values as arguments to `x` and `y` correspond to above and inside the
+curve. One could, of course, pass also in this case suitable values as arguments
+to *x* and *y* using `position_nudge()` from package 'ggplot2', but these
+arguments would need to be vectors with different *nudge* values for each
+observation.
+
+```{r}
+ggplot(df, aes(x, y, label = l)) +
+  geom_point() +
+  geom_line(linetype = "dotted") +
+  geom_text(position = position_nudge_line(x = 0.6, y = 6))
+```
+
+Negative values passed as arguments to `x` and `y` correspond to labels
+below and outside the curve.
+
+```{r, eval=eval_flag}
+ggplot(df, aes(x, y, label = l)) +
+  geom_point() +
+  geom_line(linetype = "dotted") +
+  geom_text(position = position_nudge_line(x = -0.6, y = -6))
+```
+
+When the observations include random variation along *y*, it is
+important that the smoother used for the line added to a plot and that
+passed to `position_nudge_line()` are similar. By default
+`stat_smooth()` uses `"loess"` and `position_nudge_line()` with method
+`"spline"`, `smooth.sline()`, which are a good enough match.
+
+```{r}
+ggplot(df, aes(x, yy, label = l)) +
+  geom_point() +
+  stat_smooth(formula = y ~ x, method = "loess") +
+  geom_text(aes(y = yy, label = l),
+            position = position_nudge_line(x = 0.6, 
+                                           y = 6,
+                                           direction = "split"))
+```
+
+When fitting a polynomial, `"lm"` should be the argument passed to
+`method` and a model formula preferably based on `poly()`, setting `raw = TRUE`,
+as argument to `formula`.
+*Currently no other methods are implemented in* `position_nudge_line()`.
+
+```{r, eval=eval_flag}
+ggplot(df, aes(x, yy, label = l)) +
+  geom_point() +
+  stat_smooth(method = "lm", formula = y ~ poly(x, 2, raw = TRUE)) +
+  geom_text(aes(y = yy, label = l),
+            position = position_nudge_line(method = "lm",
+                                           x = 0.6, 
+                                           y = 6,
+                                           formula = y ~ poly(x, 2, raw = TRUE),
+                                           direction = "split"))
+```
+
+Grouping is supported.
+
+```{r}
+df <- data.frame(x = rep(1:10, 2),
+                 y = c(1:10, 10:1),
+                 group = rep(c("a", "b"), c(10, 10)),
+                 l = "+")
+```
+
+```{r}
+ggplot(df, aes(x, y, label = l, color = group)) +
+  geom_line(linetype = "dotted") +
+  geom_point() +
+  geom_text(position = position_nudge_line(x = 0.25, y = 1)) +
+  coord_equal(ratio = 0.5)
+```
+
+One needs to ensure that grouping is in effect in the geoms with nudging.
+
+```{r, eval=eval_flag}
+ggplot(df, aes(x, y, label = l, color = group, group = group)) +
+  geom_line(linetype = "dotted") +
+  geom_text() +
+  geom_text(color = "red",
+            position = position_nudge_line(x = 1, y = 1)) +
+  geom_text(color = "blue",
+            position = position_nudge_line(x = -1, y = -1)) +
+  coord_equal()
+```
+
+Facets are also supported.
+
+```{r, eval=eval_flag}
+ggplot(df, aes(x, y, label = l)) +
+  geom_line(linetype = "dotted") +
+  geom_point() +
+  geom_text(position = position_nudge_line(x = 1, y = 1),
+            color = "red") +
+  geom_text(position = position_nudge_line(x = -1, y = -1),
+            color = "blue") +
+  facet_wrap(~group) +
+  coord_equal(ratio = 1)
+```
 
 ## Appendix A: More on density filtering
 
@@ -1279,7 +1651,7 @@ observations in the denser region of the plot. Although here we first
 plot all data points and later overplot the selected ones this is not
 necessary.
 
-```{r}
+```{r, eval=eval_flag}
 ggplot(data = make_data_tbl(300), aes(x, y)) +
   geom_point() +
   stat_dens2d_filter(colour = "red", 
@@ -1290,7 +1662,7 @@ ggplot(data = make_data_tbl(300), aes(x, y)) +
 Here we highlight the observations split in three group equal groups,
 each of a different density of observations.
 
-```{r}
+```{r, eval=eval_flag}
 ggplot(data = make_data_tbl(300), aes(x, y)) +
   geom_point() +
   stat_dens2d_filter(colour = "red", 
@@ -1303,7 +1675,7 @@ ggplot(data = make_data_tbl(300), aes(x, y)) +
 The algorithm seems to work well also with other distributions, in this
 example the uniform distribution.
 
-```{r}
+```{r, eval=eval_flag}
 ggplot(data = make_data_tbl(300, rfun = runif), aes(x, y)) +
   geom_point() +
   stat_dens2d_filter(colour = "red", keep.fraction = 1/2)
@@ -1311,7 +1683,7 @@ ggplot(data = make_data_tbl(300, rfun = runif), aes(x, y)) +
 
 One example with the gamma distribution, which is asymmetric.
 
-```{r}
+```{r, eval=eval_flag}
 ggplot(data = make_data_tbl(300, rfun = rgamma, shape = 2), 
        aes(x, y)) +
   geom_point() +
@@ -1331,7 +1703,6 @@ example is a quarterly series.
 class(austres)
 austres.df <- try_tibble(austres)
 class(austres.df)
-lapply(austres.df, "class")
 head(austres.df, 4)
 ```
 
@@ -1340,17 +1711,15 @@ years in the returned data frame.
 
 ```{r}
 austres.df <- try_tibble(austres, as.numeric = TRUE)
-lapply(austres.df, "class")
 head(austres.df, 4)
 ```
 
 This second example is for a series of yearly values.
 
-```{r}
+```{r, eval=eval_flag}
 class(lynx)
 lynx.df <- try_tibble(lynx)
 class(lynx.df)
-lapply(lynx.df, "class")
 head(lynx.df, 3)
 ```
 
@@ -1365,7 +1734,7 @@ head(lynx.df, 3)
 In addition we can convert the POSIXct values into numeric values in
 calendar years plus a decimal fraction.
 
-```{r}
+```{r, eval=eval_flag}
 lynx_n.df <- try_tibble(lynx, "year", as.numeric = TRUE)
 lapply(lynx_n.df, "class")
 head(lynx_n.df, 3)
@@ -1376,26 +1745,26 @@ head(lynx_n.df, 3)
 `try_tibble()` attempts to handle gracefully objects that are not time
 series.
 
-```{r}
+```{r, eval=eval_flag}
 try_tibble(1:5)
 ```
 
-```{r}
+```{r, eval=eval_flag}
 try_tibble(letters[1:5])
 ```
 
-```{r}
+```{r, eval=eval_flag}
 try_tibble(factor(letters[1:5]))
 ```
 
-```{r}
+```{r, eval=eval_flag}
 try_tibble(list(x = rep(1,5), y = 1:5))
 ```
 
-```{r}
+```{r, eval=eval_flag}
 try_tibble(data.frame(x = rep(1,5), y = 1:5))
 ```
 
-```{r}
+```{r, eval=eval_flag}
 try_tibble(matrix(1:10, ncol = 2))
 ```

@@ -6,15 +6,13 @@ options(warnPartialMatchArgs = FALSE,
         tibble.print.max = 4,
         tibble.print.min = 4,
         dplyr.summarise.inform = FALSE)
+eval_flag <- FALSE  # evaluate all code chunks
 
 ## ---- message=FALSE-----------------------------------------------------------
 library(ggpmisc)
 library(ggrepel)
-library(xts)
-library(lubridate)
 library(tibble)
 library(dplyr)
-library(nlme)
 
 ## -----------------------------------------------------------------------------
 old_theme <- theme_set(theme_bw())
@@ -93,7 +91,7 @@ ggplot(mpg, aes(displ, hwy, colour = factor(cyl))) +
   geom_table(data = data.tb, aes(x, y, label = tb)) +
   geom_point() 
 
-## ---- eval=FALSE--------------------------------------------------------------
+## ---- eval=eval_flag----------------------------------------------------------
 #  tb <- mpg %>%
 #    group_by(cyl) %>%
 #    summarise(hwy = median(hwy), cty = median(cty))
@@ -169,7 +167,7 @@ ggplot(mpg, aes(displ, hwy, colour = factor(cyl))) +
        colour = "Engine cylinders\n(number)") +
   theme_bw()
 
-## ---- eval=FALSE--------------------------------------------------------------
+## ---- eval=eval_flag----------------------------------------------------------
 #  p <- ggplot(mpg, aes(factor(cyl), hwy, fill = factor(cyl))) +
 #    stat_summary(geom = "col", fun = mean, width = 2/3) +
 #    labs(x = "Number of cylinders", y = NULL, title = "Means") +
@@ -203,20 +201,33 @@ ggplot() +
   scale_x_continuous(expand = expansion(mult = 0.2, add = 0)) +
  theme_bw(12)
 
-## -----------------------------------------------------------------------------
-ggplot() +
-  annotate("grob", x = 1, y = 3, vp.width = 0.5,
-           label = grid::rasterGrob(image = Isoquercitin, width = 1)) +
- theme_bw(12)
+## ---- eval=eval_flag----------------------------------------------------------
+#  ggplot() +
+#    annotate("grob", x = 1, y = 3, vp.width = 0.5,
+#             label = grid::rasterGrob(image = Isoquercitin, width = 1)) +
+#   theme_bw(12)
 
 ## -----------------------------------------------------------------------------
 ggplot(mpg, aes(displ, hwy, colour = factor(cyl))) +
   geom_vhlines(xintercept = c(2.75, 4), yintercept = 27, linetype = "dashed") +
   geom_point() +
   labs(x = "Engine displacement (l)", y = "Fuel use efficiency (MPG)",
-       colour = "Engine cylinders\n(number)") +
-  theme_bw()
+       colour = "Engine cylinders\n(number)") 
 
+
+## -----------------------------------------------------------------------------
+my.cars <- mtcars[c(TRUE, FALSE, FALSE, FALSE), ]
+my.cars$name <- rownames(my.cars)
+my.cars <- my.cars[order(my.cars$wt), ]
+ggplot(my.cars, aes(wt, mpg, label = name)) +
+  geom_point() +
+  geom_linked_text(aes(colour = factor(cyl)),
+                   angle = 90,
+                   hjust = 1.04, nudge_y = -1, 
+                   nudge_x = c(0, 0, -0.05, +0.05, 0, 0 ,0, 0),
+                   arrow = arrow(length = grid::unit(1.5, "mm"))) +
+  scale_colour_discrete(l = 40) +
+  expand_limits(y = 0)
 
 ## -----------------------------------------------------------------------------
 file.name <- 
@@ -240,21 +251,21 @@ ggplot(data.tb, aes(x, y)) +
   geom_point() +
   expand_limits(y = 55, x = 0)
 
-## -----------------------------------------------------------------------------
-ggplot(data.tb, aes(x, y)) +
-  geom_grob_npc(label = list(grid::rasterGrob(image = Robinin, width = 1)), 
-                npcx = 0.02, npcy = 0.95,
-                vp.width = 1/2, vp.height = 1/4) +
-  geom_point() +
-  expand_limits(y = 55, x = 0)
+## ---- eval=eval_flag----------------------------------------------------------
+#  ggplot(data.tb, aes(x, y)) +
+#    geom_grob_npc(label = list(grid::rasterGrob(image = Robinin, width = 1)),
+#                  npcx = 0.02, npcy = 0.95,
+#                  vp.width = 1/2, vp.height = 1/4) +
+#    geom_point() +
+#    expand_limits(y = 55, x = 0)
 
-## -----------------------------------------------------------------------------
-ggplot(data.tb, aes(x, y)) +
-  annotate("grob_npc", label = grid::rasterGrob(image = Robinin, width = 1), 
-                npcx = 0.02, npcy = 0.95, vp.width = 1/2, vp.height = 1/4) +
-  geom_point() +
-  expand_limits(y = 55, x = 0)
-
+## ---- eval=eval_flag----------------------------------------------------------
+#  ggplot(data.tb, aes(x, y)) +
+#    annotate("grob_npc", label = grid::rasterGrob(image = Robinin, width = 1),
+#                  npcx = 0.02, npcy = 0.95, vp.width = 1/2, vp.height = 1/4) +
+#    geom_point() +
+#    expand_limits(y = 55, x = 0)
+#  
 
 ## -----------------------------------------------------------------------------
 corner_letters.tb <- tibble(label = LETTERS[1:4],
@@ -285,10 +296,10 @@ ggplot(mpg, aes(displ, hwy, colour = factor(cyl))) +
   geom_point(alpha = 0.33) +
   stat_centroid(shape = "cross", size = 4)
 
-## -----------------------------------------------------------------------------
-ggplot(mpg, aes(displ, hwy, colour = factor(cyl))) +
-  geom_point(alpha = 0.33) +
-  stat_centroid(shape = "cross", size = 4, .fun = median)
+## ---- eval = FALSE------------------------------------------------------------
+#  ggplot(mpg, aes(displ, hwy, colour = factor(cyl))) +
+#    geom_point(alpha = 0.33) +
+#    stat_centroid(shape = "cross", size = 4, .fun = median)
 
 ## -----------------------------------------------------------------------------
 set.seed(4321)
@@ -306,11 +317,11 @@ ggplot(my.data, aes(x, y)) +
   geom_point() +
   expand_limits(y = c(-250, 250))
 
-## -----------------------------------------------------------------------------
-ggplot(my.data, aes(x, y)) +
-  geom_quadrant_lines(colour = "red", pool.along = "x") +
-  stat_quadrant_counts(colour = "red", pool.along = "x") +
-  geom_point()
+## ---- eval=eval_flag----------------------------------------------------------
+#  ggplot(my.data, aes(x, y)) +
+#    geom_quadrant_lines(colour = "red", pool.along = "x") +
+#    stat_quadrant_counts(colour = "red", pool.along = "x") +
+#    geom_point()
 
 ## -----------------------------------------------------------------------------
 ggplot(my.data, aes(x, y)) +
@@ -318,11 +329,11 @@ ggplot(my.data, aes(x, y)) +
   stat_quadrant_counts(quadrants = 0L, label.x = "left", 
                        aes(label = sprintf("%i observations", stat(count))))
 
-## -----------------------------------------------------------------------------
-ggplot(my.data, aes(x, y)) +
-  geom_quadrant_lines(colour = "red") +
-  stat_quadrant_counts(colour = "red", quadrants = c(2, 4)) +
-  geom_point()
+## ---- eval=eval_flag----------------------------------------------------------
+#  ggplot(my.data, aes(x, y)) +
+#    geom_quadrant_lines(colour = "red") +
+#    stat_quadrant_counts(colour = "red", quadrants = c(2, 4)) +
+#    geom_point()
 
 ## -----------------------------------------------------------------------------
 ggplot(my.data, aes(x, y, colour = group)) +
@@ -334,7 +345,9 @@ ggplot(my.data, aes(x, y, colour = group)) +
 
 ## -----------------------------------------------------------------------------
 ggplot(Orange, aes(age, circumference, colour = Tree)) +
-  stat_apply_group(.fun.y = function(x) {c(NA, diff(x))}, na.rm = TRUE)
+  stat_apply_group(.fun.y = function(x) {c(NA, diff(x))}, na.rm = TRUE) +
+  coord_cartesian(xlim = c(420, NA))
+  
 
 ## -----------------------------------------------------------------------------
 ggplot(lynx, as.numeric = FALSE) + geom_line() + 
@@ -353,15 +366,15 @@ ggplot(lynx) + geom_line() +
              angle = 90, check_overlap = TRUE) +
   expand_limits(y = c(-900, 8000))
 
-## -----------------------------------------------------------------------------
-ggplot(lynx, as.numeric = FALSE) + geom_line() + 
-  stat_peaks(colour = "red") +
-  stat_peaks(geom = "text", colour = "red", hjust = -0.2, vjust = 0.5, 
-             angle = 90, check_overlap = TRUE, x.label.fmt = "%Y") +
-  stat_valleys(colour = "blue") +
-  stat_valleys(geom = "text", colour = "blue", hjust = 1.2, vjust = 0.5, 
-             angle = 90, check_overlap = TRUE, x.label.fmt = "%Y") +
-  expand_limits(y = c(-900, 8000))
+## ---- eval=eval_flag----------------------------------------------------------
+#  ggplot(lynx, as.numeric = FALSE) + geom_line() +
+#    stat_peaks(colour = "red") +
+#    stat_peaks(geom = "text", colour = "red", hjust = -0.2, vjust = 0.5,
+#               angle = 90, check_overlap = TRUE, x.label.fmt = "%Y") +
+#    stat_valleys(colour = "blue") +
+#    stat_valleys(geom = "text", colour = "blue", hjust = 1.2, vjust = 0.5,
+#               angle = 90, check_overlap = TRUE, x.label.fmt = "%Y") +
+#    expand_limits(y = c(-900, 8000))
 
 ## -----------------------------------------------------------------------------
 ggplot(lynx, as.numeric = FALSE) + geom_line() + 
@@ -389,22 +402,22 @@ ggplot(data = d, aes(x, y)) +
   geom_point() +
   stat_dens2d_filter(keep.fraction = 1/4, colour = "red")
 
-## -----------------------------------------------------------------------------
-ggplot(data = d, aes(x, y)) +
-  geom_point() +
-  stat_dens2d_filter(keep.fraction = 1/4, keep.number = 50, colour = "red")
+## ---- eval=eval_flag----------------------------------------------------------
+#  ggplot(data = d, aes(x, y)) +
+#    geom_point() +
+#    stat_dens2d_filter(keep.fraction = 1/4, keep.number = 50, colour = "red")
 
-## -----------------------------------------------------------------------------
-ggplot(data = d, aes(x, y)) +
-  geom_point() +
-  stat_dens2d_filter(keep.fraction = 1, keep.number = 50, colour = "red")
+## ---- eval=eval_flag----------------------------------------------------------
+#  ggplot(data = d, aes(x, y)) +
+#    geom_point() +
+#    stat_dens2d_filter(keep.fraction = 1, keep.number = 50, colour = "red")
 
-## -----------------------------------------------------------------------------
-ggplot(data = d, aes(x, y, colour = group)) +
-   stat_dens2d_filter(keep.fraction = 0.25,
-                      size = 3,
-                      colour = "black") +
-   geom_point()
+## ---- eval=eval_flag----------------------------------------------------------
+#  ggplot(data = d, aes(x, y, colour = group)) +
+#     stat_dens2d_filter(keep.fraction = 0.25,
+#                        size = 3,
+#                        colour = "black") +
+#     geom_point()
 
 ## -----------------------------------------------------------------------------
 ggplot(data = d, aes(x + rep(c(-2,2), rep(50,2)), 
@@ -420,11 +433,11 @@ ggplot(data = d, aes(x + rep(c(-2,2), rep(50,2)),
    stat_dens2d_filter_g(shape = 1, size = 3,
                       keep.fraction = 0.25)
 
-## -----------------------------------------------------------------------------
-ggplot(data = d, aes(x, y, label = lab, colour = group)) +
-  stat_dens2d_labels(keep.fraction = 1/10, 
-                     hjust = "outward", vjust = "outward") +
-  geom_point()
+## ---- eval=eval_flag----------------------------------------------------------
+#  ggplot(data = d, aes(x, y, label = lab, colour = group)) +
+#    stat_dens2d_labels(keep.fraction = 1/10,
+#                       hjust = "outward", vjust = "outward") +
+#    geom_point()
 
 ## -----------------------------------------------------------------------------
 ggplot(data = d, aes(x, y, label = lab, colour = group)) +
@@ -432,12 +445,12 @@ ggplot(data = d, aes(x, y, label = lab, colour = group)) +
   stat_dens2d_labels(geom = "text_repel", 
                      keep.fraction = 0.45)
 
-## -----------------------------------------------------------------------------
-ggplot(data = d, aes(x, y, label = lab, colour = group)) +
-  stat_dens2d_labels(geom = "label_repel", 
-                     keep.fraction = 0.35, 
-                     label.fill = NA) +
-    geom_point()
+## ---- eval=eval_flag----------------------------------------------------------
+#  ggplot(data = d, aes(x, y, label = lab, colour = group)) +
+#    stat_dens2d_labels(geom = "label_repel",
+#                       keep.fraction = 0.2,
+#                       label.fill = NA) +
+#      geom_point()
 
 ## ---- eval = FALSE------------------------------------------------------------
 #  random_string <- function(len = 6) {
@@ -459,22 +472,212 @@ ggplot(data = d, aes(x, y)) +
   stat_dens1d_filter(keep.fraction = 0.25,
                      colour = "red")
 
-## -----------------------------------------------------------------------------
-ggplot(data = d, aes(x, y)) +
-  geom_point() +
-  stat_dens1d_filter(keep.fraction = 0.25,
-                     colour = "red",
-                     orientation = "y")
+## ---- eval=eval_flag----------------------------------------------------------
+#  ggplot(data = d, aes(x, y)) +
+#    geom_point() +
+#    stat_dens1d_filter(keep.fraction = 0.25,
+#                       colour = "red",
+#                       orientation = "y")
 
 ## -----------------------------------------------------------------------------
 ggplot(data = d, aes(x, y, label = lab, colour = group)) +
   geom_point() +
   stat_dens1d_labels(geom = "text_repel")
 
+## ---- eval=eval_flag----------------------------------------------------------
+#  ggplot(data = d, aes(x, y, label = lab, colour = group)) +
+#    geom_point() +
+#    stat_dens1d_labels(geom = "text_repel", orientation = "y")
+
 ## -----------------------------------------------------------------------------
-ggplot(data = d, aes(x, y, label = lab, colour = group)) +
+set.seed(84532)
+df <- data.frame(
+  x = rnorm(10),
+  y = rnorm(10, 2, 2),
+  l = letters[1:10]
+)
+
+## -----------------------------------------------------------------------------
+ggplot(df, aes(x, y, label = l)) +
   geom_point() +
-  stat_dens1d_labels(geom = "text_repel", orientation = "y")
+  geom_text(position = position_nudge_keep(x = 0.1, y = 0.15))
+
+## -----------------------------------------------------------------------------
+ggplot(df, aes(x, y, label = l)) +
+  geom_point() +
+  geom_linked_text(position = position_nudge_keep(x = 0.1, y = 0.15),
+                   hjust = -0.8, vjust = 0.2)
+
+## ---- eval=eval_flag----------------------------------------------------------
+#  ggplot(df, aes(x, y, label = l)) +
+#    geom_point() +
+#    geom_linked_text(nudge_x = 0.1, nudge_y = 0.15, hjust = -0.8, vjust = 0.2)
+
+## -----------------------------------------------------------------------------
+set.seed(84532)
+df <- data.frame(
+  x = rnorm(8),
+  y = rnorm(8, 2, 2),
+  l = letters[1:8]
+)
+
+## -----------------------------------------------------------------------------
+ggplot(df, aes(x, y, label = l)) +
+  geom_point() +
+  geom_text(position = position_nudge_to(y = 6))
+
+## -----------------------------------------------------------------------------
+set.seed(84532)
+df <- data.frame(
+  x = rnorm(20),
+  y = rnorm(20, 2, 2),
+  l = sample(letters[1:6], 20, replace = TRUE)
+)
+
+## -----------------------------------------------------------------------------
+ggplot(df, aes(x, y, label = l)) +
+  geom_point() +
+  geom_text(position = position_nudge_center(x = 0.1,
+                                             y = 0.15,
+                                             direction = "split"))
+
+## -----------------------------------------------------------------------------
+ggplot(df, aes(x, y, label = l)) +
+  geom_point() +
+  geom_text(position = position_nudge_center(x = 0.1,
+                                             direction = "split"))
+
+## ---- eval=eval_flag----------------------------------------------------------
+#  ggplot(df, aes(x, y, label = l)) +
+#    geom_point() +
+#    geom_text(position = position_nudge_center(x = 0.1,
+#                                               center_x = 1,
+#                                               direction = "split"))
+
+## ---- eval=eval_flag----------------------------------------------------------
+#  ggplot(df, aes(x, y, label = l)) +
+#    geom_point() +
+#    geom_text(position = position_nudge_center(x = 0.1,
+#                                               center_x = median,
+#                                               direction = "split"))
+
+## -----------------------------------------------------------------------------
+ggplot(df, aes(x, y, label = l)) +
+  geom_point() +
+  geom_text(position = position_nudge_center(x = 0.1,
+                                             y = 0.3,
+                                             direction = "radial"))
+
+## -----------------------------------------------------------------------------
+set.seed(16532)
+df <- data.frame(
+  x = -10:10,
+  y = (-10:10)^2,
+  yy = (-10:10)^2 + rnorm(21, 0, 4),
+  yyy = (-10:10) + rnorm(21, 0, 4),
+  l = letters[1:21]
+)
+
+## -----------------------------------------------------------------------------
+ggplot(df, aes(x, -3 * x, label = l)) +
+  geom_point() +
+  geom_abline(intercept = 0, slope = -3, linetype = "dotted") +
+  geom_text(position = position_nudge_line(x = -0.5, y = -0.8))
+
+## -----------------------------------------------------------------------------
+ggplot(subset(df, x >= 0), aes(x, yyy)) +
+  geom_point() +
+  stat_smooth(method = "lm", formula = y ~ x) +
+  geom_text(aes(label = l),
+            vjust = "center", hjust = "center",
+            position = position_nudge_line(x = 0, y = 1.2,
+                                           method = "lm", formula = y ~ x,
+                                           direction = "split"))
+
+## -----------------------------------------------------------------------------
+ggplot(subset(df, x >= 0), aes(y, yy)) +
+  geom_point() +
+  stat_smooth(method = "lm", formula = y ~ x) +
+  geom_text(aes(label = l),
+            position = position_nudge_line(method = "lm",
+                                           x = 3, y = 3, 
+                                           line_nudge = 2.8,
+                                           direction = "split"))
+
+## -----------------------------------------------------------------------------
+ggplot(subset(df, x >= 0), aes(y, yy)) +
+  geom_point() +
+  geom_abline(intercept = 0, slope = 1, linetype = "dotted") +
+  geom_text(aes(label = l),
+            position = position_nudge_line(abline = c(0, 1),
+                                           x = 3, y = 3, 
+                                           direction = "split"))
+
+## -----------------------------------------------------------------------------
+ggplot(df, aes(x, y, label = l)) +
+  geom_point() +
+  geom_line(linetype = "dotted") +
+  geom_text(position = position_nudge_line(x = 0.6, y = 6))
+
+## ---- eval=eval_flag----------------------------------------------------------
+#  ggplot(df, aes(x, y, label = l)) +
+#    geom_point() +
+#    geom_line(linetype = "dotted") +
+#    geom_text(position = position_nudge_line(x = -0.6, y = -6))
+
+## -----------------------------------------------------------------------------
+ggplot(df, aes(x, yy, label = l)) +
+  geom_point() +
+  stat_smooth(formula = y ~ x, method = "loess") +
+  geom_text(aes(y = yy, label = l),
+            position = position_nudge_line(x = 0.6, 
+                                           y = 6,
+                                           direction = "split"))
+
+## ---- eval=eval_flag----------------------------------------------------------
+#  ggplot(df, aes(x, yy, label = l)) +
+#    geom_point() +
+#    stat_smooth(method = "lm", formula = y ~ poly(x, 2, raw = TRUE)) +
+#    geom_text(aes(y = yy, label = l),
+#              position = position_nudge_line(method = "lm",
+#                                             x = 0.6,
+#                                             y = 6,
+#                                             formula = y ~ poly(x, 2, raw = TRUE),
+#                                             direction = "split"))
+
+## -----------------------------------------------------------------------------
+df <- data.frame(x = rep(1:10, 2),
+                 y = c(1:10, 10:1),
+                 group = rep(c("a", "b"), c(10, 10)),
+                 l = "+")
+
+## -----------------------------------------------------------------------------
+ggplot(df, aes(x, y, label = l, color = group)) +
+  geom_line(linetype = "dotted") +
+  geom_point() +
+  geom_text(position = position_nudge_line(x = 0.25, y = 1)) +
+  coord_equal(ratio = 0.5)
+
+## ---- eval=eval_flag----------------------------------------------------------
+#  ggplot(df, aes(x, y, label = l, color = group, group = group)) +
+#    geom_line(linetype = "dotted") +
+#    geom_text() +
+#    geom_text(color = "red",
+#              position = position_nudge_line(x = 1, y = 1)) +
+#    geom_text(color = "blue",
+#              position = position_nudge_line(x = -1, y = -1)) +
+#    coord_equal()
+
+## ---- eval=eval_flag----------------------------------------------------------
+#  ggplot(df, aes(x, y, label = l)) +
+#    geom_line(linetype = "dotted") +
+#    geom_point() +
+#    geom_text(position = position_nudge_line(x = 1, y = 1),
+#              color = "red") +
+#    geom_text(position = position_nudge_line(x = -1, y = -1),
+#              color = "blue") +
+#    facet_wrap(~group) +
+#    coord_equal(ratio = 1)
 
 ## -----------------------------------------------------------------------------
 make_data_tbl <- function(nrow = 100, rfun = rnorm, ...) {
@@ -491,76 +694,73 @@ make_data_tbl <- function(nrow = 100, rfun = rnorm, ...) {
   )
 }
 
-## -----------------------------------------------------------------------------
-ggplot(data = make_data_tbl(300), aes(x, y)) +
-  geom_point() +
-  stat_dens2d_filter(colour = "red", 
-                     keep.sparse = FALSE, 
-                     keep.fraction = 1/3)
+## ---- eval=eval_flag----------------------------------------------------------
+#  ggplot(data = make_data_tbl(300), aes(x, y)) +
+#    geom_point() +
+#    stat_dens2d_filter(colour = "red",
+#                       keep.sparse = FALSE,
+#                       keep.fraction = 1/3)
 
-## -----------------------------------------------------------------------------
-ggplot(data = make_data_tbl(300), aes(x, y)) +
-  geom_point() +
-  stat_dens2d_filter(colour = "red", 
-                     keep.sparse = FALSE, 
-                     keep.fraction = 1/3)+
-  stat_dens2d_filter(colour = "blue", 
-                     keep.fraction = 1/3)
+## ---- eval=eval_flag----------------------------------------------------------
+#  ggplot(data = make_data_tbl(300), aes(x, y)) +
+#    geom_point() +
+#    stat_dens2d_filter(colour = "red",
+#                       keep.sparse = FALSE,
+#                       keep.fraction = 1/3)+
+#    stat_dens2d_filter(colour = "blue",
+#                       keep.fraction = 1/3)
 
-## -----------------------------------------------------------------------------
-ggplot(data = make_data_tbl(300, rfun = runif), aes(x, y)) +
-  geom_point() +
-  stat_dens2d_filter(colour = "red", keep.fraction = 1/2)
+## ---- eval=eval_flag----------------------------------------------------------
+#  ggplot(data = make_data_tbl(300, rfun = runif), aes(x, y)) +
+#    geom_point() +
+#    stat_dens2d_filter(colour = "red", keep.fraction = 1/2)
 
-## -----------------------------------------------------------------------------
-ggplot(data = make_data_tbl(300, rfun = rgamma, shape = 2), 
-       aes(x, y)) +
-  geom_point() +
-  stat_dens2d_filter(colour = "red", keep.fraction = 1/3)
+## ---- eval=eval_flag----------------------------------------------------------
+#  ggplot(data = make_data_tbl(300, rfun = rgamma, shape = 2),
+#         aes(x, y)) +
+#    geom_point() +
+#    stat_dens2d_filter(colour = "red", keep.fraction = 1/3)
 
 ## -----------------------------------------------------------------------------
 class(austres)
 austres.df <- try_tibble(austres)
 class(austres.df)
-lapply(austres.df, "class")
 head(austres.df, 4)
 
 ## -----------------------------------------------------------------------------
 austres.df <- try_tibble(austres, as.numeric = TRUE)
-lapply(austres.df, "class")
 head(austres.df, 4)
 
-## -----------------------------------------------------------------------------
-class(lynx)
-lynx.df <- try_tibble(lynx)
-class(lynx.df)
-lapply(lynx.df, "class")
-head(lynx.df, 3)
+## ---- eval=eval_flag----------------------------------------------------------
+#  class(lynx)
+#  lynx.df <- try_tibble(lynx)
+#  class(lynx.df)
+#  head(lynx.df, 3)
 
 ## -----------------------------------------------------------------------------
 lynx.df <- try_tibble(lynx, "year")
 head(lynx.df, 3)
 
-## -----------------------------------------------------------------------------
-lynx_n.df <- try_tibble(lynx, "year", as.numeric = TRUE)
-lapply(lynx_n.df, "class")
-head(lynx_n.df, 3)
+## ---- eval=eval_flag----------------------------------------------------------
+#  lynx_n.df <- try_tibble(lynx, "year", as.numeric = TRUE)
+#  lapply(lynx_n.df, "class")
+#  head(lynx_n.df, 3)
 
-## -----------------------------------------------------------------------------
-try_tibble(1:5)
+## ---- eval=eval_flag----------------------------------------------------------
+#  try_tibble(1:5)
 
-## -----------------------------------------------------------------------------
-try_tibble(letters[1:5])
+## ---- eval=eval_flag----------------------------------------------------------
+#  try_tibble(letters[1:5])
 
-## -----------------------------------------------------------------------------
-try_tibble(factor(letters[1:5]))
+## ---- eval=eval_flag----------------------------------------------------------
+#  try_tibble(factor(letters[1:5]))
 
-## -----------------------------------------------------------------------------
-try_tibble(list(x = rep(1,5), y = 1:5))
+## ---- eval=eval_flag----------------------------------------------------------
+#  try_tibble(list(x = rep(1,5), y = 1:5))
 
-## -----------------------------------------------------------------------------
-try_tibble(data.frame(x = rep(1,5), y = 1:5))
+## ---- eval=eval_flag----------------------------------------------------------
+#  try_tibble(data.frame(x = rep(1,5), y = 1:5))
 
-## -----------------------------------------------------------------------------
-try_tibble(matrix(1:10, ncol = 2))
+## ---- eval=eval_flag----------------------------------------------------------
+#  try_tibble(matrix(1:10, ncol = 2))
 
