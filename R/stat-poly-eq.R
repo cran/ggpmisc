@@ -1,8 +1,8 @@
 #' Equation, p-value, R^2, AIC or BIC of fitted polynomial
 #'
-#' \code{stat_poly_eq} fits a polynomial and generates several labels including
-#' the equation, p-value, coefficient of determination (R^2), 'AIC' and
-#' 'BIC'.
+#' \code{stat_poly_eq} fits a polynomial as a linear model and generates several
+#' labels including the equation, p-value, coefficient of determination (R^2),
+#' 'AIC' and 'BIC'.
 #'
 #' @param mapping The aesthetic mapping, usually constructed with
 #'   \code{\link[ggplot2]{aes}} or \code{\link[ggplot2]{aes_}}. Only needs to be
@@ -91,7 +91,6 @@
 #' \describe{
 #'   \item{x,npcx}{x position}
 #'   \item{y,npcy}{y position}
-#'   \item{coef.ls, r.squared, adj.r.squared, AIC, BIC}{as numric values extracted from fit object}
 #'   \item{eq.label}{equation for the fitted polynomial as a character string to be parsed}
 #'   \item{rr.label}{\eqn{R^2} of the fitted model as a character string to be parsed}
 #'   \item{adj.rr.label}{Adjusted \eqn{R^2} of the fitted model as a character string to be parsed}
@@ -99,18 +98,20 @@
 #'   \item{p.value..label}{P-value for the F-value above.}
 #'   \item{AIC.label}{AIC for the fitted model.}
 #'   \item{BIC.label}{BIC for the fitted model.}
-#'   \item{hjust, vjust}{Set to "inward" to override the default of the "text" geom.}}
+#'   \item{n.label}{Number of observations used in the fit.}
+#'   \item{grp.label}{Set according to mapping in \code{aes}.}
+#'   \item{r.squared, adj.r.squared, p.value, n}{numeric values, from the model fit object}}
 #'
 #' If output.type is \code{"numeric"} the returned tibble contains columns:
 #' \describe{
 #'   \item{x,npcx}{x position}
 #'   \item{y,npcy}{y position}
 #'   \item{coef.ls}{list containing the "coefficients" matrix from the summary of the fit object}
-#'   \item{r.squared, adj.r.squared, f.value, f.df1, f.df2, p.value, AIC, BIC}{numeric values extracted or computed from fit object}
-#'   \item{hjust, vjust}{Set to "inward" to override the default of the "text" geom.}}
+#'   \item{r.squared, adj.r.squared, f.value, f.df1, f.df2, p.value, AIC, BIC, n}{numeric values, from the model fit object}
+#'   \item{grp.label}{Set according to mapping in \code{aes}.}}
 #'
 #' To explore the computed values returned for a given input we suggest the use
-#' of \code{\link[gginnards]{geom_debug}} as shown in the example below.
+#' of \code{\link[gginnards]{geom_debug}} as shown in the last examples below.
 #'
 #' @section Parsing may be required: if using the computed labels with
 #'   \code{output.type = "expression"}, then \code{parse = TRUE} is needed,
@@ -145,6 +146,20 @@
 #'   geom_smooth(method = "lm", formula = formula) +
 #'   stat_poly_eq(formula = formula, parse = TRUE)
 #'
+#' # grouping
+#' ggplot(my.data, aes(x, y, color = group)) +
+#'   geom_point() +
+#'   geom_smooth(method = "lm", formula = formula) +
+#'   stat_poly_eq(formula = formula, parse = TRUE)
+#'
+#' # rotation
+#' ggplot(my.data, aes(x, y)) +
+#'   geom_point() +
+#'   geom_smooth(method = "lm", formula = formula) +
+#'   stat_poly_eq(formula = formula, parse = TRUE, angle = 90,
+#'                hjust = 1)
+#'
+#' # label location
 #' ggplot(my.data, aes(x, y)) +
 #'   geom_point() +
 #'   geom_smooth(method = "lm", formula = formula) +
@@ -173,6 +188,13 @@
 #' ggplot(my.data, aes(x, y)) +
 #'   geom_point() +
 #'   geom_smooth(method = "lm", formula = formula) +
+#'   stat_poly_eq(aes(label =  paste(stat(rr.label),
+#'                                   stat(n.label), sep = "*\", \"*")),
+#'                formula = formula, parse = TRUE)
+#'
+#' ggplot(my.data, aes(x, y)) +
+#'   geom_point() +
+#'   geom_smooth(method = "lm", formula = formula) +
 #'   stat_poly_eq(aes(label =  paste(stat(eq.label),
 #'                                   stat(adj.rr.label), sep = "*\", \"*")),
 #'                formula = formula, parse = TRUE)
@@ -181,7 +203,8 @@
 #'   geom_point() +
 #'   geom_smooth(method = "lm", formula = formula) +
 #'   stat_poly_eq(aes(label =  paste(stat(f.value.label),
-#'                                   stat(p.value.label), sep = "*\", \"*")),
+#'                                   stat(p.value.label),
+#'                                   sep = "*\", \"*")),
 #'                formula = formula, parse = TRUE)
 #'
 #' # user specified label and digits
@@ -189,8 +212,22 @@
 #'   geom_point() +
 #'   geom_smooth(method = "lm", formula = formula) +
 #'   stat_poly_eq(aes(label =  paste(stat(eq.label),
-#'                                   stat(adj.rr.label), sep = "*\", \"*")),
+#'                                   stat(adj.rr.label),
+#'                                   sep = "*\", \"*")),
 #'                formula = formula, rr.digits = 3, coef.digits = 4,
+#'                parse = TRUE)
+#'
+#' # conditional user specified label
+#' ggplot(my.data, aes(x, y, color = group)) +
+#'   geom_point() +
+#'   geom_smooth(method = "lm", formula = formula) +
+#'   stat_poly_eq(aes(label =  ifelse(stat(adj.r.squared) > 0.96,
+#'                                    paste(stat(adj.rr.label),
+#'                                          stat(eq.label),
+#'                                          sep = "*\", \"*"),
+#'                                    stat(adj.rr.label))),
+#'                rr.digits = 3,
+#'                formula = formula,
 #'                parse = TRUE)
 #'
 #' # geom = "text"
@@ -270,8 +307,10 @@ stat_poly_eq <- function(mapping = NULL, data = NULL,
                          rr.digits = 2,
                          f.digits = 3,
                          p.digits = 3,
-                         label.x = "left", label.y = "top",
-                         label.x.npc = NULL, label.y.npc = NULL,
+                         label.x = "left",
+                         label.y = "top",
+                         label.x.npc = NULL,
+                         label.y.npc = NULL,
                          hstep = 0,
                          vstep = NULL,
                          output.type = "expression",
@@ -307,8 +346,8 @@ stat_poly_eq <- function(mapping = NULL, data = NULL,
                   hstep = hstep,
                   vstep = ifelse(is.null(vstep),
                                  ifelse(grepl("label", geom),
-                                        0.125,
-                                        0.075),
+                                        0.10,
+                                        0.05),
                                  vstep),
                   npc.used = grepl("_npc", geom),
                   output.type = output.type,
@@ -342,11 +381,6 @@ poly_eq_compute_group_fun <- function(data,
                                       output.type,
                                       na.rm) {
   force(data)
-  if (length(unique(data$x)) < 2) {
-    # Not enough data to perform fit
-    return(tibble::new_tibble())
-  }
-
   output.type <- if (!length(output.type)) {
     "expression"
   } else {
@@ -392,6 +426,13 @@ poly_eq_compute_group_fun <- function(data,
     label.y <- label.y[1]
   }
 
+  if (length(unique(data$x)) < 2) {
+    warning("Not enough data to perform fit for group ",
+            group.idx, "; computing mean instead.",
+            call. = FALSE)
+    formula = y ~ 1
+  }
+
   lm.args <- list(quote(formula), data = quote(data), weights = quote(weight))
   mf <- do.call(stats::lm, lm.args)
 
@@ -400,6 +441,7 @@ poly_eq_compute_group_fun <- function(data,
   adj.rr <- mf.summary$adj.r.squared
   AIC <- AIC(mf)
   BIC <- BIC(mf)
+  n <- length(mf.summary[["residuals"]])
   if ("fstatistic" %in% names(mf.summary)) {
     f.value <- mf.summary$fstatistic["value"]
     f.df1 <- mf.summary$fstatistic["numdf"]
@@ -420,6 +462,7 @@ poly_eq_compute_group_fun <- function(data,
                         p.value = p.value,
                         AIC = AIC,
                         BIC = BIC,
+                        n = n,
                         rr.label = "") # needed for default 'label' mapping
   } else {
     coefs <- stats::coef(mf)
@@ -463,7 +506,7 @@ poly_eq_compute_group_fun <- function(data,
     if (rr.digits < 2) {
       warning("'rr.digits < 2' Likely information loss!")
     }
-    stopifnot(p.digits > 0)
+    stopifnot(f.digits > 0)
     if (f.digits < 2) {
       warning("'f.digits < 2' Likely information loss!")
     }
@@ -479,20 +522,27 @@ poly_eq_compute_group_fun <- function(data,
     f.df1.char <- as.character(f.df1)
     f.df2.char <- as.character(f.df2)
     p.value.char <- as.character(round(p.value, digits = p.digits))
-
     if (output.type == "expression") {
       z <- tibble::tibble(eq.label = gsub("x", eq.x.rhs, eq.char, fixed = TRUE),
                           rr.label =
                             # character(0) instead of "" avoids in paste() the insertion of sep for missing labels
                             ifelse(is.na(rr), character(0L),
                                    paste("italic(R)^2",
-                                         ifelse(rr < 10^(-rr.digits), as.character(10^(-rr.digits)), rr.char),
-                                         sep = ifelse(rr < 10^(-rr.digits), "~`<`~", "~`=`~"))),
+                                         ifelse(rr < 10^(-rr.digits) & rr != 0,
+                                                as.character(10^(-rr.digits)),
+                                                rr.char),
+                                         sep = ifelse(rr < 10^(-rr.digits) & rr != 0,
+                                                      "~`<`~",
+                                                      "~`=`~"))),
                           adj.rr.label =
                             ifelse(is.na(adj.rr), character(0L),
                                    paste("italic(R)[adj]^2",
-                                         ifelse(adj.rr < 10^(-rr.digits), as.character(10^(-rr.digits)), adj.rr.char),
-                                         sep = ifelse(adj.rr < 10^(-rr.digits), "~`<`~", "~`=`~"))),
+                                         ifelse(adj.rr < 10^(-rr.digits) & adj.rr != 0,
+                                                as.character(10^(-rr.digits)),
+                                                adj.rr.char),
+                                         sep = ifelse(adj.rr < 10^(-rr.digits) & adj.rr != 0,
+                                                      "~`<`~",
+                                                      "~`=`~"))),
                           AIC.label = paste("AIC", AIC.char, sep = "~`=`~"),
                           BIC.label = paste("BIC", BIC.char, sep = "~`=`~"),
                           f.value.label =
@@ -503,9 +553,18 @@ poly_eq_compute_group_fun <- function(data,
                           p.value.label =
                             ifelse(is.na(p.value), character(0L),
                                    paste("italic(P)",
-                                         ifelse(p.value < 10^(-p.digits), as.character(10^(-p.digits)), p.value.char),
-                                         sep = ifelse(p.value < 10^(-p.digits), "~`<`~", "~`=`~"))),
-                          grp.label = grp.label)
+                                         ifelse(p.value < 10^(-p.digits),
+                                                as.character(10^(-p.digits)),
+                                                p.value.char),
+                                         sep = ifelse(p.value < 10^(-p.digits),
+                                                      "~`<`~",
+                                                      "~`=`~"))),
+                          n.label = paste("italic(n)~`=`~", n, sep = ""),
+                          grp.label = grp.label,
+                          r.squared = rr,
+                          adj.r.squared = adj.rr,
+                          p.value = p.value,
+                          n = n)
     } else if (output.type %in% c("latex", "tex", "text", "tikz")) {
       z <- tibble::tibble(eq.label =
                             gsub("x", eq.x.rhs, eq.char, fixed = TRUE),
@@ -531,7 +590,12 @@ poly_eq_compute_group_fun <- function(data,
                                    paste("P",
                                          ifelse(p.value < 10^(-p.digits), as.character(10^(-p.digits)), p.value.char),
                                          sep = ifelse(p.value < 10^(-p.digits), " < ", " = "))),
-                          grp.label = grp.label)
+                          n.label = paste("n = ", n, sep = ""),
+                          grp.label = grp.label,
+                          r.squared = rr,
+                          adj.r.squared = adj.rr,
+                          p.value = p.value,
+                          n = n)
     } else if (output.type == "markdown") {
       z <- tibble::tibble(eq.label =
                             gsub("x", eq.x.rhs, eq.char, fixed = TRUE),
@@ -557,19 +621,24 @@ poly_eq_compute_group_fun <- function(data,
                                    paste("_P_",
                                          ifelse(p.value < 10^(-p.digits), as.character(10^(-p.digits)), p.value.char),
                                          sep = ifelse(p.value < 10^(-p.digits), " < ", " = "))),
-                          grp.label = grp.label)
+                          n.label = paste("_n_ = ", n, sep = ""),
+                          grp.label = grp.label,
+                          r.squared = rr,
+                          adj.r.squared = adj.rr,
+                          p.value = p.value,
+                          n = n)
     } else {
       warning("Unknown 'output.type' argument: ", output.type)
     }
   }
 
-  if (npc.used) {
-    margin.npc <- 0.05
-  } else {
-    # margin set by scale
-    margin.npc <- 0
-  }
   if (is.character(label.x)) {
+    if (npc.used) {
+      margin.npc <- 0.05
+    } else {
+      # margin set by scale
+      margin.npc <- 0
+    }
     label.x <- compute_npcx(x = label.x, group = group.idx, h.step = hstep,
                             margin.npc = margin.npc)
     if (!npc.used) {
@@ -579,6 +648,12 @@ poly_eq_compute_group_fun <- function(data,
     }
   }
   if (is.character(label.y)) {
+    if (npc.used) {
+      margin.npc <- 0.05
+    } else {
+      # margin set by scale
+      margin.npc <- 0
+    }
     label.y <- compute_npcy(y = label.y, group = group.idx, v.step = vstep,
                             margin.npc = margin.npc)
     if (!npc.used) {

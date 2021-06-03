@@ -4,11 +4,55 @@ editor_options:
     wrap: 72
 ---
 
+# ggpmisc 0.4.0
+
+Package 'ggpmisc' has been split into two packages: 'ggpp' containing
+extensions to the grammar of graphics and 'ggpmisc' containing
+extensions related to plot decorations based on model fits, statistical
+summaries and other descriptors of the data being plotted. Package
+'ggpmisc' depends on 'ggpp' with no visible changes for users. Package
+'ggpp' can be loaded instead of 'ggpmisc' when only the extensions it
+contains are needed. Package 'gginnards' containing tools for editing
+ggplot objects as well as tools for inspecting them is an earlier
+spin-off from 'gpmisc'.
+
+The changes in this version stem for users' questions and suggestions.
+Many thanks!
+
+-   Add `stat_quant_eq()` based on quantile regression as implemented in
+    package 'quantreg'. (enhancement suggested by *Mark Neal*)
+
+-   Add `n.label` and `n` to the values returned by `stat_poly_eq()`and
+    `stat_quant_eq()`.
+
+    (enhancement suggested by a question from *ganidat*)
+
+-   Add `r.squared`, `adj.r.squared`, `p.value` and `n` as `numeric`
+    values returned in addition to the corresponding `character` labels
+    when `stat_poly_eq()` is called with `output.type` other than
+    `numeric`. Similarly for `n` and `rho` in the case of
+    `stat_quant_eq()`.
+
+    (enhancement suggested by a question from *Tiptop*)
+
+-   Fix bug in `stat_poly_eq()` leading to empty returned value when
+    data contains too few observations to fit the model. (reported by
+    *ganidat*)
+
+-   Add support for quantile regression `rq`, robust regression `rlm`,
+    and resistant regression `lqs` and `function` objects to
+    `stat_fit_deviations()`.
+
 # ggpmisc 0.3.9
 
 -   Update the documentation of `geom_plot()`.
 -   Revise handling of rounding for $R^2$ and $P$-value in
     `stat_poly_eq()`.
+-   Fix bug in `stat_poly_eq()` that resulted in no labels being
+    displayed for any group when one group has too few distinct
+    *x*-values to fit the polynomial (reported by
+    [ganidat](https://stackoverflow.com/users/5432156/ganidat) in
+    StackOverflow).
 -   [**Under development!**] Link repositioned text to its original
     position with a segment or arrow: `geom_linked_text()`. Except for
     the drawing of segments or arrows this new *geometry* behaves as
@@ -20,8 +64,9 @@ editor_options:
     both the nudged and original positions.
 -   Add support for simple nudging: `position_nudge_to()` nudges to new
     user-supplied position(s); `position_nudge_keep()` nudges to
-    position(s) based on user-supplies position shift. These functions
-    return both nudged and original position(s).
+    position(s) based on user-supplied position shift. These functions
+    return both nudged and original position(s), which makes possible to
+    draw connecting segments from text labels to the original position.
 
 # ggpmisc 0.3.8-1
 

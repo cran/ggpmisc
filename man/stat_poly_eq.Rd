@@ -90,9 +90,9 @@ define both data and aesthetics and shouldn't inherit behaviour from the
 default plot specification, e.g. \code{\link[ggplot2]{borders}}.}
 }
 \description{
-\code{stat_poly_eq} fits a polynomial and generates several labels including
-the equation, p-value, coefficient of determination (R^2), 'AIC' and
-'BIC'.
+\code{stat_poly_eq} fits a polynomial as a linear model and generates several
+labels including the equation, p-value, coefficient of determination (R^2),
+'AIC' and 'BIC'.
 }
 \details{
 This stat can be used to automatically annotate a plot with R^2,
@@ -139,7 +139,6 @@ columns:
 \describe{
   \item{x,npcx}{x position}
   \item{y,npcy}{y position}
-  \item{coef.ls, r.squared, adj.r.squared, AIC, BIC}{as numric values extracted from fit object}
   \item{eq.label}{equation for the fitted polynomial as a character string to be parsed}
   \item{rr.label}{\eqn{R^2} of the fitted model as a character string to be parsed}
   \item{adj.rr.label}{Adjusted \eqn{R^2} of the fitted model as a character string to be parsed}
@@ -147,18 +146,20 @@ columns:
   \item{p.value..label}{P-value for the F-value above.}
   \item{AIC.label}{AIC for the fitted model.}
   \item{BIC.label}{BIC for the fitted model.}
-  \item{hjust, vjust}{Set to "inward" to override the default of the "text" geom.}}
+  \item{n.label}{Number of observations used in the fit.}
+  \item{grp.label}{Set according to mapping in \code{aes}.}
+  \item{r.squared, adj.r.squared, p.value, n}{numeric values, from the model fit object}}
 
 If output.type is \code{"numeric"} the returned tibble contains columns:
 \describe{
   \item{x,npcx}{x position}
   \item{y,npcy}{y position}
   \item{coef.ls}{list containing the "coefficients" matrix from the summary of the fit object}
-  \item{r.squared, adj.r.squared, f.value, f.df1, f.df2, p.value, AIC, BIC}{numeric values extracted or computed from fit object}
-  \item{hjust, vjust}{Set to "inward" to override the default of the "text" geom.}}
+  \item{r.squared, adj.r.squared, f.value, f.df1, f.df2, p.value, AIC, BIC, n}{numeric values, from the model fit object}
+  \item{grp.label}{Set according to mapping in \code{aes}.}}
 
 To explore the computed values returned for a given input we suggest the use
-of \code{\link[gginnards]{geom_debug}} as shown in the example below.
+of \code{\link[gginnards]{geom_debug}} as shown in the last examples below.
 }
 
 \section{Parsing may be required}{
@@ -186,6 +187,20 @@ ggplot(my.data, aes(x, y)) +
   geom_smooth(method = "lm", formula = formula) +
   stat_poly_eq(formula = formula, parse = TRUE)
 
+# grouping
+ggplot(my.data, aes(x, y, color = group)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = formula) +
+  stat_poly_eq(formula = formula, parse = TRUE)
+
+# rotation
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = formula) +
+  stat_poly_eq(formula = formula, parse = TRUE, angle = 90,
+               hjust = 1)
+
+# label location
 ggplot(my.data, aes(x, y)) +
   geom_point() +
   geom_smooth(method = "lm", formula = formula) +
@@ -214,6 +229,13 @@ ggplot(my.data, aes(x, y)) +
 ggplot(my.data, aes(x, y)) +
   geom_point() +
   geom_smooth(method = "lm", formula = formula) +
+  stat_poly_eq(aes(label =  paste(stat(rr.label),
+                                  stat(n.label), sep = "*\", \"*")),
+               formula = formula, parse = TRUE)
+
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = formula) +
   stat_poly_eq(aes(label =  paste(stat(eq.label),
                                   stat(adj.rr.label), sep = "*\", \"*")),
                formula = formula, parse = TRUE)
@@ -222,7 +244,8 @@ ggplot(my.data, aes(x, y)) +
   geom_point() +
   geom_smooth(method = "lm", formula = formula) +
   stat_poly_eq(aes(label =  paste(stat(f.value.label),
-                                  stat(p.value.label), sep = "*\", \"*")),
+                                  stat(p.value.label),
+                                  sep = "*\", \"*")),
                formula = formula, parse = TRUE)
 
 # user specified label and digits
@@ -230,8 +253,22 @@ ggplot(my.data, aes(x, y)) +
   geom_point() +
   geom_smooth(method = "lm", formula = formula) +
   stat_poly_eq(aes(label =  paste(stat(eq.label),
-                                  stat(adj.rr.label), sep = "*\", \"*")),
+                                  stat(adj.rr.label),
+                                  sep = "*\", \"*")),
                formula = formula, rr.digits = 3, coef.digits = 4,
+               parse = TRUE)
+
+# conditional user specified label
+ggplot(my.data, aes(x, y, color = group)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = formula) +
+  stat_poly_eq(aes(label =  ifelse(stat(adj.r.squared) > 0.96,
+                                   paste(stat(adj.rr.label),
+                                         stat(eq.label),
+                                         sep = "*\", \"*"),
+                                   stat(adj.rr.label))),
+               rr.digits = 3,
+               formula = formula,
                parse = TRUE)
 
 # geom = "text"
@@ -314,6 +351,7 @@ This \code{stat_poly_eq} statistic can return ready formatted labels
 
 Other statistics for linear model fits: 
 \code{\link{stat_fit_deviations}()},
-\code{\link{stat_fit_residuals}()}
+\code{\link{stat_fit_residuals}()},
+\code{\link{stat_quant_eq}()}
 }
 \concept{statistics for linear model fits}
