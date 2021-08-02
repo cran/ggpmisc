@@ -10,10 +10,15 @@ stat_poly_eq(
   geom = "text_npc",
   position = "identity",
   ...,
+  method = "lm",
+  method.args = list(),
   formula = NULL,
   eq.with.lhs = TRUE,
   eq.x.rhs = NULL,
+  small.r = FALSE,
+  small.p = FALSE,
   coef.digits = 3,
+  coef.keep.zeros = TRUE,
   rr.digits = 2,
   f.digits = 3,
   p.digits = 3,
@@ -23,8 +28,10 @@ stat_poly_eq(
   label.y.npc = NULL,
   hstep = 0,
   vstep = NULL,
-  output.type = "expression",
+  output.type = NULL,
   na.rm = FALSE,
+  orientation = NA,
+  parse = NULL,
   show.legend = FALSE,
   inherit.aes = TRUE
 )
@@ -46,8 +53,15 @@ layer}
 can include aesthetics whose values you want to set, not map. See
 \code{\link[ggplot2]{layer}} for more details.}
 
-\item{formula}{a formula object. Using aesthetic names instead of
-original variable names.}
+\item{method}{function or character If character, "lm" and "rlm" are
+accepted. If a function, it must have formal parameters \code{formula} and
+\code{data} and return a model fit object for which \code{summary()} and
+\code{coefficients()} are consistent with those for \code{lm} fits.}
+
+\item{method.args}{named list with additional arguments.}
+
+\item{formula}{a formula object. Using aesthetic names \code{x} and \code{y}
+instead of original variable names.}
 
 \item{eq.with.lhs}{If \code{character} the string is pasted to the front of
 the equation label before parsing or a \code{logical} (see note).}
@@ -56,7 +70,13 @@ the equation label before parsing or a \code{logical} (see note).}
 \code{"x"} in the model equation when generating the label before parsing
 it.}
 
+\item{small.r, small.p}{logical Flags to switch use of lower case r and p for
+coefficient of determination and p-value.}
+
 \item{coef.digits, f.digits}{integer Number of significant digits to use for
+the fitted coefficients and F-value.}
+
+\item{coef.keep.zeros}{logical Keep or drop trailing zeros when formatting
 the fitted coefficients and F-value.}
 
 \item{rr.digits, p.digits}{integer Number of digits after the decimal point to
@@ -80,6 +100,14 @@ used between labels for different groups.}
 \item{na.rm}{a logical indicating whether NA values should be stripped before
 the computation proceeds.}
 
+\item{orientation}{character Either "x" or "y" controlling the default for
+\code{formula}.}
+
+\item{parse}{logical Passed to the geom. If \code{TRUE}, the labels will be
+parsed into expressions and displayed as described in \code{?plotmath}.
+Default is \code{TRUE} if \code{output.type = "expression"} and
+\code{FALSE} otherwise.}
+
 \item{show.legend}{logical. Should this layer be included in the legends?
 \code{NA}, the default, includes if any aesthetics are mapped. \code{FALSE}
 never includes, and \code{TRUE} always includes.}
@@ -90,52 +118,66 @@ define both data and aesthetics and shouldn't inherit behaviour from the
 default plot specification, e.g. \code{\link[ggplot2]{borders}}.}
 }
 \description{
-\code{stat_poly_eq} fits a polynomial as a linear model and generates several
-labels including the equation, p-value, coefficient of determination (R^2),
-'AIC' and 'BIC'.
+\code{stat_poly_eq} fits a polynomial by default with \code{stats::lm()} but
+alternatively using robust or quantile regression. From the fitted model it
+generates several labels including the equation, p-value, F-value,
+coefficient of determination (R^2), 'AIC', 'BIC', and number of observations.
 }
 \details{
 This stat can be used to automatically annotate a plot with R^2,
-  adjusted R^2 or the fitted model equation. It supports only linear models
-  fitted with function \code{lm()}. The R^2 and adjusted R^2 annotations can
-  be used with any linear model formula. The fitted equation label is
-  correctly generated for polynomials or quasi-polynomials through the
-  origin. Model formulas can use \code{poly()} or be defined algebraically
-  with terms of powers of increasing magnitude with no missing intermediate
-  terms, except possibly for the intercept indicated by "- 1" or "-1" in the
-  formula. The validity of the \code{formula} is not checked in the current
-  implementation, and for this reason the default aesthetics sets R^2 as
-  label for the annotation. This stat only generates labels, the predicted
-  values need to be separately added to the plot, so to make sure that the
-  same model formula is used in all steps it is best to save the formula as
-  an object and supply this object as argument to the different statistics.
+  adjusted R^2 or the fitted model equation. It supports linear regression,
+  robust linear regression and median regression fitted with functions
+  \code{lm()}, \code{MASS::rlm()} or \code{quanreg::rq()}. The R^2 and
+  adjusted R^2 annotations can be used with any linear model formula. The
+  fitted equation label is correctly generated for polynomials or
+  quasi-polynomials through the origin. Model formulas can use \code{poly()}
+  or be defined algebraically with terms of powers of increasing magnitude
+  with no missing intermediate terms, except possibly for the intercept
+  indicated by "- 1" or "-1" or \code{"+ 0"} in the formula. The validity of
+  the \code{formula} is not checked in the current implementation, and for
+  this reason the default aesthetics sets R^2 as label for the annotation.
+  This stat generates labels as R expressions by default but LaTeX (use TikZ
+  device), markdown (use package 'ggtext') and plain text are also supported,
+  as well as numeric values for user-generated text labels. The value of
+  \code{parse} is set automatically based on \code{output-type}, but if you
+  assemble labels that need parsing from \code{numeric} output, the default
+  needs to be overriden. This stat only generates annotation labels, the
+  predicted values/line need to be added to the plot as a separate layer
+  using \code{\link{stat_poly_line}} or \code{\link[ggplot2]{stat_smooth}},
+  so to make sure that the same model formula is used in all steps it is best
+  to save the formula as an object and supply this object as argument to the
+  different statistics.
 
-  A ggplot statistic receives as data a data frame that is not the one passed
-  as argument by the user, but instead a data frame with the variables mapped
-  to aesthetics. stat_poly_eq() mimics how stat_smooth() works, except that
-  only polynomials can be fitted. In other words, it respects the grammar of
-  graphics. This helps ensure that the model is fitted to the same data as
-  plotted in other layers.
+  A ggplot statistic receives as \code{data} a data frame that is not the one
+  passed as argument by the user, but instead a data frame with the variables
+  mapped to aesthetics. \code{stat_poly_eq()} mimics how \code{stat_smooth()}
+  works, except that only polynomials can be fitted. Similarly to these
+  statistics the model fits respect grouping, so the scales used for \code{x}
+  and \code{y} should both be continuous scales rather than discrete.
 }
 \note{
 For backward compatibility a logical is accepted as argument for
-  \code{eq.with.lhs}, giving the same output than the current default
-  character value. By default "x" is retained as independent variable as this
-  is the name of the aesthetic. However, it can be substituted by providing a
+  \code{eq.with.lhs}. If \code{TRUE}, the default is used, either
+  \code{"x"} or \code{"y"}, depending on the argument passed to \code{formula}.
+  However, \code{"x"} or \code{"y"} can be substituted by providing a
   suitable replacement character string through \code{eq.x.rhs}.
+  Parameter \code{orientation} is redundant as it only affects the default
+  for \code{formula} but is included for consistency with
+  \code{ggplot2::stat_smooth()}.
 }
 \section{Aesthetics}{
  \code{stat_poly_eq} understands \code{x} and \code{y},
   to be referenced in the \code{formula} and \code{weight} passed as argument
-  to parameter \code{weights} of \code{lm()}. All three must be mapped to
-  \code{numeric} variables. In addition, the aesthetics undertood by the geom
-  used (\code{"text"} by default) are understood and grouping respected.
+  to parameter \code{weights}. All three must be mapped to
+  \code{numeric} variables. In addition, the aesthetics understood by the geom
+  (\code{"text"} is the default) are understood and grouping respected.
 }
 
 \section{Computed variables}{
 
 If output.type different from \code{"numeric"} the returned tibble contains
-columns:
+columns listed below. If the model fit function used does not return a value,
+the label is set to \code{character(0L)}.
 \describe{
   \item{x,npcx}{x position}
   \item{y,npcy}{y position}
@@ -143,29 +185,27 @@ columns:
   \item{rr.label}{\eqn{R^2} of the fitted model as a character string to be parsed}
   \item{adj.rr.label}{Adjusted \eqn{R^2} of the fitted model as a character string to be parsed}
   \item{f.value.label}{F value and degrees of freedom for the fitted model as a whole.}
-  \item{p.value..label}{P-value for the F-value above.}
+  \item{p.value.label}{P-value for the F-value above.}
   \item{AIC.label}{AIC for the fitted model.}
   \item{BIC.label}{BIC for the fitted model.}
   \item{n.label}{Number of observations used in the fit.}
   \item{grp.label}{Set according to mapping in \code{aes}.}
   \item{r.squared, adj.r.squared, p.value, n}{numeric values, from the model fit object}}
 
-If output.type is \code{"numeric"} the returned tibble contains columns:
+If output.type is \code{"numeric"} the returned tibble contains columns
+listed below. If the model fit function used does not return a value,
+the variable is set to \code{NA_real_}.
 \describe{
   \item{x,npcx}{x position}
   \item{y,npcy}{y position}
   \item{coef.ls}{list containing the "coefficients" matrix from the summary of the fit object}
   \item{r.squared, adj.r.squared, f.value, f.df1, f.df2, p.value, AIC, BIC, n}{numeric values, from the model fit object}
-  \item{grp.label}{Set according to mapping in \code{aes}.}}
+  \item{grp.label}{Set according to mapping in \code{aes}.}
+  \item{b_0.constant}{TRUE is polynomial is forced through the origin}
+  \item{b_i}{One or columns with the coefficient estimates}}
 
 To explore the computed values returned for a given input we suggest the use
 of \code{\link[gginnards]{geom_debug}} as shown in the last examples below.
-}
-
-\section{Parsing may be required}{
- if using the computed labels with
-  \code{output.type = "expression"}, then \code{parse = TRUE} is needed,
-  while if using \code{output.type = "LaTeX"} \code{parse = FALSE} is needed.
 }
 
 \examples{
@@ -185,102 +225,96 @@ formula <- y ~ poly(x, 3, raw = TRUE)
 ggplot(my.data, aes(x, y)) +
   geom_point() +
   geom_smooth(method = "lm", formula = formula) +
-  stat_poly_eq(formula = formula, parse = TRUE)
+  stat_poly_eq(formula = formula)
 
 # grouping
 ggplot(my.data, aes(x, y, color = group)) +
   geom_point() +
   geom_smooth(method = "lm", formula = formula) +
-  stat_poly_eq(formula = formula, parse = TRUE)
+  stat_poly_eq(formula = formula)
 
 # rotation
 ggplot(my.data, aes(x, y)) +
   geom_point() +
   geom_smooth(method = "lm", formula = formula) +
-  stat_poly_eq(formula = formula, parse = TRUE, angle = 90,
-               hjust = 1)
+  stat_poly_eq(formula = formula, angle = 90, hjust = 1)
 
 # label location
 ggplot(my.data, aes(x, y)) +
   geom_point() +
   geom_smooth(method = "lm", formula = formula) +
-  stat_poly_eq(formula = formula, parse = TRUE,
-               label.y = "bottom", label.x = "right")
+  stat_poly_eq(formula = formula, label.y = "bottom", label.x = "right")
 
 ggplot(my.data, aes(x, y)) +
   geom_point() +
   geom_smooth(method = "lm", formula = formula) +
-  stat_poly_eq(formula = formula, parse = TRUE,
-               label.y = 0.1, label.x = 0.9)
+  stat_poly_eq(formula = formula, label.y = 0.1, label.x = 0.9)
 
 # using weights
 ggplot(my.data, aes(x, y, weight = w)) +
   geom_point() +
   geom_smooth(method = "lm", formula = formula) +
-  stat_poly_eq(formula = formula, parse = TRUE)
+  stat_poly_eq(formula = formula)
 
 # no weights, digits for R square
 ggplot(my.data, aes(x, y)) +
   geom_point() +
   geom_smooth(method = "lm", formula = formula) +
-  stat_poly_eq(formula = formula, rr.digits = 4, parse = TRUE)
+  stat_poly_eq(formula = formula, rr.digits = 4)
 
 # user specified label
 ggplot(my.data, aes(x, y)) +
   geom_point() +
   geom_smooth(method = "lm", formula = formula) +
-  stat_poly_eq(aes(label =  paste(stat(rr.label),
-                                  stat(n.label), sep = "*\", \"*")),
-               formula = formula, parse = TRUE)
+  stat_poly_eq(aes(label =  paste(after_stat(rr.label),
+                                  after_stat(n.label), sep = "*\", \"*")),
+               formula = formula)
 
 ggplot(my.data, aes(x, y)) +
   geom_point() +
   geom_smooth(method = "lm", formula = formula) +
-  stat_poly_eq(aes(label =  paste(stat(eq.label),
-                                  stat(adj.rr.label), sep = "*\", \"*")),
-               formula = formula, parse = TRUE)
+  stat_poly_eq(aes(label =  paste(after_stat(eq.label),
+                                  after_stat(adj.rr.label), sep = "*\", \"*")),
+               formula = formula)
 
 ggplot(my.data, aes(x, y)) +
   geom_point() +
   geom_smooth(method = "lm", formula = formula) +
-  stat_poly_eq(aes(label =  paste(stat(f.value.label),
-                                  stat(p.value.label),
+  stat_poly_eq(aes(label =  paste(after_stat(f.value.label),
+                                  after_stat(p.value.label),
                                   sep = "*\", \"*")),
-               formula = formula, parse = TRUE)
+               formula = formula)
 
-# user specified label and digits
+# x on y regression
 ggplot(my.data, aes(x, y)) +
   geom_point() +
-  geom_smooth(method = "lm", formula = formula) +
-  stat_poly_eq(aes(label =  paste(stat(eq.label),
-                                  stat(adj.rr.label),
+  geom_smooth(method = "lm", formula = formula, orientation = "y") +
+  stat_poly_eq(aes(label =  paste(after_stat(eq.label),
+                                  after_stat(adj.rr.label),
                                   sep = "*\", \"*")),
-               formula = formula, rr.digits = 3, coef.digits = 4,
-               parse = TRUE)
+               formula = x ~ poly(y, 3, raw = TRUE))
 
 # conditional user specified label
 ggplot(my.data, aes(x, y, color = group)) +
   geom_point() +
   geom_smooth(method = "lm", formula = formula) +
-  stat_poly_eq(aes(label =  ifelse(stat(adj.r.squared) > 0.96,
-                                   paste(stat(adj.rr.label),
-                                         stat(eq.label),
+  stat_poly_eq(aes(label =  ifelse(after_stat(adj.r.squared) > 0.96,
+                                   paste(after_stat(adj.rr.label),
+                                         after_stat(eq.label),
                                          sep = "*\", \"*"),
-                                   stat(adj.rr.label))),
+                                   after_stat(adj.rr.label))),
                rr.digits = 3,
-               formula = formula,
-               parse = TRUE)
+               formula = formula)
 
 # geom = "text"
 ggplot(my.data, aes(x, y)) +
   geom_point() +
   geom_smooth(method = "lm", formula = formula) +
   stat_poly_eq(geom = "text", label.x = 100, label.y = 0, hjust = 1,
-               formula = formula, parse = TRUE)
+               formula = formula)
 
 # using numeric values
-# Here we use column "Estimate" from the matrix.
-# Other available columns are "Std. Error", "t value" and "Pr(>|t|)".
+# Here we use columns b_0 ... b_3 for the coefficient estimates
 my.format <-
   "b[0]~`=`~\%.3g*\", \"*b[1]~`=`~\%.3g*\", \"*b[2]~`=`~\%.3g*\", \"*b[3]~`=`~\%.3g"
 ggplot(my.data, aes(x, y)) +
@@ -291,49 +325,74 @@ ggplot(my.data, aes(x, y)) +
                parse = TRUE,
                mapping =
                 aes(label = sprintf(my.format,
-                                    stat(coef.ls)[[1]][[1, "Estimate"]],
-                                    stat(coef.ls)[[1]][[2, "Estimate"]],
-                                    stat(coef.ls)[[1]][[3, "Estimate"]],
-                                    stat(coef.ls)[[1]][[4, "Estimate"]])
-                                    )
-                   )
+                                    after_stat(b_0), after_stat(b_1),
+                                    after_stat(b_2), after_stat(b_3))))
 
-# Examples using geom_debug() to show computed values
-#
-# This provides a quick way of finding out which variables are available for
-# use in mapping of aesthetics when using other geoms as in the examples
-# above.
+# Inspecting the returned data using geom_debug()
+if (requireNamespace("gginnards", quietly = TRUE)) {
+  library(gginnards)
 
-library(gginnards)
+# This provides a quick way of finding out the names of the variables that
+# are available for mapping to aesthetics.
 
-ggplot(my.data, aes(x, y)) +
-  geom_point() +
-  geom_smooth(method = "lm", formula = formula) +
-  stat_poly_eq(formula = formula, geom = "debug")
+# the whole of data
+  ggplot(my.data, aes(x, y)) +
+    geom_point() +
+    geom_smooth(method = "lm", formula = formula) +
+    stat_poly_eq(formula = formula, geom = "debug")
 
-ggplot(my.data, aes(x, y)) +
-  geom_point() +
-  geom_smooth(method = "lm", formula = formula) +
-  stat_poly_eq(aes(label = stat(eq.label)),
-               formula = formula, geom = "debug",
-               output.type = "markdown")
+  ggplot(my.data, aes(x, y)) +
+    geom_point() +
+    geom_smooth(method = "lm", formula = formula) +
+    stat_poly_eq(formula = formula, geom = "debug", output.type = "numeric")
 
-ggplot(my.data, aes(x, y)) +
-  geom_point() +
-  geom_smooth(method = "lm", formula = formula) +
-  stat_poly_eq(formula = formula, geom = "debug", output.type = "text")
+# names of the variables
+  ggplot(my.data, aes(x, y)) +
+    geom_point() +
+    geom_smooth(method = "lm", formula = formula) +
+    stat_poly_eq(formula = formula, geom = "debug",
+                 summary.fun = colnames)
 
-ggplot(my.data, aes(x, y)) +
-  geom_point() +
-  geom_smooth(method = "lm", formula = formula) +
-  stat_poly_eq(formula = formula, geom = "debug", output.type = "numeric")
+# only data$eq.label
+  ggplot(my.data, aes(x, y)) +
+    geom_point() +
+    geom_smooth(method = "lm", formula = formula) +
+    stat_poly_eq(formula = formula, geom = "debug",
+                 output.type = "expression",
+                 summary.fun = function(x) {x[["eq.label"]]})
+
+# only data$eq.label
+  ggplot(my.data, aes(x, y)) +
+    geom_point() +
+    geom_smooth(method = "lm", formula = formula) +
+    stat_poly_eq(aes(label = after_stat(eq.label)),
+                 formula = formula, geom = "debug",
+                 output.type = "markdown",
+                 summary.fun = function(x) {x[["eq.label"]]})
+
+# only data$eq.label
+  ggplot(my.data, aes(x, y)) +
+    geom_point() +
+    geom_smooth(method = "lm", formula = formula) +
+    stat_poly_eq(formula = formula, geom = "debug",
+                 output.type = "latex",
+                 summary.fun = function(x) {x[["eq.label"]]})
+
+# only data$eq.label
+  ggplot(my.data, aes(x, y)) +
+    geom_point() +
+    geom_smooth(method = "lm", formula = formula) +
+    stat_poly_eq(formula = formula, geom = "debug",
+                 output.type = "text",
+                 summary.fun = function(x) {x[["eq.label"]]})
 
 # show the content of a list column
-ggplot(my.data, aes(x, y)) +
-  geom_point() +
-  geom_smooth(method = "lm", formula = formula) +
-  stat_poly_eq(formula = formula, geom = "debug", output.type = "numeric",
-               summary.fun = function(x) {x[["coef.ls"]][[1]]})
+  ggplot(my.data, aes(x, y)) +
+    geom_point() +
+    geom_smooth(method = "lm", formula = formula) +
+    stat_poly_eq(formula = formula, geom = "debug", output.type = "numeric",
+                 summary.fun = function(x) {x[["coef.ls"]][[1]]})
+}
 
 }
 \references{
@@ -343,15 +402,15 @@ Written as an answer to a question at Stackoverflow.
 \seealso{
 This \code{stat_poly_eq} statistic can return ready formatted labels
   depending on the argument passed to \code{output.type}. This is possible
-  because only polynomial models are supported. For other types of models,
-  statistics \code{\link{stat_fit_glance}},  \code{\link{stat_fit_tidy}} and
-  \code{\link{stat_fit_glance}} should be used instead and the code for
-  construction of character strings from numeric values and their mapping to
-  aesthetic \code{label} needs to be explicitly supplied in the call.
+  because only polynomial models are supported. If multiple quantiles are
+  desired, then \code{\link{stat_quant_eq}} should be used instead of
+  \code{stat_poly_eq}. For other types of models such as non-linear models,
+  statistics \code{\link{stat_fit_glance}} and \code{\link{stat_fit_tidy}}
+  should be used instead and the code for construction of character strings
+  from numeric values and their mapping to aesthetic \code{label} needs to be
+  explicitly supplied in the call.
 
-Other statistics for linear model fits: 
-\code{\link{stat_fit_deviations}()},
-\code{\link{stat_fit_residuals}()},
-\code{\link{stat_quant_eq}()}
+Other ggplot statistics for linear and polynomial regression: 
+\code{\link{stat_poly_line}()}
 }
-\concept{statistics for linear model fits}
+\concept{ggplot statistics for linear and polynomial regression}

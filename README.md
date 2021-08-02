@@ -22,9 +22,9 @@ special geometries and scales. New position functions facilitate the
 labeling of observations by nudging data labels away or towards curves
 or a focal virtual center.
 
-## Extended Grammar of graphics
+## Extended Grammar of Graphics
 
-Please, see also the documentation of package ‘**ggpp**’.
+Please, see the documentation of package ‘**ggpp**’.
 
 ## Aesthetics and scales
 
@@ -102,10 +102,10 @@ use `stat_poly_eq()`.
 formula <- y ~ x + I(x^2)
 ggplot(cars, aes(speed, dist)) +
   geom_point() +
-  stat_fit_deviations(method = "lm", formula = formula, colour = "red") +
-  geom_smooth(method = "lm", formula = formula) +
+  stat_fit_deviations(formula = formula, colour = "red") +
+  stat_poly_line(formula = formula) +
   stat_poly_eq(aes(label =  paste(stat(eq.label), stat(adj.rr.label), sep = "*\", \"*")),
-               formula = formula, parse = TRUE)
+               formula = formula)
 ```
 
 ![](man/figures/README-readme-04-1.png)<!-- -->
@@ -137,18 +137,30 @@ ggplot(cars, aes(speed, dist)) +
 ![](man/figures/README-readme-05-1.png)<!-- -->
 
 The same figure as in the second example but this time using quantile
-regression.
+regression, median in this example.
 
 ``` r
 formula <- y ~ x + I(x^2)
 ggplot(cars, aes(speed, dist)) +
   geom_point() +
-  geom_quantile(formula = formula, quantiles = 0.5) +
+  stat_quant_line(formula = formula, quantiles = 0.5) +
   stat_quant_eq(aes(label = paste(stat(grp.label), stat(eq.label), sep = "*\": \"*")),
-               formula = formula, quantiles = 0.5, parse = TRUE)
+               formula = formula, quantiles = 0.5)
 ```
 
 ![](man/figures/README-readme-04b-1.png)<!-- -->
+
+Band highlighting the region between both quartile regressions and a
+line for the median regression.
+
+``` r
+formula <- y ~ x + I(x^2)
+ggplot(cars, aes(speed, dist)) +
+  geom_point() +
+  stat_quant_band(formula = formula)
+```
+
+![](man/figures/README-readme-04c-1.png)<!-- -->
 
 A quadrant plot with counts and labels, using `geom_text_repel()` from
 package ‘ggrepel’.
@@ -184,11 +196,16 @@ devtools::install_github("aphalo/ggpmisc")
 
 ## Documentation
 
-HTML documentation is available at
-(<https://docs.r4photobiology.info/ggpmisc/>), including a *User Guide*.
+HTML documentation for the package, including help pages and the *User
+Guide*, is available at (<https://docs.r4photobiology.info/ggpmisc/>).
 
 News about updates are regularly posted at
 (<https://www.r4photobiology.info/>).
+
+Chapter 7 in Aphalo (2020) explains both basic concepts of the gramamr
+of graphics as implemented in ‘ggplot2’ as well as extensions to this
+grammar including several of those made available by packages ‘ggpp’ and
+‘ggpmisc’.
 
 ## Contributing
 
@@ -220,6 +237,12 @@ citation("ggpmisc")
 #> https://github.com/aphalo/ggpmisc},
 #>   }
 ```
+
+## References
+
+Aphalo, Pedro J. (2020) *Learn R: As a Language.* The R Series. Boca
+Raton and London: Chapman and Hall/CRC Press. ISBN: 978-0-367-18253-3.
+350 pp.
 
 ## License
 

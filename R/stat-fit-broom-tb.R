@@ -80,7 +80,7 @@
 #'
 #'   To explore the values returned by this statistic, which vary depending
 #'   on the model fitting function and model formula we suggest the use of
-#'   \code{\link[gginnards]{geom_debug}}. An example is shown below.
+#'   \code{\link[gginnards]{geom_debug}}.
 #'
 #' @seealso \code{\link[broom]{broom}} and
 #'   \code{broom.mixed} for details on how the tidying of the
@@ -88,7 +88,7 @@
 #'   how inset tables respond to mapped aesthetics and table themes. For details
 #'   on predefined table themes see \code{\link{ttheme_gtdefault}}.
 #'
-#' @family Statistics calling generic tidier methods.
+#' @family ggplot statistics for model fits
 #'
 #' @export
 #'
@@ -490,7 +490,7 @@ StatFitTb <-
                    default_aes =
                      ggplot2::aes(hjust = "inward",
                                   vjust = "inward",
-                                  label = stat(mf_tb)),
+                                  label = after_stat(mf_tb)),
                    required_aes = c("x", "y")
   )
 

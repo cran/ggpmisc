@@ -15,6 +15,7 @@ stat_quant_eq(
   eq.with.lhs = TRUE,
   eq.x.rhs = NULL,
   coef.digits = 3,
+  coef.keep.zeros = TRUE,
   rho.digits = 2,
   label.x = "left",
   label.y = "top",
@@ -24,6 +25,8 @@ stat_quant_eq(
   vstep = NULL,
   output.type = "expression",
   na.rm = FALSE,
+  orientation = NA,
+  parse = NULL,
   show.legend = FALSE,
   inherit.aes = TRUE
 )
@@ -60,6 +63,9 @@ it.}
 \item{coef.digits, rho.digits}{integer Number of significant digits to use for
 the fitted coefficients and rho in labels.}
 
+\item{coef.keep.zeros}{logical Keep or drop trailing zeros when formatting
+the fitted coefficients and F-value.}
+
 \item{label.x, label.y}{\code{numeric} with range 0..1 "normalized parent
 coordinates" (npc units) or character if using \code{geom_text_npc()} or
 \code{geom_label_npc()}. If using \code{geom_text()} or \code{geom_label()}
@@ -72,11 +78,21 @@ using npcx and npcy aesthetics.}
 \item{hstep, vstep}{numeric in npc units, the horizontal and vertical step
 used between labels for different groups.}
 
-\item{output.type}{character One of "expression", "LaTeX", "text",
-"markdown" or "numeric".}
+\item{output.type}{character One of \code{"expression"}, \code{"LaTeX"},
+\code{"text"}, \code{"markdown"} or \code{"numeric"}. In most cases,
+instead of using this statistics to obtain numeric values, it is better to
+use \code{stat_fit_tidy()}.}
 
 \item{na.rm}{a logical indicating whether NA values should be stripped before
 the computation proceeds.}
+
+\item{orientation}{character Either \code{"x"} or \code{"y"} controlling the
+default for \code{formula}.}
+
+\item{parse}{logical Passed to the geom. If \code{TRUE}, the labels will be
+parsed into expressions and displayed as described in \code{?plotmath}.
+Default is \code{TRUE} if \code{output.type = "expression"} and
+\code{FALSE} otherwise.}
 
 \item{show.legend}{logical. Should this layer be included in the legends?
 \code{NA}, the default, includes if any aesthetics are mapped. \code{FALSE}
@@ -93,6 +109,16 @@ generates several labels including the equation, p-value, coefficient of
 determination (R^2), 'AIC' and 'BIC'.
 }
 \details{
+This statistic interprets the argument passed to \code{formula} differently
+than \code{\link[ggplot2]{stat_quantile}} accepting \code{y} as well as
+\code{x} as explanatory variable, matching \code{stat_poly_quant()}.
+
+When two variables are subject to mutual constrains, it is useful to consider
+both of them as explanatory and interpret the relationship based on them. So,
+from version 0.4.1 'ggpmisc' makes it possible to easily implement the
+approach described by Cardoso (2019) under the name of "Double quantile
+regression".
+
 This stat can be used to automatically annotate a plot with R^2,
   adjusted R^2 or the fitted model equation. It supports only linear models
   fitted with function \code{lm()}. The R^2 and adjusted R^2 annotations can
@@ -100,13 +126,21 @@ This stat can be used to automatically annotate a plot with R^2,
   correctly generated for polynomials or quasi-polynomials through the
   origin. Model formulas can use \code{poly()} or be defined algebraically
   with terms of powers of increasing magnitude with no missing intermediate
-  terms, except possibly for the intercept indicated by "- 1" or "-1" in the
-  formula. The validity of the \code{formula} is not checked in the current
-  implementation, and for this reason the default aesthetics sets R^2 as
-  label for the annotation. This stat only generates labels, the predicted
-  values need to be separately added to the plot, so to make sure that the
-  same model formula is used in all steps it is best to save the formula as
-  an object and supply this object as argument to the different statistics.
+  terms, except possibly for the intercept indicated by \code{"- 1"} or
+  \code{"-1"} or \code{"+ 0"} in the formula. The validity of the
+  \code{formula} is not checked in the current implementation, and for this
+  reason the default aesthetics sets R^2 as label for the annotation.  This
+  stat generates labels as R expressions by default but LaTeX (use TikZ
+  device), markdown (use package 'ggtext') and plain text are also supported,
+  as well as numeric values for user-generated text labels. The value of
+  \code{parse} is set automatically based on \code{output-type}, but if you
+  assemble labels that need parsing from \code{numeric} output, the default
+  needs to be overriden. This stat only generates annotation labels, the
+  predicted values/line need to be added to the plot as a separate layer
+  using \code{\link{stat_quant_line}} or
+  \code{\link[ggplot2]{stat_quantile}}, so to make sure that the same model
+  formula is used in all steps it is best to save the formula as an object
+  and supply this object as argument to the different statistics.
 
   A ggplot statistic receives as data a data frame that is not the one passed
   as argument by the user, but instead a data frame with the variables mapped
@@ -117,14 +151,17 @@ This stat can be used to automatically annotate a plot with R^2,
 }
 \note{
 For backward compatibility a logical is accepted as argument for
-  \code{eq.with.lhs}, giving the same output than the current default
-  character value. By default "x" is retained as independent variable as this
-  is the name of the aesthetic. However, it can be substituted by providing a
+  \code{eq.with.lhs}. If \code{TRUE}, the default is used, either
+  \code{"x"} or \code{"y"}, depending on the argument passed to \code{formula}.
+  However, \code{"x"} or \code{"y"} can be substituted by providing a
   suitable replacement character string through \code{eq.x.rhs}.
+  Parameter \code{orientation} is redundant as it only affects the default
+  for \code{formula} but is included for consistency with
+  \code{ggplot2::stat_smooth()}.
 
 Support for the \code{angle} aesthetic is not automatic and requires
   that the user passes as argument suitable numeric values to override the
-  defaults.
+  defaults for label positions.
 }
 \section{Aesthetics}{
  \code{stat_quant_eq} understands \code{x} and \code{y},
@@ -137,7 +174,7 @@ Support for the \code{angle} aesthetic is not automatic and requires
 \section{Computed variables}{
 
 If output.type different from \code{"numeric"} the returned tibble contains
-columns:
+columns below in addition to a modified version of the original \code{group}:
 \describe{
   \item{x,npcx}{x position}
   \item{y,npcy}{y position}
@@ -148,25 +185,27 @@ columns:
   \item{n.label}{Number of observations used in the fit.}
   \item{rq.method}{character, method used.}
   \item{rho, n}{numeric values extracted or computed from fit object.}
-  \item{hjust, vjust}{Set to "inward" to override the default of the "text" geom.}}
+  \item{hjust, vjust}{Set to "inward" to override the default of the "text" geom.}
+  \item{quantile}{Numeric value of the quantile used for the fit}
+  \item{quantile.f}{Factor with a level for each quantile}
+  }
 
-If output.type is \code{"numeric"} the returned tibble contains columns:
+If output.type is \code{"numeric"} the returned tibble contains columns
+ in addition to a modified version of the original \code{group}:
 \describe{
   \item{x,npcx}{x position}
   \item{y,npcy}{y position}
   \item{coef.ls}{list containing the "coefficients" matrix from the summary of the fit object}
   \item{rho, AIC, n}{numeric values extracted or computed from fit object}
   \item{rq.method}{character, method used.}
-  \item{hjust, vjust}{Set to "inward" to override the default of the "text" geom.}}
+  \item{hjust, vjust}{Set to "inward" to override the default of the "text" geom.}
+  \item{quantile}{Indicating the quantile  used for the fit}
+  \item{quantile.f}{Factor with a level for each quantile}
+  \item{b_0.constant}{TRUE is polynomial is forced through the origin}
+  \item{b_i}{One or columns with the coefficient estimates}}
 
 To explore the computed values returned for a given input we suggest the use
 of \code{\link[gginnards]{geom_debug}} as shown in the example below.
-}
-
-\section{Parsing may be required}{
- if using the computed labels with
-  \code{output.type = "expression"}, then \code{parse = TRUE} is needed,
-  while if using \code{output.type = "LaTeX"} \code{parse = FALSE} is needed.
 }
 
 \examples{
@@ -179,149 +218,173 @@ my.data <- data.frame(x = x, y = y,
                       y2 = y * c(0.5,2),
                       w = sqrt(x))
 
+# using defaults
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  stat_quant_line() +
+  stat_quant_eq()
+
+# same formula as default
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  stat_quant_line(formula = y ~ x) +
+  stat_quant_eq(formula = y ~ x)
+
+# explicit formula "x explained by y"
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  stat_quant_line(formula = x ~ y) +
+  stat_quant_eq(formula = x ~ y)
+
+# using color
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  stat_quant_line(aes(color = after_stat(quantile.f))) +
+  stat_quant_eq(aes(color = after_stat(quantile.f))) +
+  labs(color = "Quantiles")
+
+# location and colour
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  stat_quant_line(aes(color = after_stat(quantile.f))) +
+  stat_quant_eq(aes(color = after_stat(quantile.f)),
+                label.y = "bottom", label.x = "right") +
+  labs(color = "Quantiles")
+
 # give a name to a formula
 formula <- y ~ poly(x, 3, raw = TRUE)
 
 # no weights
 ggplot(my.data, aes(x, y)) +
   geom_point() +
-  geom_quantile(formula = formula) +
-  stat_quant_eq(formula = formula, parse = TRUE)
+  stat_quant_line(formula = formula) +
+  stat_quant_eq(formula = formula)
 
 # angle
 ggplot(my.data, aes(x, y)) +
   geom_point() +
-  geom_quantile(formula = formula) +
-  stat_quant_eq(formula = formula, parse = TRUE, angle = 90,
-                hstep = 0.05, vstep = 0, hjust = 0,
-                label.y = 0.5)
+  stat_quant_line(formula = formula) +
+  stat_quant_eq(formula = formula, angle = 90, hstep = 0.05, vstep = 0,
+                label.y = 0.98, hjust = 1)
 
 ggplot(my.data, aes(x, y)) +
   geom_point() +
-  geom_quantile(formula = formula) +
-  stat_quant_eq(formula = formula, parse = TRUE, angle = 90,
+  stat_quant_line(formula = formula) +
+  stat_quant_eq(formula = formula, angle = 90,
                 hstep = 0.05, vstep = 0, hjust = 0,
-                label.y = 0.5)
+                label.y = 0.25)
 
 # user set quantiles
 ggplot(my.data, aes(x, y)) +
   geom_point() +
-  geom_quantile(formula = formula, quantiles = 0.5) +
-  stat_quant_eq(formula = formula, quantiles = 0.5, parse = TRUE)
+  stat_quant_line(formula = formula, quantiles = 0.5) +
+  stat_quant_eq(formula = formula, quantiles = 0.5)
 
 # grouping
 ggplot(my.data, aes(x, y, color = group)) +
   geom_point() +
-  geom_quantile(formula = formula) +
-  stat_quant_eq(formula = formula, parse = TRUE)
+  stat_quant_line(formula = formula) +
+  stat_quant_eq(formula = formula)
 
 ggplot(my.data, aes(x, y, color = group)) +
   geom_point() +
-  geom_quantile(formula = formula) +
-  stat_quant_eq(formula = formula, parse = TRUE, angle = 90,
+  stat_quant_line(formula = formula) +
+  stat_quant_eq(formula = formula, angle = 90,
                 hstep = 0.05, vstep = 0, hjust = 0,
-                label.y = 0.5)
+                size = 3, label.y = 0.3)
 
 # labelling equations
 ggplot(my.data, aes(x, y,  shape = group, linetype = group,
        grp.label = group)) +
   geom_point() +
-  geom_quantile(formula = formula, color = "black") +
-  stat_quant_eq(aes(label = paste(stat(grp.label), stat(eq.label), sep = "*\": \"*")),
-                formula = formula, parse = TRUE) +
+  stat_quant_line(formula = formula, color = "black") +
+  stat_quant_eq(aes(label = paste(after_stat(grp.label), after_stat(eq.label), sep = "*\": \"*")),
+                formula = formula) +
   theme_classic()
 
 # setting non-default quantiles
 ggplot(my.data, aes(x, y)) +
   geom_point() +
-  geom_quantile(formula = formula,
-                quantiles = c(0.1, 0.5, 0.9)) +
+  stat_quant_line(formula = formula,
+                  quantiles = c(0.1, 0.5, 0.9)) +
   stat_quant_eq(formula = formula, parse = TRUE,
-               quantiles = c(0.1, 0.5, 0.9))
+                quantiles = c(0.1, 0.5, 0.9))
 
 # Location of equations
 ggplot(my.data, aes(x, y)) +
   geom_point() +
-  geom_quantile(formula = formula) +
-  stat_quant_eq(formula = formula, parse = TRUE,
-               label.y = "bottom", label.x = "right")
+  stat_quant_line(formula = formula) +
+  stat_quant_eq(formula = formula, label.y = "bottom", label.x = "right")
 
 ggplot(my.data, aes(x, y)) +
   geom_point() +
-  geom_quantile(formula = formula) +
-  stat_quant_eq(formula = formula, parse = TRUE,
-               label.y = 0.03, label.x = 0.95, vstep = 0.04)
+  stat_quant_line(formula = formula) +
+  stat_quant_eq(formula = formula, label.y = 0.03, label.x = 0.95, vstep = 0.04)
 
 # using weights
 ggplot(my.data, aes(x, y, weight = w)) +
   geom_point() +
-  geom_quantile(formula = formula) +
-  stat_quant_eq(formula = formula, parse = TRUE)
+  stat_quant_line(formula = formula) +
+  stat_quant_eq(formula = formula)
 
 # no weights, quantile set to upper boundary
 ggplot(my.data, aes(x, y)) +
   geom_point() +
-  geom_quantile(formula = formula, quantiles = 1) +
-  stat_quant_eq(formula = formula, quantiles = 1, parse = TRUE)
+  stat_quant_line(formula = formula, quantiles = 0.95) +
+  stat_quant_eq(formula = formula, quantiles = 0.95)
 
 # user specified label
 ggplot(my.data, aes(x, y, color = group, grp.label = group)) +
   geom_point() +
-  geom_quantile(method = "rq", formula = formula,
+  stat_quant_line(method = "rq", formula = formula,
                 quantiles = c(0.05, 0.5, 0.95)) +
-  stat_quant_eq(aes(label = paste(stat(grp.label), "*\": \"*",
-                                   stat(eq.label), sep = "")),
+  stat_quant_eq(aes(label = paste(after_stat(grp.label), "*\": \"*",
+                                   after_stat(eq.label), sep = "")),
                 quantiles = c(0.05, 0.5, 0.95),
-                formula = formula, parse = TRUE)
+                formula = formula, size = 3)
 
 # geom = "text"
 ggplot(my.data, aes(x, y)) +
   geom_point() +
-  geom_quantile(method = "rq", formula = formula, quantiles = 0.5) +
+  stat_quant_line(method = "rq", formula = formula, quantiles = 0.5) +
   stat_quant_eq(label.x = "left", label.y = "top",
-                formula = formula, parse = TRUE)
+                formula = formula)
 
-# Examples using geom_debug() to show computed values
-#
-# This provides a quick way of finding out which variables are available for
-# use in mapping of aesthetics when using other geoms as in the examples
-# above.
+# Inspecting the returned data using geom_debug()
+if (requireNamespace("gginnards", quietly = TRUE)) {
+  library(gginnards)
 
-library(gginnards)
+# This provides a quick way of finding out the names of the variables that
+# are available for mapping to aesthetics.
 
-ggplot(my.data, aes(x, y)) +
-  geom_point() +
-  stat_quant_eq(formula = formula, geom = "debug")
+  ggplot(my.data, aes(x, y)) +
+    geom_point() +
+    stat_quant_eq(formula = formula, geom = "debug")
 
-ggplot(my.data, aes(x, y)) +
-  geom_point() +
-  stat_quant_eq(aes(label = stat(eq.label)),
-               formula = formula, geom = "debug",
-               output.type = "markdown")
+  ggplot(my.data, aes(x, y)) +
+    geom_point() +
+    stat_quant_eq(aes(label = after_stat(eq.label)),
+                  formula = formula, geom = "debug",
+                  output.type = "markdown")
 
-ggplot(my.data, aes(x, y)) +
-  geom_point() +
-  stat_quant_eq(formula = formula, geom = "debug", output.type = "text")
+  ggplot(my.data, aes(x, y)) +
+    geom_point() +
+    stat_quant_eq(formula = formula, geom = "debug", output.type = "text")
 
-ggplot(my.data, aes(x, y)) +
-  geom_point() +
-  stat_quant_eq(formula = formula, geom = "debug", output.type = "numeric")
+  ggplot(my.data, aes(x, y)) +
+    geom_point() +
+    stat_quant_eq(formula = formula, geom = "debug", output.type = "numeric")
 
-ggplot(my.data, aes(x, y)) +
-  geom_point() +
-  stat_quant_eq(formula = formula, quantiles = c(0.25, 0.5, 0.75),
-                geom = "debug", output.type = "text")
+  ggplot(my.data, aes(x, y)) +
+    geom_point() +
+    stat_quant_eq(formula = formula, quantiles = c(0.25, 0.5, 0.75),
+                  geom = "debug", output.type = "text")
 
-ggplot(my.data, aes(x, y)) +
-  geom_point() +
-  stat_quant_eq(formula = formula, quantiles = c(0.25, 0.5, 0.75),
-                geom = "debug", output.type = "numeric")
-
-# show the content of a list column
-ggplot(my.data, aes(x, y)) +
-  geom_point() +
-  stat_quant_eq(formula = formula, geom = "debug", output.type = "numeric",
-               summary.fun = function(x) {x[["coef.ls"]][[1]]})
+  ggplot(my.data, aes(x, y)) +
+    geom_point() +
+    stat_quant_eq(formula = formula, quantiles = c(0.25, 0.5, 0.75),
+                  geom = "debug", output.type = "numeric")
+}
 
 }
 \references{
@@ -337,9 +400,8 @@ This \code{stat_quant_eq} statistic can return ready formatted labels
   construction of character strings from numeric values and their mapping to
   aesthetic \code{label} needs to be explicitly supplied in the call.
 
-Other statistics for linear model fits: 
-\code{\link{stat_fit_deviations}()},
-\code{\link{stat_fit_residuals}()},
-\code{\link{stat_poly_eq}()}
+Other ggplot statistics for quantile regression: 
+\code{\link{stat_quant_band}()},
+\code{\link{stat_quant_line}()}
 }
-\concept{statistics for linear model fits}
+\concept{ggplot statistics for quantile regression}

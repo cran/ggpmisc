@@ -13,6 +13,7 @@ stat_fit_deviations(
   formula = NULL,
   position = "identity",
   na.rm = FALSE,
+  orientation = NA,
   show.legend = FALSE,
   inherit.aes = TRUE,
   ...
@@ -42,6 +43,9 @@ layer}
 
 \item{na.rm}{a logical indicating whether NA values should be stripped
 before the computation proceeds.}
+
+\item{orientation}{character Either "x" or "y" controlling the default for
+\code{formula}.}
 
 \item{show.legend}{logical. Should this layer be included in the legends?
 \code{NA}, the default, includes if any aesthetics are mapped. \code{FALSE}
@@ -77,8 +81,10 @@ This stat can be used to automatically highlight residuals as
   layers.
 }
 \note{
-In the case of \code{method = "rq"} quantiles is fixed at \code{tau = 0.5}
-  unless \code{method.args} has length > 0.
+In the case of \code{method = "rq"} quantiles are fixed at \code{tau =
+  0.5} unless \code{method.args} has length > 0. Parameter \code{orientation}
+  is redundant as it only affects the default for \code{formula} but is
+  included for consistency with \code{ggplot2}.
 }
 \section{Computed variables}{
  Data frame with same \code{nrow} as \code{data}
@@ -94,14 +100,39 @@ In the case of \code{method = "rq"} quantiles is fixed at \code{tau = 0.5}
 }
 
 \examples{
-library(gginnards) # needed for geom_debug()
+# generate artificial data
 library(MASS)
 
-# generate artificial data
 set.seed(4321)
 x <- 1:100
 y <- (x + x^2 + x^3) + rnorm(length(x), mean = 0, sd = mean(x^3) / 4)
-my.data <- data.frame(x, y, group = c("A", "B"), y2 = y * c(0.5,2))
+my.data <- data.frame(x, y)
+
+# plot residuals from linear model
+ggplot(my.data, aes(x, y)) +
+  geom_smooth(method = "lm", formula = y ~ x) +
+  stat_fit_deviations(method = "lm", formula = y ~ x, colour = "red") +
+  geom_point()
+
+# plot residuals from linear model with y as explanatory variable
+ggplot(my.data, aes(x, y)) +
+  geom_smooth(method = "lm", formula = y ~ x, orientation = "y") +
+  stat_fit_deviations(method = "lm", formula = x ~ y, colour = "red") +
+  geom_point()
+
+# as above using orientation
+ggplot(my.data, aes(x, y)) +
+  geom_smooth(method = "lm", orientation = "y") +
+  stat_fit_deviations(orientation = "y", colour = "red") +
+  geom_point()
+
+# both regressions and their deviations
+ggplot(my.data, aes(x, y)) +
+  geom_smooth(method = "lm") +
+  stat_fit_deviations(colour = "blue") +
+  geom_smooth(method = "lm", orientation = "y", colour = "red") +
+  stat_fit_deviations(orientation = "y", colour = "red") +
+  geom_point()
 
 # give a name to a formula
 my.formula <- y ~ poly(x, 3, raw = TRUE)
@@ -123,9 +154,16 @@ ggplot(my.data, aes(x, y)) +
   stat_fit_deviations(formula = my.formula, method = "rlm", colour = "red") +
   geom_point()
 
-# plot resistant regression
-ggplot(my.data, aes(x, y)) +
-  stat_fit_deviations(formula = my.formula, method = "lqs", colour = "red") +
+# plot robust regression with weights indicated by colour
+my.data.outlier <- my.data
+my.data.outlier[6, "y"] <- my.data.outlier[6, "y"] * 10
+ggplot(my.data.outlier, aes(x, y)) +
+  stat_smooth(method = MASS::rlm, formula = my.formula) +
+  stat_fit_deviations(formula = my.formula, method = "rlm",
+                      mapping = aes(colour = after_stat(weights)),
+                      show.legend = TRUE) +
+  scale_color_gradient(low = "red", high = "blue", limits = c(0, 1),
+                       guide = "colourbar") +
   geom_point()
 
 # plot quantile regression (= median regression)
@@ -141,18 +179,29 @@ ggplot(my.data, aes(x, y)) +
                       method = "rq", method.args = list(tau = 0.75)) +
   geom_point()
 
+# inspecting the returned data
+if (requireNamespace("gginnards", quietly = TRUE)) {
+  library(gginnards)
+
 # plot, using geom_debug() to explore the after_stat data
-ggplot(my.data, aes(x, y)) +
-  geom_smooth(method = "lm", formula = my.formula) +
-  stat_fit_deviations(formula = my.formula, colour = "red",
-  geom = "debug") +
-  geom_point()
+  ggplot(my.data, aes(x, y)) +
+    geom_smooth(method = "lm", formula = my.formula) +
+    stat_fit_deviations(formula = my.formula, geom = "debug") +
+    geom_point()
+
+  ggplot(my.data.outlier, aes(x, y)) +
+    stat_smooth(method = MASS::rlm, formula = my.formula) +
+    stat_fit_deviations(formula = my.formula, method = "rlm", geom = "debug") +
+    geom_point()
+}
 
 }
 \seealso{
-Other statistics for linear model fits: 
+Other ggplot statistics for model fits: 
+\code{\link{stat_fit_augment}()},
+\code{\link{stat_fit_glance}()},
 \code{\link{stat_fit_residuals}()},
-\code{\link{stat_poly_eq}()},
-\code{\link{stat_quant_eq}()}
+\code{\link{stat_fit_tb}()},
+\code{\link{stat_fit_tidy}()}
 }
-\concept{statistics for linear model fits}
+\concept{ggplot statistics for model fits}

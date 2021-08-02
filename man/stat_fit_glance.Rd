@@ -64,6 +64,17 @@ default plot specification, e.g. \code{\link[ggplot2]{borders}}.}
 can include aesthetics whose values you want to set, not map. See
 \code{\link[ggplot2]{layer}} for more details.}
 }
+\value{
+The output of the \code{glance()} methods is returned almost as is in
+  the \code{data} object, as a data frame. The names of the columns in the
+  returned data are consistent with those returned by method \code{glance()}
+  from package 'broom', that will frequently differ from the name of values
+  returned by the print methods corresponding to the fit or test function
+  used. To explore the values returned by this statistic including the name
+  of variables/columns, which vary depending on the model fitting function
+  and model formula we suggest the use of
+  \code{\link[gginnards]{geom_debug}}. An example is shown below.
+}
 \description{
 \code{stat_fit_glance} fits a model and returns a "tidy" version
   of the model's fit, using '\code{glance()} methods from packages 'broom',
@@ -121,30 +132,21 @@ Although arguments passed to parameter \code{glance.args} will be
   function.
 }
 
-\section{Computed variables}{
- The output of \code{glance()} is
-  returned almost as is in the \code{data} object.
-  The names of the columns in the returned data are consitent with those
-  returned by method \code{glance()} from package 'broom', that will
-  frequently differ from the name of values returned by the print methods
-  corresponding to the fit or test function used. To explore the values
-  returned by this statistic, which vary depending on the model fitting
-  function and model formula we suggest the use of
-  \code{\link[gginnards]{geom_debug}}. An example is shown below.
-}
-
 \examples{
 library(broom)
-library(gginnards)
 library(quantreg)
 
-# Regression by panel example, using geom_debug.
-ggplot(mtcars, aes(x = disp, y = mpg)) +
-  stat_smooth(method = "lm") +
-  geom_point(aes(colour = factor(cyl))) +
-  stat_fit_glance(method = "lm",
-                  method.args = list(formula = y ~ x),
-                  geom = "debug")
+# Inspecting the returned data using geom_debug()
+if (requireNamespace("gginnards", quietly = TRUE)) {
+  library(gginnards)
+
+  ggplot(mtcars, aes(x = disp, y = mpg)) +
+    stat_smooth(method = "lm") +
+    geom_point(aes(colour = factor(cyl))) +
+    stat_fit_glance(method = "lm",
+                    method.args = list(formula = y ~ x),
+                    geom = "debug")
+}
 
 # Regression by panel example
 ggplot(mtcars, aes(x = disp, y = mpg)) +
@@ -154,7 +156,7 @@ ggplot(mtcars, aes(x = disp, y = mpg)) +
                   label.y = "bottom",
                   method.args = list(formula = y ~ x),
                   mapping = aes(label = sprintf('r^2~"="~\%.3f~~italic(P)~"="~\%.2g',
-                                stat(r.squared), stat(p.value))),
+                                after_stat(r.squared), after_stat(p.value))),
                   parse = TRUE)
 
 # Regression by group example
@@ -165,7 +167,7 @@ ggplot(mtcars, aes(x = disp, y = mpg, colour = factor(cyl))) +
                   label.y = "bottom",
                   method.args = list(formula = y ~ x),
                   mapping = aes(label = sprintf('r^2~"="~\%.3f~~italic(P)~"="~\%.2g',
-                                stat(r.squared), stat(p.value))),
+                                after_stat(r.squared), after_stat(p.value))),
                   parse = TRUE)
 
 # Weighted regression example
@@ -176,7 +178,7 @@ ggplot(mtcars, aes(x = disp, y = mpg, weight = cyl)) +
                   label.y = "bottom",
                   method.args = list(formula = y ~ x, weights = quote(weight)),
                   mapping = aes(label = sprintf('r^2~"="~\%.3f~~italic(P)~"="~\%.2g',
-                                stat(r.squared), stat(p.value))),
+                                after_stat(r.squared), after_stat(p.value))),
                   parse = TRUE)
 
 # correlation test
@@ -186,7 +188,7 @@ ggplot(mtcars, aes(x = disp, y = mpg)) +
                   label.y = "bottom",
                   method.args = list(formula = ~ x + y),
                   mapping = aes(label = sprintf('r[Pearson]~"="~\%.3f~~italic(P)~"="~\%.2g',
-                                stat(estimate), stat(p.value))),
+                                after_stat(estimate), after_stat(p.value))),
                   parse = TRUE)
 
 ggplot(mtcars, aes(x = disp, y = mpg)) +
@@ -195,7 +197,7 @@ ggplot(mtcars, aes(x = disp, y = mpg)) +
                   label.y = "bottom",
                   method.args = list(formula = ~ x + y, method = "spearman", exact = FALSE),
                   mapping = aes(label = sprintf('r[Spearman]~"="~\%.3f~~italic(P)~"="~\%.2g',
-                                stat(estimate), stat(p.value))),
+                                after_stat(estimate), after_stat(p.value))),
                   parse = TRUE)
 
 # Quantile regression by group example
@@ -206,16 +208,18 @@ ggplot(mtcars, aes(x = disp, y = mpg)) +
                   label.y = "bottom",
                   method.args = list(formula = y ~ x),
                   mapping = aes(label = sprintf('AIC = \%.3g, BIC = \%.3g',
-                                stat(AIC), stat(BIC))))
+                                after_stat(AIC), after_stat(BIC))))
 
 }
 \seealso{
 \code{\link[broom]{broom}} and \code{broom.mixed} for details on how
   the tidying of the result of model fits is done.
 
-Other Statistics calling generic tidier methods.: 
+Other ggplot statistics for model fits: 
 \code{\link{stat_fit_augment}()},
+\code{\link{stat_fit_deviations}()},
+\code{\link{stat_fit_residuals}()},
 \code{\link{stat_fit_tb}()},
 \code{\link{stat_fit_tidy}()}
 }
-\concept{Statistics calling generic tidier methods.}
+\concept{ggplot statistics for model fits}

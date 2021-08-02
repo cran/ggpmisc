@@ -4,6 +4,85 @@ editor_options:
     wrap: 72
 ---
 
+# ggpmisc 0.4.1
+
+The suggestion from *Mark Neal* of adding support for quantile
+regression partly addressed in ggpmisc 0.4.0 has lead to additional
+enhancements in this version. The idea of supporting confidence bands
+for quantile regression came from *Samer Mouksassi* who also provided
+code examples. Additional suggestions from *Mark Neal, Carl* and other
+users have lead to bug fixes as well as to an interface with better
+defaults for arguments (see issue \#1). Some other enhancements are
+based on my own needs or ideas.
+
+-   Add support for median regression using `rlm` and other `function`
+    objects in `stat_poly_eq()`.
+-   Make it easier to use `stat_poly_eq()` and `stat_quant_eq()` with
+    `formula = x ~ y` and other models in which the explanatory variable
+    is `y` in addition to models with `x` as explanatory variable (this
+    was already supported but the defaults for `eq.with.lhs` and
+    `eq.x.rhs` were hard coded needing manual override while they are
+    now set dynamically depending on the `formula`).
+-   Revise `stat_poly_eq()` and `stat_quant_eq()` so that they pass to
+    the geom by default a suitable value as argument to `parse`
+    depending on `output.type` (enhancement suggested by *Mark Neal* in
+    issue \#11) and so that the default `output.type` is `"markdown"` if
+    the argument passed to `geom` is one of `"richtext"` or `"textbox"`,
+    improving compatibility with package 'ggtext'.
+-   Revise `stat_poly_eq()` and `stat_quant_eq()` so that when
+    `output.type = "numeric"` they return the coefficient estimates as
+    `numeric` columns in `data` (problem with `coefs.ls` column in data
+    when using facets reported by *cgnolte* in issue \#12).
+-   Revise `stat_poly_eq()` adding support for optional use of lower
+    case *r* and *p* for $R^2$ and $P$-value, respectively.
+-   Fix bug in `stat_poly_eq()` and `stat_quant_eq()` resulting in
+    mishandling of formulas using the `+ 0` notation to exclude the
+    intercept (reported by *orgadish* in issue \#10).
+-   Add `stat_poly_line()`, which is a new interface to
+    `ggplot2::stat_smooth()` accepting `formula = x ~ y` and other
+    models in which the explanatory variable is `y` rather than `x` or
+    setting `orientation = "y"`. In contrast to
+    `ggplot2::stat_smooth(),` `stat_poly_line()` has `"lm"` as default
+    for `method` irrespective of the number of observations.
+-   Add `stat_quant_line()` which is a merge of `ggplot2::stat_smooth()`
+    and `ggplot2::stat_quantile()` accepting `formula = x ~ y` and other
+    models in which the explanatory variable is `y` rather than `x` or
+    setting `orientation = "y"` to fit models with `x` as explanatory
+    variable. This statistic makes it possible to add to a plot a
+    *double quantile regression*. `stat_quant_line()` supports plotting
+    of confidence bands for quantile regression using
+    `ggplot2::geom_smooth()` to create the plot layer.
+-   Add `stat_quant_band()` which plots quantile regressions for three
+    quantiles as a band plus a line, accepting `formula = x ~ y` and
+    other models in which the explanatory variable is `y` rather than
+    `x` or setting `orientation = "y"` to fit models with `x` as
+    explanatory variable. By default the band uses `"steelblue"` as
+    `fill`, to distinguish them from confidence bands.
+-   Add support for quantile regression `rq`, robust regression `rlm`,
+    and resistant regression `lqs` and `function` objects to
+    `stat_fit_residuals()` and `stat_fit_deviations()` .
+-   Make it possible to use `stat_fit_residuals()` and
+    `stat_fit_deviations()` with `formula = x ~ y` and other models in
+    which the explanatory variable is `y` in addition to models with `x`
+    as explanatory variable.
+-   Add `weights` to returned values by `stat_fit_residuals()` and
+    `stat_fit_deviations()` and add support for the `weight` aesthetic
+    as their input for parameter `weights` of the model fit functions.
+-   Revise `stat_poly_eq()` and `stat_quant_eq()` so that by default
+    they keep trailing zeros according to the numbers of significant
+    digits given by `coef.digits`. A new parameter `coef.keep.zeros` can
+    be set to `FALSE` to restore the deletion of trailing zeros. Be
+    aware that even if the character label for the equation contains
+    trailing zeros, if it is parsed into R an expression (as it is by
+    default) the trailing zeros will be dropped at this later stage.
+    *Trailing zeros in the equation will be rendered to the plot only if
+    `output.type` is other than `"expression"`.* Equations and other
+    labels may render slightly differently than in previous versions as
+    now `sprintf()` is used to format all labels.
+-   Fix bug in `stat_poly_eq()` and `stat_quant_eq()` that resulted in
+    bad/non-syntactical character strings for `eq.label` when
+    `output.type` was different from its default of `"expression"`.
+
 # ggpmisc 0.4.0
 
 Package 'ggpmisc' has been split into two packages: 'ggpp' containing
@@ -23,9 +102,8 @@ Many thanks!
     package 'quantreg'. (enhancement suggested by *Mark Neal*)
 
 -   Add `n.label` and `n` to the values returned by `stat_poly_eq()`and
-    `stat_quant_eq()`.
-
-    (enhancement suggested by a question from *ganidat*)
+    `stat_quant_eq()`.(enhancement suggested by a question from
+    *ganidat*)
 
 -   Add `r.squared`, `adj.r.squared`, `p.value` and `n` as `numeric`
     values returned in addition to the corresponding `character` labels
@@ -106,7 +184,9 @@ Many thanks!
     if a `Date` object was mapped to *x (the bug did not affect POSIX or
     datetime, and was obvious as it resulted in a shift in dates by
     several decades)*.
--   **Move git repository from Bitbucket to Github.**
+-   **Move git repository from Bitbucket to Github.** Numbering of
+    issues restarts from \#1, but all old commits were transferred as
+    is.
 -   Set up Github action for CRAN-checks on Windows, OS X and Ubuntu.
 
 # ggpmisc 0.3.7
@@ -136,7 +216,7 @@ Many thanks!
 -   Override `ggplot2::annotate()` adding support for aesthetics `npcx`
     and `npcy`.
 -   Add `stat_summary_xy()` and `stat_centroid()`.
--   Revise `stat_poly_eq()` to support labeling of equations according
+-   Revise `stat_poly_eq()` to support labelling of equations according
     to group.
 -   Implement `output.type` `"markdown"` in `stat_poly_eq()` usable with
     `geom_richtext()` from package 'ggtext'.

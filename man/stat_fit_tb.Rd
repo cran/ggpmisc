@@ -133,7 +133,7 @@ can include aesthetics whose values you want to set, not map. See
 
   To explore the values returned by this statistic, which vary depending
   on the model fitting function and model formula we suggest the use of
-  \code{\link[gginnards]{geom_debug}}. An example is shown below.
+  \code{\link[gginnards]{geom_debug}}.
 }
 
 \examples{
@@ -272,9 +272,11 @@ ggplot(my.df, aes(covariate, x)) +
   how inset tables respond to mapped aesthetics and table themes. For details
   on predefined table themes see \code{\link{ttheme_gtdefault}}.
 
-Other Statistics calling generic tidier methods.: 
+Other ggplot statistics for model fits: 
 \code{\link{stat_fit_augment}()},
+\code{\link{stat_fit_deviations}()},
 \code{\link{stat_fit_glance}()},
+\code{\link{stat_fit_residuals}()},
 \code{\link{stat_fit_tidy}()}
 }
-\concept{Statistics calling generic tidier methods.}
+\concept{ggplot statistics for model fits}

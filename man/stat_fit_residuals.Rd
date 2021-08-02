@@ -9,10 +9,12 @@ stat_fit_residuals(
   data = NULL,
   geom = "point",
   method = "lm",
+  method.args = list(),
   formula = NULL,
   resid.type = NULL,
   position = "identity",
   na.rm = FALSE,
+  orientation = NA,
   show.legend = FALSE,
   inherit.aes = TRUE,
   ...
@@ -28,7 +30,11 @@ the plot defaults.}
 
 \item{geom}{The geometric object to use display the data}
 
-\item{method}{character Currently only "lm" is implemented.}
+\item{method}{function or character If character, "lm", "rlm", and "rq"
+are implemented. If a function, it must support parameters \code{formula}
+and \code{data}.}
+
+\item{method.args}{named list with additional arguments.}
 
 \item{formula}{a "formula" object. Using aesthetic names instead of
 original variable names.}
@@ -41,6 +47,9 @@ layer}
 
 \item{na.rm}{a logical indicating whether NA values should be stripped
 before the computation proceeds.}
+
+\item{orientation}{character Either "x" or "y" controlling the default for
+\code{formula}.}
 
 \item{show.legend}{logical. Should this layer be included in the legends?
 \code{NA}, the default, includes if any aesthetics are mapped. \code{FALSE}
@@ -72,6 +81,11 @@ This stat can be used to automatically plot residuals as points in a
   names, while data is automatically passed the data frame. This helps ensure
   that the model is fitted to the same data as plotted in other layers.
 }
+\note{
+Parameter \code{orientation} is redundant as it only affects the default
+  for \code{formula} but is included for consistency with
+  \code{ggplot2}.
+}
 \section{Computed variables}{
  Data frame with same \code{nrow} as \code{data}
   as subset for each group containing five numeric variables. \describe{
@@ -86,26 +100,88 @@ This stat can be used to automatically plot residuals as points in a
 set.seed(4321)
 x <- 1:100
 y <- (x + x^2 + x^3) + rnorm(length(x), mean = 0, sd = mean(x^3) / 4)
-my.data <- data.frame(x, y, group = c("A", "B"), y2 = y * c(0.5,2))
+my.data <- data.frame(x, y)
+
+# plot residuals from linear model
+ggplot(my.data, aes(x, y)) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  stat_fit_residuals(formula = y ~ x)
+
+# plot residuals from linear model with y as explanatory variable
+ggplot(my.data, aes(x, y)) +
+  geom_vline(xintercept = 0, linetype = "dashed") +
+  stat_fit_residuals(formula = x ~ y) +
+  coord_flip()
 
 # give a name to a formula
 my.formula <- y ~ poly(x, 3, raw = TRUE)
 
-# plot
+# plot residuals from linear model
 ggplot(my.data, aes(x, y)) +
-  stat_fit_residuals(formula = my.formula, resid.type = "working")
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  stat_fit_residuals(formula = my.formula) +
+  coord_flip()
 
-library(gginnards) # needed for geom_debug()
-# print to the console the returned data
 ggplot(my.data, aes(x, y)) +
-  stat_fit_residuals(formula = my.formula, resid.type = "working",
-                     geom = "debug")
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  stat_fit_residuals(formula = my.formula, resid.type = "response")
+
+# plot residuals from robust regression
+ggplot(my.data, aes(x, y)) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  stat_fit_residuals(formula = my.formula, method = "rlm")
+
+# plot residuals with weights indicated by colour
+my.data.outlier <- my.data
+my.data.outlier[6, "y"] <- my.data.outlier[6, "y"] * 10
+ggplot(my.data.outlier, aes(x, y)) +
+  stat_fit_residuals(formula = my.formula, method = "rlm",
+                      mapping = aes(colour = after_stat(weights)),
+                      show.legend = TRUE) +
+  scale_color_gradient(low = "red", high = "blue", limits = c(0, 1),
+                       guide = "colourbar")
+
+# plot weighted residuals with weights indicated by colour
+ggplot(my.data.outlier) +
+  stat_fit_residuals(formula = my.formula, method = "rlm",
+                     mapping = aes(x = x,
+                                   y = stage(start = y, after_stat = y * weights),
+                                   colour = after_stat(weights)),
+                     show.legend = TRUE) +
+  scale_color_gradient(low = "red", high = "blue", limits = c(0, 1),
+                       guide = "colourbar")
+
+# plot residuals from quantile regression (median)
+ggplot(my.data, aes(x, y)) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  stat_fit_residuals(formula = my.formula, method = "rq")
+
+# plot residuals from quantile regression (upper quartile)
+ggplot(my.data, aes(x, y)) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  stat_fit_residuals(formula = my.formula, method = "rq",
+  method.args = list(tau = 0.75))
+
+# inspecting the returned data
+if (requireNamespace("gginnards", quietly = TRUE)) {
+  library(gginnards)
+
+  ggplot(my.data, aes(x, y)) +
+   stat_fit_residuals(formula = my.formula, resid.type = "working",
+                      geom = "debug")
+
+  ggplot(my.data, aes(x, y)) +
+    stat_fit_residuals(formula = my.formula, method = "rlm",
+                       geom = "debug")
+}
 
 }
 \seealso{
-Other statistics for linear model fits: 
+Other ggplot statistics for model fits: 
+\code{\link{stat_fit_augment}()},
 \code{\link{stat_fit_deviations}()},
-\code{\link{stat_poly_eq}()},
-\code{\link{stat_quant_eq}()}
+\code{\link{stat_fit_glance}()},
+\code{\link{stat_fit_tb}()},
+\code{\link{stat_fit_tidy}()}
 }
-\concept{statistics for linear model fits}
+\concept{ggplot statistics for model fits}

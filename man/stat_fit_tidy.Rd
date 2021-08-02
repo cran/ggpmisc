@@ -15,6 +15,7 @@ stat_fit_tidy(
   label.y = "top",
   hstep = 0,
   vstep = NULL,
+  sanitize.names = FALSE,
   position = "identity",
   na.rm = FALSE,
   show.legend = FALSE,
@@ -45,6 +46,9 @@ recycled.}
 \item{hstep, vstep}{numeric in npc units, the horizontal and vertical step
 used between labels for different groups.}
 
+\item{sanitize.names}{logical If true sanitize column names in the returned
+\code{data} with R's \code{make.names()} function.}
+
 \item{position}{The position adjustment to use for overlapping points on this
 layer}
 
@@ -64,10 +68,32 @@ default plot specification, e.g. \code{\link[ggplot2]{borders}}.}
 can include aesthetics whose values you want to set, not map. See
 \code{\link[ggplot2]{layer}} for more details.}
 }
+\value{
+The output of \code{tidy()} is returned after reshaping it into a
+  single row. Grouping is respected, and the model fitted separately to each
+  group of data. The returned \code{data} object has one row for each group
+  within a panel. To use the intercept, note that output of \code{tidy()} is
+  renamed from \code{(Intercept)} to \code{Intercept}. Otherwise, the names
+  of the columns in the returned data are based on those returned by the
+  \code{tidy()} method for the model fit class returned by the fit function.
+  These will frequently differ from the name of values returned by the print
+  methods corresponding to the fit or test function used. To explore the
+  values returned by this statistic including the name of variables/columns,
+  which vary depending on the model fitting function and model formula, we
+  suggest the use of \code{\link[gginnards]{geom_debug}}. An example is shown
+  below. Names of columns as returned by default are not always syntactically
+  valid R names making it necessary to use back ticks to access them.
+  Syntactically valid names are guaranteed if \code{sanitize.names = TRUE} is
+  added to the call.
+
+  To explore the values returned by this statistic, which vary depending on
+  the model fitting function and model formula we suggest the use of
+  \code{\link[gginnards]{geom_debug}}. An example is shown below.
+}
 \description{
 \code{stat_fit_tidy} fits a model and returns a "tidy" version
   of the model's summary, using '\code{tidy()} methods from packages 'broom',
-  'broom.mixed', or other sources.#' To add the summary in tabular form use
+  'broom.mixed', or other sources. To add the summary in tabular form use
   \code{\link{stat_fit_tb}} instead of this statistic. When using
   \code{stat_fit_tidy()} you will most likely want to change the default
   mapping for label.
@@ -76,7 +102,7 @@ can include aesthetics whose values you want to set, not map. See
 \code{stat_fit_tidy} together with \code{\link{stat_fit_glance}}
   and \code{\link{stat_fit_augment}}, based on package 'broom' can be used
   with a broad range of model fitting functions as supported at any given
-  time by 'broom'. In contrast to \code{\link{stat_poly_eq}} wich can
+  time by 'broom'. In contrast to \code{\link{stat_poly_eq}} which can
   generate text or expression labels automatically, for these functions the
   mapping of aesthetic \code{label} needs to be explicitly supplied in the
   call, and labels built on the fly.
@@ -85,7 +111,7 @@ can include aesthetics whose values you want to set, not map. See
   as argument by the user, but instead a data frame with the variables mapped
   to aesthetics. In other words, it respects the grammar of graphics and
   consequently within arguments passed through \code{method.args} names of
-  aesthetics like $x$ and $y$ should be used intead of the original variable
+  aesthetics like $x$ and $y$ should be used instead of the original variable
   names, while data is automatically passed the data frame. This helps ensure
   that the model is fitted to the same data as plotted in other layers.
 }
@@ -104,7 +130,7 @@ Although arguments passed to parameter \code{tidy.args} will be
 }
 \section{Warning!}{
  Not all `glance()` methods are defined in package 'broom'.
-  `glance()` especializations for mixed models fits of classes `lme`, `nlme`,
+  `glance()` specializations for mixed models fits of classes `lme`, `nlme`,
   `lme4`, and many others are defined in package 'broom.mixed'.
 }
 
@@ -117,30 +143,35 @@ Although arguments passed to parameter \code{tidy.args} will be
   instead \code{stat_fit_tb()} which applies the model fitting per panel.
 }
 
-\section{Computed variables}{
- The output of \code{tidy()} is returned after
-  reshaping it into a single row. Grouping is respected, and the model fit
-  separatately to each group of data. The returned \code{data} object has one
-  row for each group within a panel. To use the intercept, note that output
-  of \code{tidy()} is renamed from \code{(Intercept)} to \code{Intercept}.
-
-  To explore the values returned by this statistic, which vary depending
-  on the model fitting function and model formula we suggest the use of
-  \code{\link[gginnards]{geom_debug}}. An example is shown below.
-}
-
 \examples{
 library(broom)
-library(gginnards)
 library(quantreg)
 
-# Regression by panel, exploring computed variables with geom_debug()
-ggplot(mtcars, aes(x = disp, y = mpg)) +
-  stat_smooth(method = "lm") +
-  geom_point(aes(colour = factor(cyl))) +
-  stat_fit_tidy(method = "lm",
-                method.args = list(formula = y ~ x),
-                geom = "debug")
+# Inspecting the returned data using geom_debug()
+if (requireNamespace("gginnards", quietly = TRUE)) {
+  library(gginnards)
+
+# This provides a quick way of finding out the names of the variables that
+# are available for mapping to aesthetics. This is specially important for
+# this stat as these names depend on the specific tidy() method used, which
+# depends on the method used, such as lm(), used to fit the model.
+
+# Regression by panel, default column names
+  ggplot(mtcars, aes(x = disp, y = mpg)) +
+    stat_smooth(method = "lm", formula = y ~ x + I(x^2)) +
+    geom_point(aes(colour = factor(cyl))) +
+    stat_fit_tidy(method = "lm",
+                  method.args = list(formula = y ~ x + I(x^2)),
+                  geom = "debug")
+
+# Regression by panel, sanitized column names
+  ggplot(mtcars, aes(x = disp, y = mpg)) +
+    stat_smooth(method = "lm", formula = y ~ x + I(x^2)) +
+    geom_point(aes(colour = factor(cyl))) +
+    stat_fit_tidy(method = "lm",
+                  method.args = list(formula = y ~ x + I(x^2)),
+                  geom = "debug", sanitize.names = TRUE)
+}
 
 # Regression by panel example
 ggplot(mtcars, aes(x = disp, y = mpg)) +
@@ -150,8 +181,8 @@ ggplot(mtcars, aes(x = disp, y = mpg)) +
                 label.x = "right",
                 method.args = list(formula = y ~ x),
                 mapping = aes(label = sprintf("Slope = \%.3g\np-value = \%.3g",
-                                              stat(x_estimate),
-                                              stat(x_p.value))))
+                                              after_stat(x_estimate),
+                                              after_stat(x_p.value))))
 
 # Regression by group example
 ggplot(mtcars, aes(x = disp, y = mpg, colour = factor(cyl))) +
@@ -161,8 +192,8 @@ ggplot(mtcars, aes(x = disp, y = mpg, colour = factor(cyl))) +
                 label.x = "right",
                 method.args = list(formula = y ~ x),
                 mapping = aes(label = sprintf("Slope = \%.3g, p-value = \%.3g",
-                                              stat(x_estimate),
-                                              stat(x_p.value))))
+                                              after_stat(x_estimate),
+                                              after_stat(x_p.value))))
 
 # Weighted regression example
 ggplot(mtcars, aes(x = disp, y = mpg, weight = cyl)) +
@@ -172,8 +203,8 @@ ggplot(mtcars, aes(x = disp, y = mpg, weight = cyl)) +
                 label.x = "right",
                 method.args = list(formula = y ~ x, weights = quote(weight)),
                 mapping = aes(label = sprintf("Slope = \%.3g\np-value = \%.3g",
-                                              stat(x_estimate),
-                                              stat(x_p.value))))
+                                              after_stat(x_estimate),
+                                              after_stat(x_p.value))))
 
 # Correlation test
 ggplot(mtcars, aes(x = disp, y = mpg)) +
@@ -183,8 +214,8 @@ ggplot(mtcars, aes(x = disp, y = mpg)) +
                 label.y = "bottom",
                 method.args = list(formula = ~ x + y),
                 mapping = aes(label = sprintf("R = \%.3g\np-value = \%.3g",
-                                              stat(`_estimate`),
-                                              stat(`_p.value`))))
+                                              after_stat(`_estimate`),
+                                              after_stat(`_p.value`))))
 
 # Quantile regression
 ggplot(mtcars, aes(x = disp, y = mpg)) +
@@ -195,17 +226,19 @@ ggplot(mtcars, aes(x = disp, y = mpg)) +
                 method.args = list(formula = y ~ x),
                 tidy.args = list(se.type = "nid"),
                 mapping = aes(label = sprintf("Slope = \%.3g\np-value = \%.3g",
-                                              stat(x_estimate),
-                                              stat(x_p.value))))
+                                              after_stat(x_estimate),
+                                              after_stat(x_p.value))))
 
 }
 \seealso{
 \code{\link[broom]{broom}} and \code{broom.mixed} for details on how
   the tidying of the result of model fits is done.
 
-Other Statistics calling generic tidier methods.: 
+Other ggplot statistics for model fits: 
 \code{\link{stat_fit_augment}()},
+\code{\link{stat_fit_deviations}()},
 \code{\link{stat_fit_glance}()},
+\code{\link{stat_fit_residuals}()},
 \code{\link{stat_fit_tb}()}
 }
-\concept{Statistics calling generic tidier methods.}
+\concept{ggplot statistics for model fits}

@@ -4,6 +4,16 @@
 #' generates several labels including the equation, p-value, coefficient of
 #' determination (R^2), 'AIC' and 'BIC'.
 #'
+#' This statistic interprets the argument passed to \code{formula} differently
+#' than \code{\link[ggplot2]{stat_quantile}} accepting \code{y} as well as
+#' \code{x} as explanatory variable, matching \code{stat_poly_quant()}.
+#'
+#' When two variables are subject to mutual constrains, it is useful to consider
+#' both of them as explanatory and interpret the relationship based on them. So,
+#' from version 0.4.1 'ggpmisc' makes it possible to easily implement the
+#' approach described by Cardoso (2019) under the name of "Double quantile
+#' regression".
+#'
 #' @param mapping The aesthetic mapping, usually constructed with
 #'   \code{\link[ggplot2]{aes}} or \code{\link[ggplot2]{aes_}}. Only needs to be
 #'   set at the layer level if you are overriding the plot defaults.
@@ -34,6 +44,8 @@
 #'   it.
 #' @param coef.digits,rho.digits integer Number of significant digits to use for
 #'   the fitted coefficients and rho in labels.
+#' @param coef.keep.zeros logical Keep or drop trailing zeros when formatting
+#'   the fitted coefficients and F-value.
 #' @param label.x,label.y \code{numeric} with range 0..1 "normalized parent
 #'   coordinates" (npc units) or character if using \code{geom_text_npc()} or
 #'   \code{geom_label_npc()}. If using \code{geom_text()} or \code{geom_label()}
@@ -43,14 +55,25 @@
 #'   using npcx and npcy aesthetics.
 #' @param hstep,vstep numeric in npc units, the horizontal and vertical step
 #'   used between labels for different groups.
-#' @param output.type character One of "expression", "LaTeX", "text",
-#'   "markdown" or "numeric".
+#' @param output.type character One of \code{"expression"}, \code{"LaTeX"},
+#'   \code{"text"}, \code{"markdown"} or \code{"numeric"}. In most cases,
+#'   instead of using this statistics to obtain numeric values, it is better to
+#'   use \code{stat_fit_tidy()}.
+#' @param orientation character Either \code{"x"} or \code{"y"} controlling the
+#'   default for \code{formula}.
+#' @param parse logical Passed to the geom. If \code{TRUE}, the labels will be
+#'   parsed into expressions and displayed as described in \code{?plotmath}.
+#'   Default is \code{TRUE} if \code{output.type = "expression"} and
+#'   \code{FALSE} otherwise.
 #'
 #' @note For backward compatibility a logical is accepted as argument for
-#'   \code{eq.with.lhs}, giving the same output than the current default
-#'   character value. By default "x" is retained as independent variable as this
-#'   is the name of the aesthetic. However, it can be substituted by providing a
+#'   \code{eq.with.lhs}. If \code{TRUE}, the default is used, either
+#'   \code{"x"} or \code{"y"}, depending on the argument passed to \code{formula}.
+#'   However, \code{"x"} or \code{"y"} can be substituted by providing a
 #'   suitable replacement character string through \code{eq.x.rhs}.
+#'   Parameter \code{orientation} is redundant as it only affects the default
+#'   for \code{formula} but is included for consistency with
+#'   \code{ggplot2::stat_smooth()}.
 #'
 #' @details This stat can be used to automatically annotate a plot with R^2,
 #'   adjusted R^2 or the fitted model equation. It supports only linear models
@@ -59,13 +82,21 @@
 #'   correctly generated for polynomials or quasi-polynomials through the
 #'   origin. Model formulas can use \code{poly()} or be defined algebraically
 #'   with terms of powers of increasing magnitude with no missing intermediate
-#'   terms, except possibly for the intercept indicated by "- 1" or "-1" in the
-#'   formula. The validity of the \code{formula} is not checked in the current
-#'   implementation, and for this reason the default aesthetics sets R^2 as
-#'   label for the annotation. This stat only generates labels, the predicted
-#'   values need to be separately added to the plot, so to make sure that the
-#'   same model formula is used in all steps it is best to save the formula as
-#'   an object and supply this object as argument to the different statistics.
+#'   terms, except possibly for the intercept indicated by \code{"- 1"} or
+#'   \code{"-1"} or \code{"+ 0"} in the formula. The validity of the
+#'   \code{formula} is not checked in the current implementation, and for this
+#'   reason the default aesthetics sets R^2 as label for the annotation.  This
+#'   stat generates labels as R expressions by default but LaTeX (use TikZ
+#'   device), markdown (use package 'ggtext') and plain text are also supported,
+#'   as well as numeric values for user-generated text labels. The value of
+#'   \code{parse} is set automatically based on \code{output-type}, but if you
+#'   assemble labels that need parsing from \code{numeric} output, the default
+#'   needs to be overriden. This stat only generates annotation labels, the
+#'   predicted values/line need to be added to the plot as a separate layer
+#'   using \code{\link{stat_quant_line}} or
+#'   \code{\link[ggplot2]{stat_quantile}}, so to make sure that the same model
+#'   formula is used in all steps it is best to save the formula as an object
+#'   and supply this object as argument to the different statistics.
 #'
 #'   A ggplot statistic receives as data a data frame that is not the one passed
 #'   as argument by the user, but instead a data frame with the variables mapped
@@ -85,7 +116,7 @@
 #'
 #' @section Computed variables:
 #' If output.type different from \code{"numeric"} the returned tibble contains
-#' columns:
+#' columns below in addition to a modified version of the original \code{group}:
 #' \describe{
 #'   \item{x,npcx}{x position}
 #'   \item{y,npcy}{y position}
@@ -96,23 +127,27 @@
 #'   \item{n.label}{Number of observations used in the fit.}
 #'   \item{rq.method}{character, method used.}
 #'   \item{rho, n}{numeric values extracted or computed from fit object.}
-#'   \item{hjust, vjust}{Set to "inward" to override the default of the "text" geom.}}
+#'   \item{hjust, vjust}{Set to "inward" to override the default of the "text" geom.}
+#'   \item{quantile}{Numeric value of the quantile used for the fit}
+#'   \item{quantile.f}{Factor with a level for each quantile}
+#'   }
 #'
-#' If output.type is \code{"numeric"} the returned tibble contains columns:
+#' If output.type is \code{"numeric"} the returned tibble contains columns
+#'  in addition to a modified version of the original \code{group}:
 #' \describe{
 #'   \item{x,npcx}{x position}
 #'   \item{y,npcy}{y position}
 #'   \item{coef.ls}{list containing the "coefficients" matrix from the summary of the fit object}
 #'   \item{rho, AIC, n}{numeric values extracted or computed from fit object}
 #'   \item{rq.method}{character, method used.}
-#'   \item{hjust, vjust}{Set to "inward" to override the default of the "text" geom.}}
+#'   \item{hjust, vjust}{Set to "inward" to override the default of the "text" geom.}
+#'   \item{quantile}{Indicating the quantile  used for the fit}
+#'   \item{quantile.f}{Factor with a level for each quantile}
+#'   \item{b_0.constant}{TRUE is polynomial is forced through the origin}
+#'   \item{b_i}{One or columns with the coefficient estimates}}
 #'
 #' To explore the computed values returned for a given input we suggest the use
 #' of \code{\link[gginnards]{geom_debug}} as shown in the example below.
-#'
-#' @section Parsing may be required: if using the computed labels with
-#'   \code{output.type = "expression"}, then \code{parse = TRUE} is needed,
-#'   while if using \code{output.type = "LaTeX"} \code{parse = FALSE} is needed.
 #'
 #' @seealso This \code{stat_quant_eq} statistic can return ready formatted labels
 #'   depending on the argument passed to \code{output.type}. This is possible
@@ -124,9 +159,9 @@
 #'
 #' @note Support for the \code{angle} aesthetic is not automatic and requires
 #'   that the user passes as argument suitable numeric values to override the
-#'   defaults.
+#'   defaults for label positions.
 #'
-#' @family statistics for linear model fits
+#' @family ggplot statistics for quantile regression
 #'
 #' @import quantreg
 #'
@@ -140,149 +175,173 @@
 #'                       y2 = y * c(0.5,2),
 #'                       w = sqrt(x))
 #'
+#' # using defaults
+#' ggplot(my.data, aes(x, y)) +
+#'   geom_point() +
+#'   stat_quant_line() +
+#'   stat_quant_eq()
+#'
+#' # same formula as default
+#' ggplot(my.data, aes(x, y)) +
+#'   geom_point() +
+#'   stat_quant_line(formula = y ~ x) +
+#'   stat_quant_eq(formula = y ~ x)
+#'
+#' # explicit formula "x explained by y"
+#' ggplot(my.data, aes(x, y)) +
+#'   geom_point() +
+#'   stat_quant_line(formula = x ~ y) +
+#'   stat_quant_eq(formula = x ~ y)
+#'
+#' # using color
+#' ggplot(my.data, aes(x, y)) +
+#'   geom_point() +
+#'   stat_quant_line(aes(color = after_stat(quantile.f))) +
+#'   stat_quant_eq(aes(color = after_stat(quantile.f))) +
+#'   labs(color = "Quantiles")
+#'
+#' # location and colour
+#' ggplot(my.data, aes(x, y)) +
+#'   geom_point() +
+#'   stat_quant_line(aes(color = after_stat(quantile.f))) +
+#'   stat_quant_eq(aes(color = after_stat(quantile.f)),
+#'                 label.y = "bottom", label.x = "right") +
+#'   labs(color = "Quantiles")
+#'
 #' # give a name to a formula
 #' formula <- y ~ poly(x, 3, raw = TRUE)
 #'
 #' # no weights
 #' ggplot(my.data, aes(x, y)) +
 #'   geom_point() +
-#'   geom_quantile(formula = formula) +
-#'   stat_quant_eq(formula = formula, parse = TRUE)
+#'   stat_quant_line(formula = formula) +
+#'   stat_quant_eq(formula = formula)
 #'
 #' # angle
 #' ggplot(my.data, aes(x, y)) +
 #'   geom_point() +
-#'   geom_quantile(formula = formula) +
-#'   stat_quant_eq(formula = formula, parse = TRUE, angle = 90,
-#'                 hstep = 0.05, vstep = 0, hjust = 0,
-#'                 label.y = 0.5)
+#'   stat_quant_line(formula = formula) +
+#'   stat_quant_eq(formula = formula, angle = 90, hstep = 0.05, vstep = 0,
+#'                 label.y = 0.98, hjust = 1)
 #'
 #' ggplot(my.data, aes(x, y)) +
 #'   geom_point() +
-#'   geom_quantile(formula = formula) +
-#'   stat_quant_eq(formula = formula, parse = TRUE, angle = 90,
+#'   stat_quant_line(formula = formula) +
+#'   stat_quant_eq(formula = formula, angle = 90,
 #'                 hstep = 0.05, vstep = 0, hjust = 0,
-#'                 label.y = 0.5)
+#'                 label.y = 0.25)
 #'
 #' # user set quantiles
 #' ggplot(my.data, aes(x, y)) +
 #'   geom_point() +
-#'   geom_quantile(formula = formula, quantiles = 0.5) +
-#'   stat_quant_eq(formula = formula, quantiles = 0.5, parse = TRUE)
+#'   stat_quant_line(formula = formula, quantiles = 0.5) +
+#'   stat_quant_eq(formula = formula, quantiles = 0.5)
 #'
 #' # grouping
 #' ggplot(my.data, aes(x, y, color = group)) +
 #'   geom_point() +
-#'   geom_quantile(formula = formula) +
-#'   stat_quant_eq(formula = formula, parse = TRUE)
+#'   stat_quant_line(formula = formula) +
+#'   stat_quant_eq(formula = formula)
 #'
 #' ggplot(my.data, aes(x, y, color = group)) +
 #'   geom_point() +
-#'   geom_quantile(formula = formula) +
-#'   stat_quant_eq(formula = formula, parse = TRUE, angle = 90,
+#'   stat_quant_line(formula = formula) +
+#'   stat_quant_eq(formula = formula, angle = 90,
 #'                 hstep = 0.05, vstep = 0, hjust = 0,
-#'                 label.y = 0.5)
+#'                 size = 3, label.y = 0.3)
 #'
 #' # labelling equations
 #' ggplot(my.data, aes(x, y,  shape = group, linetype = group,
 #'        grp.label = group)) +
 #'   geom_point() +
-#'   geom_quantile(formula = formula, color = "black") +
-#'   stat_quant_eq(aes(label = paste(stat(grp.label), stat(eq.label), sep = "*\": \"*")),
-#'                 formula = formula, parse = TRUE) +
+#'   stat_quant_line(formula = formula, color = "black") +
+#'   stat_quant_eq(aes(label = paste(after_stat(grp.label), after_stat(eq.label), sep = "*\": \"*")),
+#'                 formula = formula) +
 #'   theme_classic()
 #'
 #' # setting non-default quantiles
 #' ggplot(my.data, aes(x, y)) +
 #'   geom_point() +
-#'   geom_quantile(formula = formula,
-#'                 quantiles = c(0.1, 0.5, 0.9)) +
+#'   stat_quant_line(formula = formula,
+#'                   quantiles = c(0.1, 0.5, 0.9)) +
 #'   stat_quant_eq(formula = formula, parse = TRUE,
-#'                quantiles = c(0.1, 0.5, 0.9))
+#'                 quantiles = c(0.1, 0.5, 0.9))
 #'
 #' # Location of equations
 #' ggplot(my.data, aes(x, y)) +
 #'   geom_point() +
-#'   geom_quantile(formula = formula) +
-#'   stat_quant_eq(formula = formula, parse = TRUE,
-#'                label.y = "bottom", label.x = "right")
+#'   stat_quant_line(formula = formula) +
+#'   stat_quant_eq(formula = formula, label.y = "bottom", label.x = "right")
 #'
 #' ggplot(my.data, aes(x, y)) +
 #'   geom_point() +
-#'   geom_quantile(formula = formula) +
-#'   stat_quant_eq(formula = formula, parse = TRUE,
-#'                label.y = 0.03, label.x = 0.95, vstep = 0.04)
+#'   stat_quant_line(formula = formula) +
+#'   stat_quant_eq(formula = formula, label.y = 0.03, label.x = 0.95, vstep = 0.04)
 #'
 #' # using weights
 #' ggplot(my.data, aes(x, y, weight = w)) +
 #'   geom_point() +
-#'   geom_quantile(formula = formula) +
-#'   stat_quant_eq(formula = formula, parse = TRUE)
+#'   stat_quant_line(formula = formula) +
+#'   stat_quant_eq(formula = formula)
 #'
 #' # no weights, quantile set to upper boundary
 #' ggplot(my.data, aes(x, y)) +
 #'   geom_point() +
-#'   geom_quantile(formula = formula, quantiles = 1) +
-#'   stat_quant_eq(formula = formula, quantiles = 1, parse = TRUE)
+#'   stat_quant_line(formula = formula, quantiles = 0.95) +
+#'   stat_quant_eq(formula = formula, quantiles = 0.95)
 #'
 #' # user specified label
 #' ggplot(my.data, aes(x, y, color = group, grp.label = group)) +
 #'   geom_point() +
-#'   geom_quantile(method = "rq", formula = formula,
+#'   stat_quant_line(method = "rq", formula = formula,
 #'                 quantiles = c(0.05, 0.5, 0.95)) +
-#'   stat_quant_eq(aes(label = paste(stat(grp.label), "*\": \"*",
-#'                                    stat(eq.label), sep = "")),
+#'   stat_quant_eq(aes(label = paste(after_stat(grp.label), "*\": \"*",
+#'                                    after_stat(eq.label), sep = "")),
 #'                 quantiles = c(0.05, 0.5, 0.95),
-#'                 formula = formula, parse = TRUE)
+#'                 formula = formula, size = 3)
 #'
 #' # geom = "text"
 #' ggplot(my.data, aes(x, y)) +
 #'   geom_point() +
-#'   geom_quantile(method = "rq", formula = formula, quantiles = 0.5) +
+#'   stat_quant_line(method = "rq", formula = formula, quantiles = 0.5) +
 #'   stat_quant_eq(label.x = "left", label.y = "top",
-#'                 formula = formula, parse = TRUE)
+#'                 formula = formula)
 #'
-#' # Examples using geom_debug() to show computed values
-#' #
-#' # This provides a quick way of finding out which variables are available for
-#' # use in mapping of aesthetics when using other geoms as in the examples
-#' # above.
+#' # Inspecting the returned data using geom_debug()
+#' if (requireNamespace("gginnards", quietly = TRUE)) {
+#'   library(gginnards)
 #'
-#' library(gginnards)
+#' # This provides a quick way of finding out the names of the variables that
+#' # are available for mapping to aesthetics.
 #'
-#' ggplot(my.data, aes(x, y)) +
-#'   geom_point() +
-#'   stat_quant_eq(formula = formula, geom = "debug")
+#'   ggplot(my.data, aes(x, y)) +
+#'     geom_point() +
+#'     stat_quant_eq(formula = formula, geom = "debug")
 #'
-#' ggplot(my.data, aes(x, y)) +
-#'   geom_point() +
-#'   stat_quant_eq(aes(label = stat(eq.label)),
-#'                formula = formula, geom = "debug",
-#'                output.type = "markdown")
+#'   ggplot(my.data, aes(x, y)) +
+#'     geom_point() +
+#'     stat_quant_eq(aes(label = after_stat(eq.label)),
+#'                   formula = formula, geom = "debug",
+#'                   output.type = "markdown")
 #'
-#' ggplot(my.data, aes(x, y)) +
-#'   geom_point() +
-#'   stat_quant_eq(formula = formula, geom = "debug", output.type = "text")
+#'   ggplot(my.data, aes(x, y)) +
+#'     geom_point() +
+#'     stat_quant_eq(formula = formula, geom = "debug", output.type = "text")
 #'
-#' ggplot(my.data, aes(x, y)) +
-#'   geom_point() +
-#'   stat_quant_eq(formula = formula, geom = "debug", output.type = "numeric")
+#'   ggplot(my.data, aes(x, y)) +
+#'     geom_point() +
+#'     stat_quant_eq(formula = formula, geom = "debug", output.type = "numeric")
 #'
-#' ggplot(my.data, aes(x, y)) +
-#'   geom_point() +
-#'   stat_quant_eq(formula = formula, quantiles = c(0.25, 0.5, 0.75),
-#'                 geom = "debug", output.type = "text")
+#'   ggplot(my.data, aes(x, y)) +
+#'     geom_point() +
+#'     stat_quant_eq(formula = formula, quantiles = c(0.25, 0.5, 0.75),
+#'                   geom = "debug", output.type = "text")
 #'
-#' ggplot(my.data, aes(x, y)) +
-#'   geom_point() +
-#'   stat_quant_eq(formula = formula, quantiles = c(0.25, 0.5, 0.75),
-#'                 geom = "debug", output.type = "numeric")
-#'
-#' # show the content of a list column
-#' ggplot(my.data, aes(x, y)) +
-#'   geom_point() +
-#'   stat_quant_eq(formula = formula, geom = "debug", output.type = "numeric",
-#'                summary.fun = function(x) {x[["coef.ls"]][[1]]})
+#'   ggplot(my.data, aes(x, y)) +
+#'     geom_point() +
+#'     stat_quant_eq(formula = formula, quantiles = c(0.25, 0.5, 0.75),
+#'                   geom = "debug", output.type = "numeric")
+#' }
 #'
 #' @export
 #'
@@ -295,6 +354,7 @@ stat_quant_eq <- function(mapping = NULL, data = NULL,
                          eq.with.lhs = TRUE,
                          eq.x.rhs = NULL,
                          coef.digits = 3,
+                         coef.keep.zeros = TRUE,
                          rho.digits = 2,
                          label.x = "left", label.y = "top",
                          label.x.npc = NULL, label.y.npc = NULL,
@@ -302,6 +362,8 @@ stat_quant_eq <- function(mapping = NULL, data = NULL,
                          vstep = NULL,
                          output.type = "expression",
                          na.rm = FALSE,
+                         orientation = NA,
+                         parse = NULL,
                          show.legend = FALSE,
                          inherit.aes = TRUE) {
   # backwards compatibility
@@ -312,6 +374,9 @@ stat_quant_eq <- function(mapping = NULL, data = NULL,
   if (!is.null(label.y.npc)) {
     stopifnot(grepl("_npc", geom))
     label.y <- label.y.npc
+  }
+  if (is.null(parse)) {
+    parse <- output.type == "expression"
   }
   ggplot2::layer(
     data = data,
@@ -326,6 +391,7 @@ stat_quant_eq <- function(mapping = NULL, data = NULL,
                   eq.with.lhs = eq.with.lhs,
                   eq.x.rhs = eq.x.rhs,
                   coef.digits = coef.digits,
+                  coef.keep.zeros = coef.keep.zeros,
                   rho.digits = rho.digits,
                   label.x = label.x,
                   label.y = label.y,
@@ -338,6 +404,8 @@ stat_quant_eq <- function(mapping = NULL, data = NULL,
                   npc.used = grepl("_npc", geom),
                   output.type = output.type,
                   na.rm = na.rm,
+                  orientation = orientation,
+                  parse = parse,
                   ...)
   )
 }
@@ -357,6 +425,7 @@ quant_eq_compute_group_fun <- function(data,
                                        eq.with.lhs,
                                        eq.x.rhs,
                                        coef.digits,
+                                       coef.keep.zeros,
                                        rho.digits,
                                        label.x,
                                        label.y,
@@ -364,9 +433,34 @@ quant_eq_compute_group_fun <- function(data,
                                        vstep,
                                        npc.used,
                                        output.type,
-                                       na.rm) {
+                                       na.rm,
+                                       orientation) {
   force(data)
   num.quantiles <- length(quantiles)
+
+  # make sure quantiles are ordered
+  quantiles <- sort(quantiles)
+
+  # factor with nicely formatted labels
+  quant.digits <- ifelse(min(quantiles) < 0.01 || max(quantiles) > 0.99, 3, 2)
+  quant.levels <- sort(unique(quantiles), decreasing = TRUE)
+  quant.labels <- sprintf("%.*#f", quant.digits, quant.levels)
+  quantiles.f <- factor(quantiles,
+                        levels = quant.levels,
+                        labels = quant.labels)
+
+  # we guess formula from orientation
+  if (is.null(formula)) {
+    if (is.na(orientation) || orientation == "x") {
+      formula = y ~ x
+    } else if (orientation == "y") {
+      formula = x ~ y
+    }
+  }
+  # we guess orientation from formula
+  if (is.na(orientation)) {
+    orientation <- unname(c(x = "y", y = "x")[as.character(formula)[2]])
+  }
 
   output.type <- if (!length(output.type)) {
     "expression"
@@ -391,16 +485,6 @@ quant_eq_compute_group_fun <- function(data,
     grp.label <- ""
   }
 
-  if (is.null(eq.x.rhs)) {
-    if (output.type == "expression") {
-      eq.x.rhs <- "~italic(x)"
-    } else if (output.type == "markdown") {
-      eq.x.rhs <- "_x_"
-    } else{
-      eq.x.rhs <- " x"
-    }
-  }
-
   group.idx <- abs(data[["group"]][1])
   if (length(label.x) >= group.idx) {
     label.x <- label.x[group.idx]
@@ -413,11 +497,20 @@ quant_eq_compute_group_fun <- function(data,
     label.y <- label.y[1]
   }
 
-  if (length(unique(data[["x"]])) < 2) {
-    warning("Not enough data to perform fit for group ",
-            group.idx, "; computing mean instead.",
-            call. = FALSE)
-    formula = y ~ 1
+  if (orientation == "x") {
+    if (length(unique(data[["x"]])) < 2) {
+      warning("Not enough data to perform fit for group ",
+              group.idx, "; computing mean instead.",
+              call. = FALSE)
+      formula = y ~ 1
+    }
+  } else if (orientation == "y") {
+    if (length(unique(data[["y"]])) < 2) {
+      warning("Not enough data to perform fit for group ",
+              group.idx, "; computing mean instead.",
+              call. = FALSE)
+      formula = x ~ 1
+    }
   }
 
   rq.args <- list(quote(formula),
@@ -445,77 +538,78 @@ quant_eq_compute_group_fun <- function(data,
   n <- length(mf.summary[[1]][["residuals"]])
   rho <- mf[["rho"]]
   rq.method <- mf[["method"]]
-  coefs <- mf[["coefficients"]]
-  # ensure that coefs is consistent
-  if (is.vector(coefs)) {
-    coefs <- as.matrix(coefs)
-    colnames(coefs) <- paste("tau=", mf[["tau"]])
+  coefs.mt <- mf[["coefficients"]] # a matrix if length(quantiles) > 1
+  # ensure that coefs.mt is consistent
+  if (is.vector(coefs.mt)) {
+    coefs.mt <- as.matrix(coefs.mt)
+    colnames(coefs.mt) <- paste("tau=", mf[["tau"]], sep = "")
   }
-
   formula.rhs.chr <- as.character(formula)[3]
-  if (grepl("-1", formula.rhs.chr) ||
-      grepl("- 1", formula.rhs.chr)) {
-    coefs <- rbind(rep(0, ncol(coefs)))
+  forced.origin <- grepl("-[[:space:]]*1|+[[:space:]]*0", formula.rhs.chr)
+  if (forced.origin) {
+    coefs.mt <- rbind(rep(0, ncol(coefs.mt)), coefs.mt)
   }
-
-  coefs.ls <- asplit(coefs, 2)
+  coefs.ls <- asplit(coefs.mt, 2)
+  # located here so that names in coef.ls remain the same as in version 0.4.0
+  rownames(coefs.mt) <-paste("b", (1:nrow(coefs.mt)) - 1, sep = "_")
 
   z <- tibble::tibble()
-
-  for (i in seq_along(quantiles)) {
-
-  }
   if (output.type == "numeric") {
     z <- tibble::tibble(coef.ls = coefs.ls,
-                        quantiles = quantiles,
+                        quantile = quantiles,
+                        quantile.f = quantiles.f,
                         rq.method = rq.method,
                         AIC = AIC,
                         rho = rho,
                         n = n,
-                        eq.label = "") # needed for default 'label' mapping
+                        eq.label = "", # needed for default 'label' mapping
+                        b_0.constant = forced.origin)
+    z <- cbind(z, tibble::as_tibble(t(coefs.mt)))
   } else {
-    stopifnot(coef.digits > 0)
-    if (coef.digits < 3) {
-      warning("'coef.digits < 3' Likely information loss!")
+    # set defaults needed to assemble the equation as a character string
+    if (is.null(eq.x.rhs)) {
+      eq.x.rhs <- build_eq.x.rhs(output.type = output.type,
+                                 orientation = orientation)
     }
 
     if (is.character(eq.with.lhs)) {
       lhs <- eq.with.lhs
       eq.with.lhs <- TRUE
     } else if (eq.with.lhs) {
-      if (output.type == "expression") {
-        lhs <- "italic(y)~`=`~"
-      } else if (output.type %in% c("latex", "tex", "tikz", "text")) {
-        lhs <- "y = "
-      } else if (output.type == "markdown") {
-        lhs <- "_y_ = "
-      }
+      lhs <- build_lhs(output.type = output.type,
+                       orientation = orientation)
+    } else {
+      lhs <- character(0)
     }
 
-    polys.ls <- polynom::polylist(signif(coefs, coef.digits))
+    # build labels
+    stopifnot(coef.digits > 0)
+    if (coef.digits < 3) {
+      warning("'coef.digits < 3' Likely information loss!")
+    }
 
     eq.char <- AIC.char <- rho.char <- character(num.quantiles)
     for (q in seq_along(quantiles)) {
-      eq.char[q] <- as.character(signif(polynom::as.polynomial(coefs.ls[[q]]),
-                                        coef.digits))
-      eq.char[q] <-
-        gsub("+ x",
-             paste("+ 1.", stringr::str_dup("0", coef.digits - 1L), "*x",
-                   sep = ""),
-             eq.char[q], fixed = TRUE)
-      eq.char[q] <- gsub("e([+-]?[0-9]*)", "%*%10^{\\1}", eq.char[q])
-      if (output.type %in% c("latex", "tex", "tikz", "markdown")) {
-        eq.char[q] <- gsub("*", " ", eq.char[q], fixed = TRUE)
+      # build equation as a character string from the coefficient estimates
+      eq.char[q] <- coefs2poly_eq(coefs = coefs.ls[[q]],
+                                  coef.digits = coef.digits,
+                                  coef.keep.zeros = coef.keep.zeros,
+                                  eq.x.rhs = eq.x.rhs,
+                                  lhs = lhs,
+                                  output.type = output.type)
+
+      if (output.type == "expression" && coef.keep.zeros) {
+        AIC.char[q] <- sprintf("\"%.4g\"", AIC[q])
+        rho.char[q] <- sprintf("\"%.3#g\"", rho[q])
+      } else {
+        AIC.char[q] <- sprintf("%.4g", AIC[q])
+        rho.char[q] <- sprintf("%.3#g", rho[q])
       }
-      if (eq.with.lhs) {
-        eq.char[q] <- paste(lhs, eq.char[q], sep = "")
-      }
-      AIC.char[q] <- sprintf("%.4g", AIC[q])
-      rho.char[q] <- sprintf("%.3g", rho[q])
     }
 
+    # build data frames to return
     if (output.type == "expression") {
-      z <- tibble::tibble(eq.label = gsub("x", eq.x.rhs, eq.char, fixed = TRUE),
+      z <- tibble::tibble(eq.label = eq.char,
                           AIC.label = paste("AIC", AIC.char, sep = "~`=`~"),
                           rho.label = paste("rho", AIC.char, sep = "~`=`~"),
                           n.label = paste("italic(n)~`=`~", n, sep = ""),
@@ -526,35 +620,37 @@ quant_eq_compute_group_fun <- function(data,
                                       else
                                         sprintf("italic(q)~`=`~%.2f", quantiles),
                           rq.method = rq.method,
-                          quantiles = quantiles,
+                          quantile = quantiles,
+                          quantile.f = quantiles.f,
                           n = n)
     } else if (output.type %in% c("latex", "tex", "text", "tikz")) {
-      z <- tibble::tibble(eq.label =
-                            gsub("x", eq.x.rhs, eq.char, fixed = TRUE),
+      z <- tibble::tibble(eq.label = eq.char,
                           AIC.label = paste("AIC", AIC.char, sep = " = "),
                           rho.label = paste("rho", AIC.char, sep = " = "),
                           n.label = paste("n = ", n, sep = ""),
                           grp.label = paste(grp.label,
                                             sprintf("q = %.2f", quantiles)),
                           rq.method = rq.method,
-                          quantiles = quantiles,
+                          quantile = quantiles,
+                          quantile.f = quantiles.f,
                           n = n)
     } else if (output.type == "markdown") {
-      z <- tibble::tibble(eq.label =
-                            gsub("x", eq.x.rhs, eq.char, fixed = TRUE),
+      z <- tibble::tibble(eq.label = eq.char,
                           AIC.label = paste("AIC", AIC.char, sep = " = "),
                           rho.label = paste("rho", AIC.char, sep = " = "),
                           n.label = paste("_n_ = ", n, sep = ""),
                           grp.label = paste(grp.label,
                                             sprintf("q = %.2f", quantiles)),
                           rq.method = rq.method,
-                          quantiles = quantiles,
+                          quantile = quantiles,
+                          quantile.f = quantiles.f,
                           n = n)
     } else {
       warning("Unknown 'output.type' argument: ", output.type)
     }
   }
 
+  # Compute label positions
   if (is.character(label.x)) {
     if (npc.used) {
       margin.npc <- 0.05
@@ -596,7 +692,9 @@ quant_eq_compute_group_fun <- function(data,
       label.x <- x
     }
   }
+
   if (is.character(label.y)) {
+    rev.y.pos <- length(label.y) == 1L && label.y != "bottom"
     if (npc.used) {
       margin.npc <- 0.05
     } else {
@@ -612,6 +710,7 @@ quant_eq_compute_group_fun <- function(data,
       label.y <- label.y * y.expanse + y.min
     }
   } else if (is.numeric(label.y) && length(label.y == 1L)) {
+    rev.y.pos <- length(label.y) == 1L && label.y >= 0.5
     if (!npc.used) {
       y.expanse <- abs(diff(range(data[["y"]])))
       y.min <- min(data[["y"]])
@@ -641,12 +740,12 @@ quant_eq_compute_group_fun <- function(data,
   if (npc.used) {
     z[["npcx"]] <- label.x
     z[["x"]] <- NA_real_
-    z[["npcy"]] <- label.y
+    z[["npcy"]] <- if (rev.y.pos) rev(label.y) else label.y
     z[["y"]] <- NA_real_
   } else {
     z[["x"]] <- label.x
     z[["npcx"]] <- NA_real_
-    z[["y"]] <- label.y
+    z[["y"]] <- if (rev.y.pos) rev(label.y) else label.y
     z[["npcy"]] <- NA_real_
   }
 
@@ -659,15 +758,14 @@ quant_eq_compute_group_fun <- function(data,
 #' @export
 StatQuantEq <-
   ggplot2::ggproto("StatQuantEq", ggplot2::Stat,
+                   extra_params = c("na.rm", "parse"),
                    compute_group = quant_eq_compute_group_fun,
                    default_aes =
                      ggplot2::aes(npcx = after_stat(npcx),
                                   npcy = after_stat(npcy),
                                   label = after_stat(eq.label),
                                   hjust = "inward",
-                                  vjust = "inward",
-                                  weight = 1,
-                                  quantiles = after_stat(quantiles)),
+                                  vjust = "inward"),
                    required_aes = c("x", "y")
   )
 

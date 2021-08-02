@@ -44,7 +44,7 @@
 #' \url{https://ggplot2.tidyverse.org/}\cr Package 'ggplot2' source code at
 #' \url{https://github.com/tidyverse/ggplot2}
 #'
-#' @import scales grid ggpp
+#' @import stats scales grid ggpp
 #' @importFrom rlang .data
 #'
 #' @note The signatures of \code{stat_peaks()} and \code{stat_valleys()} are
@@ -68,7 +68,7 @@
 #' ggplot(cars, aes(speed, dist)) +
 #'   geom_point() +
 #'   geom_smooth(method = "lm", formula = formula) +
-#'   stat_poly_eq(aes(label = stat(eq.label)),
+#'   stat_poly_eq(aes(label = after_stat(eq.label)),
 #'                formula = formula,
 #'                parse = TRUE) +
 #'   labs(x = expression("Speed, "*x~("mph")),

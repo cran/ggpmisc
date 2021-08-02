@@ -7,12 +7,12 @@
 \title{ggpmisc: Miscellaneous Extensions to 'ggplot2'}
 \description{
 Extensions to 'ggplot2' respecting the grammar of graphics
-    paradigm. Statistics: locate and tag peaks and valleys; label plot with the 
-    equation of a polynomial fitted with lm() or other types of models; labels 
-    with P-value, R^2 or adjusted R^2 or information criteria for fitted models; 
-    label with ANOVA table for fitted models; label with summary for fitted 
+    paradigm. Statistics: locate and tag peaks and valleys; label plot with the
+    equation of a polynomial fitted with lm() or other types of models; labels
+    with P-value, R^2 or adjusted R^2 or information criteria for fitted models;
+    label with ANOVA table for fitted models; label with summary for fitted
     models. Model fit classes for which suitable methods are provided by package
-    'broom' and 'broom.mixed' are supported. Scales and stats to build volcano 
+    'broom' and 'broom.mixed' are supported. Scales and stats to build volcano
     and quadrant plots based on outcomes, fold changes, p-values and false 
     discovery rates.
 }
@@ -84,7 +84,7 @@ formula <- y ~ poly(x, 2, raw = TRUE)
 ggplot(cars, aes(speed, dist)) +
   geom_point() +
   geom_smooth(method = "lm", formula = formula) +
-  stat_poly_eq(aes(label = stat(eq.label)),
+  stat_poly_eq(aes(label = after_stat(eq.label)),
                formula = formula,
                parse = TRUE) +
   labs(x = expression("Speed, "*x~("mph")),
@@ -125,7 +125,8 @@ Useful links:
 
 Other contributors:
 \itemize{
-  \item Kamil Slowikowski [contributor]
+  \item Kamil Slowikowski (\href{https://orcid.org/0000-0002-2843-6370}{ORCID}) [contributor]
+  \item Samer Mouksassi \email{samermouksassi@gmail.com} (\href{https://orcid.org/0000-0002-7152-6654}{ORCID}) [contributor]
 }
 
 }
