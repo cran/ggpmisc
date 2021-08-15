@@ -1,13 +1,13 @@
-ea302a45e60826198d6fa690b43c6268 *DESCRIPTION
-8f34a3ba1491d64975b0f1864f22ca03 *NAMESPACE
-bb5eda582cfb15974a70955ae1726e9e *NEWS.md
+0b325fe65c9773a2a0e507ceb4df98eb *DESCRIPTION
+cc24cf8cbf9ef3dddbd42e2196309f3c *NAMESPACE
+cf468ab577ad52c68ef302b031ea4656 *NEWS.md
 814f0966ba26f8f4d5fa8a646bc92396 *R/example-data.R
-29f008e5cb06898357391cde407b528d *R/ggpmisc.R
+b9b065531aa1f292890e8f4904822dc0 *R/ggpmisc.R
 0f755782d4fb35991b7133f2857a53e1 *R/moved-to-gginnards.R
 f86ca39681b49adceeb3fc51172b949d *R/outcome2factor.r
 e8c5eaf0e5aed0b3805dd582c1800f86 *R/scale-colour-outcome.r
 f1266f7900451228c4fbaeebebd0f6ce *R/scale-continuous-Pvalue.r
-a83f809d735cfa5bf3f7c13456a4c670 *R/scale-continuous-logFC.r
+76c16840160374da213a0b61c926394a *R/scale-continuous-logFC.r
 8ba219c872f0c390bf45add20e484239 *R/scale-shape-outcome.r
 8729ed28af6c30c8219d1cbb6c1fddef *R/stat-fit-broom-tb.R
 92553b0fcf69637e2e7637c094c00f2a *R/stat-fit-broom.R
@@ -26,7 +26,7 @@ f9798dcb60cca4f18de36771982f728f *data/quadrant-example-df.rda
 c880b6b4ad74bb70d639066b1cc9f061 *data/volcano-example-df.rda
 ec8571cbc088742ac92d9f44fdf79436 *inst/doc/model-based-annotations.R
 2f02505b5a838fe339c9df7b215bc944 *inst/doc/model-based-annotations.Rmd
-23683255adcab700150f7f41ac45be4d *inst/doc/model-based-annotations.html
+4f8a7299c1463d37243ae288994e645f *inst/doc/model-based-annotations.html
 ce14b91c9fd39db7e36f03e524c580c0 *inst/extdata/Isoquercitin.png
 80741f548e590d5fa19cb5cb7892af35 *inst/extdata/Robinin.png
 a255cc6e41fdf011650bb5e19b45d3be *man/FC_format.Rd
@@ -37,7 +37,7 @@ a255cc6e41fdf011650bb5e19b45d3be *man/FC_format.Rd
 e937e77b3c07cffdca260a7742e238d8 *man/figures/README-readme-04c-1.png
 f12141dac93dc24e1a6cbcfdbb6f3e11 *man/figures/README-readme-05-1.png
 b559116adfbdf51004c2429ec4c1bfdc *man/figures/README-readme-06-1.png
-22683c7e9decae5b6733760879922be2 *man/figures/README-unnamed-chunk-1-1.png
+a49c11802481279c9dbb0b10318c7e66 *man/figures/README-unnamed-chunk-1-1.png
 e3cc2eca76034c412b20f5613d4cf899 *man/figures/logo-ggpmisc.png
 bde84e94cc753f9f829c23866ec52c1d *man/find_peaks.Rd
 43ab5a9578bbfb0ba5022a11afa4938d *man/ggpmisc-ggproto.Rd
