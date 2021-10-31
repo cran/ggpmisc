@@ -13,8 +13,8 @@ stat_poly_line(
   method = "lm",
   formula = NULL,
   se = TRUE,
+  mf.values = FALSE,
   n = 80,
-  span = 0.75,
   fullrange = FALSE,
   level = 0.95,
   method.args = list(),
@@ -53,13 +53,10 @@ instead of original variable names.}
 \item{se}{Display confidence interval around smooth? (`TRUE` by default, see
 `level` to control.)}
 
-\item{n}{Number of points at which to evaluate smoother.}
+\item{mf.values}{logical Add R2, adjusted R2, p-value and n as columns to
+returned data? (`FALSE` by default.)}
 
-\item{span}{Controls the amount of smoothing for the default loess smoother.
-Smaller numbers produce wigglier lines, larger numbers produce smoother
-lines. Only used with loess, i.e. when `method = "loess"`,
-or when `method = NULL` (the default) and there are fewer than 1,000
-observations.}
+\item{n}{Number of points at which to evaluate smoother.}
 
 \item{fullrange}{Should the fit span the full range of the plot, or just
 the data?}
@@ -85,38 +82,34 @@ default plot specification, e.g. \code{\link[ggplot2]{borders}}.}
 }
 \value{
 The value returned by the statistic is a data frame, that will have
-  \code{n} rows of predicted values and and their confidence limits.
+  \code{n} rows of predicted values and their confidence limits. Optionally
+  it will also include additional values related to the model fit.
 }
 \description{
 Predicted values and a confidence band are computed and, by default, plotted.
-\code{stat_poly_line()} behaves like \code{\link[ggplot2]{stat_smooth}}
-except for supporting the use of \code{y} as explanatory variable in the
-model formula, fits the model with \code{stats::lm()} as default for
-\code{method}, irrespective of the number of observations. The fit can
-alternatively by done by any of the methods supported by
-\code{\link[ggplot2]{stat_smooth}}, including \code{method = "auto"}.
 }
 \details{
-This statistic is just \code{\link[ggplot2]{stat_smooth}} with different
-defaults and updated so that it interprets the argument passed to
-\code{formula} differently, accepting \code{y} as explanatory variable and
-setting \code{orientation} automatically. In addition the default for
-\code{method} is \code{"lm"}, matching the default used in
-\code{stat_poly_line()}, \code{stat_quant_line()} and \code{stat_quant_eq()}.
-It calls \code{\link[ggplot2]{StatSmooth}} to build a layer.
+This statistic is similar to \code{\link[ggplot2]{stat_smooth}} but has
+different defaults and it interprets the argument passed to \code{formula}
+differently, accepting \code{y} as explanatory variable and setting
+\code{orientation} automatically. The default for \code{method} is
+\code{"lm"} and spline-based smoothers like \code{loess} are not supported.
+Other defaults are consistent with those in \code{stat_poly_eq()},
+\code{stat_quant_line()}, \code{stat_quant_eq()}, \code{stat_ma_line()},
+\code{stat_ma_eq()}.
 
-\code{\link[ggplot2]{geom_smooth}}, which is used by default, treats each
-axis differently and can thus have two orientations. The orientation is easy
-to deduce from the argument passed to \code{formula}. Thus,
-\code{stat_poly_line()} will by default guess which orientation the layer
-should have. If no argument is passed to \code{formula}, the orientation is
-ambiguous. In that case the orientation can be specified directly passing an
-argument to the \code{orientation} parameter, which can be either \code{"x"}
-or \code{"y"}. The value gives the axis that is taken as the explanatory
-variable, \code{"x"} being the default orientation you would expect for the
-geom. Package 'ggpmisc' does not define new geometries matching the new
-statistics as they are not needed and conceptually transformations of
-\code{data} are expressed as statistics.
+\code{geom_poly_line()} treats the x and y aesthetics differently and can
+thus have two orientations. The orientation can be deduced from the argument
+passed to \code{formula}. Thus, \code{stat_poly_line()} will by default guess
+which orientation the layer should have. If no argument is passed to
+\code{formula}, the formula defaults to \code{y ~ x}. For consistency with
+\code{\link[ggplot2]{stat_smooth}} orientation can be also specified directly
+passing an argument to the \code{orientation} parameter, which can be either
+\code{"x"} or \code{"y"}. The value of \code{orientation} gives the axis that
+is taken as the explanatory variable. Package 'ggpmisc' does not define
+new geometries matching the new statistics as they are not needed and
+conceptually transformations of \code{data} are statistics in the grammar
+of graphics.
 }
 \section{Computed variables}{
  `stat_poly_line()` provides the following
@@ -124,6 +117,13 @@ statistics as they are not needed and conceptually transformations of
   x}{predicted value} \item{ymin *or* xmin}{lower pointwise confidence
   interval around the mean} \item{ymax *or* xmax}{upper pointwise confidence
   interval around the mean} \item{se}{standard error} }
+
+  If \code{mf.values = TRUE} is passed then columns based on the summary of
+  the model fit are added, with the same value in each row within a group.
+  This is wasteful and disabled by default, but provides a simple and robust
+  approach to achieve effects like colouring or hiding of the model fit line
+  based on P-values, r-squared, adjusted r-squared or the number of
+  observations.
 }
 
 \section{Aesthetics}{
@@ -152,26 +152,6 @@ ggplot(mpg, aes(displ, hwy)) +
   geom_point() +
   stat_poly_line(formula = x ~ poly(y, 3))
 
-# The default behavior of geom_smooth()
-ggplot(mpg, aes(displ, hwy)) +
-  geom_point() +
-  stat_poly_line(method = "auto")
-
-# Use span to control the "wiggliness" of the default loess smoother.
-# The span is the fraction of points used to fit each local regression:
-# small numbers make a wigglier curve, larger numbers make a smoother curve.
-ggplot(mpg, aes(displ, hwy)) +
-  geom_point() +
-  stat_poly_line(method = "loess", span = 0.3)
-
-ggplot(mpg, aes(displ, hwy)) +
-  geom_point() +
-  stat_poly_line(method = lm, formula = y ~ splines::bs(x, 3), se = FALSE)
-
-ggplot(mpg, aes(displ, hwy)) +
-  geom_point() +
-  stat_poly_line(method = lm, formula = x ~ splines::bs(y, 3), se = FALSE)
-
 # Smooths are automatically fit to each group (defined by categorical
 # aesthetics or the group aesthetic) and for each facet.
 
@@ -181,8 +161,23 @@ ggplot(mpg, aes(displ, hwy, colour = class)) +
 
 ggplot(mpg, aes(displ, hwy)) +
   geom_point() +
-  stat_poly_line(method = "auto", span = 0.8) +
+  stat_poly_line() +
   facet_wrap(~drv)
+
+# Inspecting the returned data using geom_debug()
+if (requireNamespace("gginnards", quietly = TRUE)) {
+  library(gginnards)
+
+  ggplot(mpg, aes(displ, hwy)) +
+    stat_poly_line(geom = "debug")
+
+  ggplot(mpg, aes(displ, hwy)) +
+    stat_poly_line(geom = "debug", mf.values = TRUE)
+
+  ggplot(mpg, aes(displ, hwy)) +
+    stat_poly_line(geom = "debug", method = lm, mf.values = TRUE)
+
+}
 
 }
 \seealso{

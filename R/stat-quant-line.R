@@ -67,6 +67,8 @@
 #' @param orientation character Either "x" or "y" controlling the default for
 #'   \code{formula}.
 #' @param se logical Passed to \code{quantreg::predict.rq()}.
+#' @param mf.values logical Add n as a column to returned data? (`FALSE` by
+#'   default.)
 #' @param level numeric in range [0..1] Passed to \code{quantreg::predict.rq()}.
 #' @param type character Passed to \code{quantreg::predict.rq()}.
 #' @param interval character Passed to \code{quantreg::predict.rq()}.
@@ -79,6 +81,22 @@
 #'   and edited \code{group} preserves the original grouping adding a new
 #'   "level" for each quantile. Is \code{se = TRUE}, a confidence band is
 #'   computed and values for it returned in \code{ymax} and \code{ymin}.
+#'
+#' @return The value returned by the statistic is a data frame, that will have
+#'   \code{n} rows of predicted values and their confidence limits. Optionally
+#'   it will also include additional values related to the model fit.
+#'
+#' @section Computed variables: `stat_quant_line()` provides the following
+#'   variables, some of which depend on the orientation: \describe{ \item{y *or*
+#'   x}{predicted value} \item{ymin *or* xmin}{lower confidence
+#'   interval around the mean} \item{ymax *or* xmax}{upper confidence
+#'   interval around the mean}}
+#'
+#'   If \code{mf.values = TRUE} is passed then one column with the number of
+#'   observations \code{n} used for each fit is also included, with the same
+#'   value in each row within a group. This is wasteful and disabled by default,
+#'   but provides a simple and robust approach to achieve effects like colouring
+#'   or hiding of the model fit line based on the number of observations.
 #'
 #' @section Aesthetics: \code{stat_quant_line} understands \code{x} and \code{y},
 #'   to be referenced in the \code{formula} and \code{weight} passed as argument
@@ -170,6 +188,18 @@
 #'   stat_quant_line(formula = y ~ poly(x, 2)) +
 #'   facet_wrap(~drv)
 #'
+#' # Inspecting the returned data using geom_debug()
+#' if (requireNamespace("gginnards", quietly = TRUE)) {
+#'   library(gginnards)
+#'
+#'   ggplot(mpg, aes(displ, hwy)) +
+#'     stat_quant_line(geom = "debug")
+#'
+#'   ggplot(mpg, aes(displ, hwy)) +
+#'     stat_quant_line(geom = "debug", mf.values = TRUE)
+#'
+##' }
+#'
 #' @export
 #'
 stat_quant_line <- function(mapping = NULL,
@@ -180,6 +210,7 @@ stat_quant_line <- function(mapping = NULL,
                             quantiles = c(0.25, 0.5, 0.75),
                             formula = NULL,
                             se = length(quantiles) == 1L,
+                            mf.values = FALSE,
                             n = 80,
                             method = "rq",
                             method.args = list(),
@@ -197,10 +228,11 @@ stat_quant_line <- function(mapping = NULL,
       } else if (method == "rqss") {
         qss <- quantreg::qss
         formula <- y ~ qss(x)
+        # emit message only if formula is not y ~ x
+        message("Smoothing formula not specified. Using: ",
+                deparse(formula))
       }
     }
-    message("Smoothing formula not specified. Using: ",
-            deparse(formula))
     if (is.na(orientation)) {
       orientation = "x"
     }
@@ -232,6 +264,7 @@ stat_quant_line <- function(mapping = NULL,
       quantiles = quantiles,
       formula = formula,
       se = se,
+      mf.values = mf.values,
       n = n,
       method = method,
       method.args = method.args,
@@ -264,6 +297,7 @@ quant_line_compute_group_fun <- function(data,
                                          type = "none",
                                          interval = "none",
                                          se = TRUE,
+                                         mf.values = FALSE,
                                          na.rm = FALSE,
                                          flipped_aes = NA) {
   rlang::check_installed("quantreg", reason = "for `stat_quantile()`")
@@ -283,6 +317,7 @@ quant_line_compute_group_fun <- function(data,
   # if method was specified as a character string, replace with
   # the corresponding function
   if (is.character(method)) {
+    method.name <- method
     if (identical(method, "rq")) {
       method <- quantreg::rq
     } else if (identical(method, "rqss")) {
@@ -292,6 +327,7 @@ quant_line_compute_group_fun <- function(data,
     }
   } else {
     stopifnot(is.function(method))
+    method.name <- "function"
   }
 
   z <- dplyr::bind_rows(
@@ -306,6 +342,11 @@ quant_line_compute_group_fun <- function(data,
     z[["y"]] <- z[["y"]][ , 1L]
   } else {
     z[["ymin"]] <- z[["ymax"]] <- NA_real_
+  }
+
+  if (mf.values) {
+      z[["n"]] <- nrow(na.omit(data[, c("x", "y")]))
+      z[["method"]] <- method.name
   }
 
   # a factor with nicely formatted labels for levels is helpful

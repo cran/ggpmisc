@@ -105,8 +105,8 @@
 #'   graphics. This helps ensure that the model is fitted to the same data as
 #'   plotted in other layers.
 #'
-#' @references Written as an answer to a question by Mark Neal at Stackoverflow.
-#'   \url{https://stackoverflow.com/questions/65695409/is-there-a-neat-approach-to-label-a-ggplot-plot-with-the-equation-and-other-stat}
+#' @references Written as an answer to question 65695409 by Mark Neal at
+#'   Stackoverflow.
 #'
 #' @section Aesthetics: \code{stat_quant_eq} understands \code{x} and \code{y},
 #'   to be referenced in the \code{formula} and \code{weight} passed as argument
@@ -120,7 +120,6 @@
 #' \describe{
 #'   \item{x,npcx}{x position}
 #'   \item{y,npcy}{y position}
-#'   \item{coef.ls, r.squared, adj.r.squared, AIC, BIC}{as numric values extracted from fit object}
 #'   \item{eq.label}{equation for the fitted polynomial as a character string to be parsed}
 #'   \item{rho.label}{\eqn{rho} of the fitted model as a character string to be parsed}
 #'   \item{AIC.label}{AIC for the fitted model.}
@@ -308,6 +307,7 @@
 #'                 formula = formula)
 #'
 #' # Inspecting the returned data using geom_debug()
+#' \dontrun{
 #' if (requireNamespace("gginnards", quietly = TRUE)) {
 #'   library(gginnards)
 #'
@@ -341,6 +341,7 @@
 #'     geom_point() +
 #'     stat_quant_eq(formula = formula, quantiles = c(0.25, 0.5, 0.75),
 #'                   geom = "debug", output.type = "numeric")
+#' }
 #' }
 #'
 #' @export

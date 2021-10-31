@@ -178,7 +178,6 @@ columns below in addition to a modified version of the original \code{group}:
 \describe{
   \item{x,npcx}{x position}
   \item{y,npcy}{y position}
-  \item{coef.ls, r.squared, adj.r.squared, AIC, BIC}{as numric values extracted from fit object}
   \item{eq.label}{equation for the fitted polynomial as a character string to be parsed}
   \item{rho.label}{\eqn{rho} of the fitted model as a character string to be parsed}
   \item{AIC.label}{AIC for the fitted model.}
@@ -351,6 +350,7 @@ ggplot(my.data, aes(x, y)) +
                 formula = formula)
 
 # Inspecting the returned data using geom_debug()
+\dontrun{
 if (requireNamespace("gginnards", quietly = TRUE)) {
   library(gginnards)
 
@@ -385,11 +385,12 @@ if (requireNamespace("gginnards", quietly = TRUE)) {
     stat_quant_eq(formula = formula, quantiles = c(0.25, 0.5, 0.75),
                   geom = "debug", output.type = "numeric")
 }
+}
 
 }
 \references{
-Written as an answer to a question by Mark Neal at Stackoverflow.
-  \url{https://stackoverflow.com/questions/65695409/is-there-a-neat-approach-to-label-a-ggplot-plot-with-the-equation-and-other-stat}
+Written as an answer to question 65695409 by Mark Neal at
+  Stackoverflow.
 }
 \seealso{
 This \code{stat_quant_eq} statistic can return ready formatted labels

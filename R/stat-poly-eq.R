@@ -1,4 +1,4 @@
-#' Equation, p-value, R^2, AIC or BIC of fitted polynomial
+#' Equation, p-value, \eqn{R^2}, AIC or BIC of fitted polynomial
 #'
 #' \code{stat_poly_eq} fits a polynomial by default with \code{stats::lm()} but
 #' alternatively using robust regression. From the fitted model it
@@ -44,7 +44,7 @@
 #' @param coef.keep.zeros logical Keep or drop trailing zeros when formatting
 #'   the fitted coefficients and F-value.
 #' @param rr.digits,p.digits integer Number of digits after the decimal point to
-#'   use for R^2 and P-value in labels.
+#'   use for \eqn{R^2} and P-value in labels.
 #' @param label.x,label.y \code{numeric} with range 0..1 "normalized parent
 #'   coordinates" (npc units) or character if using \code{geom_text_npc()} or
 #'   \code{geom_label_npc()}. If using \code{geom_text()} or \code{geom_label()}
@@ -72,29 +72,29 @@
 #'   for \code{formula} but is included for consistency with
 #'   \code{ggplot2::stat_smooth()}.
 #'
-#' @details This stat can be used to automatically annotate a plot with R^2,
-#'   adjusted R^2 or the fitted model equation. It supports linear regression,
-#'   robust linear regression and median regression fitted with functions
-#'   \code{lm()}, \code{MASS::rlm()} or \code{quanreg::rq()}. The R^2 and
-#'   adjusted R^2 annotations can be used with any linear model formula. The
-#'   fitted equation label is correctly generated for polynomials or
-#'   quasi-polynomials through the origin. Model formulas can use \code{poly()}
-#'   or be defined algebraically with terms of powers of increasing magnitude
-#'   with no missing intermediate terms, except possibly for the intercept
-#'   indicated by "- 1" or "-1" or \code{"+ 0"} in the formula. The validity of
-#'   the \code{formula} is not checked in the current implementation, and for
-#'   this reason the default aesthetics sets R^2 as label for the annotation.
-#'   This stat generates labels as R expressions by default but LaTeX (use TikZ
-#'   device), markdown (use package 'ggtext') and plain text are also supported,
-#'   as well as numeric values for user-generated text labels. The value of
-#'   \code{parse} is set automatically based on \code{output-type}, but if you
-#'   assemble labels that need parsing from \code{numeric} output, the default
-#'   needs to be overriden. This stat only generates annotation labels, the
-#'   predicted values/line need to be added to the plot as a separate layer
-#'   using \code{\link{stat_poly_line}} or \code{\link[ggplot2]{stat_smooth}},
-#'   so to make sure that the same model formula is used in all steps it is best
-#'   to save the formula as an object and supply this object as argument to the
-#'   different statistics.
+#' @details This statistic can be used to automatically annotate a plot with
+#'   \eqn{R^2}, adjusted \eqn{R^2} or the fitted model equation. It supports
+#'   linear regression, robust linear regression and median regression fitted
+#'   with functions \code{lm()}, \code{MASS::rlm()} or \code{quanreg::rq()}. The
+#'   \eqn{R^2} and adjusted \eqn{R^2} annotations can be used with any linear
+#'   model formula. The fitted equation label is correctly generated for
+#'   polynomials or quasi-polynomials through the origin. Model formulas can use
+#'   \code{poly()} or be defined algebraically with terms of powers of
+#'   increasing magnitude with no missing intermediate terms, except possibly
+#'   for the intercept indicated by "- 1" or "-1" or \code{"+ 0"} in the
+#'   formula. The validity of the \code{formula} is not checked in the current
+#'   implementation, and for this reason the default aesthetics sets \eqn{R^2}
+#'   as label for the annotation. This stat generates labels as R expressions by
+#'   default but LaTeX (use TikZ device), markdown (use package 'ggtext') and
+#'   plain text are also supported, as well as numeric values for user-generated
+#'   text labels. The value of \code{parse} is set automatically based on
+#'   \code{output-type}, but if you assemble labels that need parsing from
+#'   \code{numeric} output, the default needs to be overriden. This stat only
+#'   generates annotation labels, the predicted values/line need to be added to
+#'   the plot as a separate layer using \code{\link{stat_poly_line}} or
+#'   \code{\link[ggplot2]{stat_smooth}}, so to make sure that the same model
+#'   formula is used in all steps it is best to save the formula as an object
+#'   and supply this object as argument to the different statistics.
 #'
 #'   A ggplot statistic receives as \code{data} a data frame that is not the one
 #'   passed as argument by the user, but instead a data frame with the variables
@@ -103,8 +103,13 @@
 #'   statistics the model fits respect grouping, so the scales used for \code{x}
 #'   and \code{y} should both be continuous scales rather than discrete.
 #'
-#' @references Written as an answer to a question at Stackoverflow.
-#'   \url{https://stackoverflow.com/questions/7549694/adding-regression-line-equation-and-r2-on-graph}
+#' @references Written as an answer to question 7549694 at Stackoverflow.
+#'
+#' @section IMPORTANT: \code{stat_regline_equation()} in package 'ggpubr' is
+#'   a renamed but almost unchanged copy of \code{stat_poly_eq()} taken from an
+#'   earlier version of this package (without acknowledgement of source and
+#'   authorship). \code{stat_regline_equation()} lacks important functionality
+#'   and contains bugs that have been fixed in \code{stat_poly_eq()}.
 #'
 #' @section Aesthetics: \code{stat_poly_eq} understands \code{x} and \code{y},
 #'   to be referenced in the \code{formula} and \code{weight} passed as argument
@@ -578,7 +583,7 @@ poly_eq_compute_group_fun <- function(data,
     f.value <- mf.summary[["fstatistic"]]["value"]
     f.df1 <- mf.summary[["fstatistic"]]["numdf"]
     f.df2 <- mf.summary[["fstatistic"]]["dendf"]
-    p.value <- 1 - stats::pf(q = f.value, f.df1, f.df2)
+    p.value <- stats::pf(q = f.value, f.df1, f.df2, lower.tail = FALSE)
   } else {
     f.value <- f.df1 <- f.df2 <- p.value <- NA_real_
   }
@@ -908,22 +913,7 @@ coefs2poly_eq <- function(coefs,
   eq.char <- as.character(polynom::as.polynomial(coefs),
                           digits = coef.digits,
                           keep.zeros = coef.keep.zeros)
-  if (output.type == "markdown") {
-    eq.char <- gsub("e([+-]?)[0]([1-9]*)", "&times;10<sup>\\1\\2</sup>", eq.char)
-    eq.char <- gsub("[:^]([0-9]*)", "<sup>\\1</sup>", eq.char)
-    eq.char <- gsub("*", "&nbsp;", eq.char, fixed = TRUE)
-    eq.char <- gsub(" ", "", eq.char, fixed = TRUE)
-  } else {
-    eq.char <- gsub("e([+-]?[0-9]*)", "%*%10^{\\1}", eq.char)
-    # muliplication symbol
-    if (output.type %in% c("latex", "tikz")) {
-      eq.char <- gsub("%*%", "\\times{}", eq.char, fixed = TRUE)
-      eq.char <- gsub("*", "", eq.char, fixed = TRUE)
-    }else if (output.type == "text") {
-      eq.char <- gsub("[*][:space:]", " ", eq.char, fixed = TRUE)
-      eq.char <- gsub("%*%", " * ", eq.char, fixed = TRUE)
-    }
-  }
+  eq.char <- typeset_numbers(eq.char, output.type)
 
   if (eq.x.rhs != "x") {
     eq.char <- gsub("x", eq.x.rhs, eq.char, fixed = TRUE)
@@ -969,26 +959,24 @@ as.character.polynomial <- function (x,
   paste0(signs, p, stars, pow, collapse = " ")
 }
 
-#' author:
-#'
-#' @noRd
-#'
-# polynomial2character <- function (x, decreasing = FALSE, digits = 2, nsmall = 2) {
-#   p <- format(unclass(x), digits = digits, nsmall = nsmall)
-#   lp <- length(p) - 1
-#   names(p) <- 0:lp
-#   p <- p[as.numeric(p) != 0]
-#   if (length(p) == 0)
-#     return("0")
-#   if (decreasing)
-#     p <- rev(p)
-#   signs <- ifelse(as.numeric(p) < 0, "- ", "+")
-#   signs[1] <- if (signs[1] == "- ") "-" else ""
-#   np <- names(p)
-#   pow <- paste("x^", np, sep = "")
-#   pow[np == "0"] <- ""
-#   pow[np == "1"] <- "x"
-#   stars <- rep.int("*", length(p))
-#   stars[p == "" | pow == ""] <- ""
-#   paste0(signs, p, stars, pow, collapse = " ")
-# }
+# exponential number notation to typeset equivalent
+#
+typeset_numbers <- function(eq.char, output.type) {
+  if (output.type == "markdown") {
+    eq.char <- gsub("e([+-]?)[0]([1-9]*)", "&times;10<sup>\\1\\2</sup>", eq.char)
+    eq.char <- gsub("[:^]([0-9]*)", "<sup>\\1</sup>", eq.char)
+    eq.char <- gsub("*", "&nbsp;", eq.char, fixed = TRUE)
+    eq.char <- gsub(" ", "", eq.char, fixed = TRUE)
+  } else {
+    eq.char <- gsub("e([+-]?[0-9]*)", "%*%10^{\\1}", eq.char)
+    # muliplication symbol
+    if (output.type %in% c("latex", "tikz")) {
+      eq.char <- gsub("%*%", "\\times{}", eq.char, fixed = TRUE)
+      eq.char <- gsub("*", "", eq.char, fixed = TRUE)
+    }else if (output.type == "text") {
+      eq.char <- gsub("[*][:space:]", " ", eq.char, fixed = TRUE)
+      eq.char <- gsub("%*%", " * ", eq.char, fixed = TRUE)
+    }
+  }
+  eq.char
+}

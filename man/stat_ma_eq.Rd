@@ -22,8 +22,7 @@ stat_ma_eq(
   coef.digits = 3,
   coef.keep.zeros = TRUE,
   rr.digits = 2,
-  f.digits = 3,
-  p.digits = 3,
+  p.digits = max(1, ceiling(log10(nperm))),
   label.x = "left",
   label.y = "top",
   hstep = 0,
@@ -73,8 +72,8 @@ it.}
 \item{small.r, small.p}{logical Flags to switch use of lower case r and p for
 coefficient of determination and p-value.}
 
-\item{coef.digits, f.digits}{integer Number of significant digits to use for
-the fitted coefficients and F-value.}
+\item{coef.digits}{integer Number of significant digits to use for
+the fitted coefficients.}
 
 \item{coef.keep.zeros}{logical Keep or drop trailing zeros when formatting
 the fitted coefficients and F-value.}
@@ -269,13 +268,14 @@ ggplot(my.data, aes(x, y)) +
   stat_ma_eq(label.x = "left", label.y = "top")
 
 # Inspecting the returned data using geom_debug()
+\dontrun{
 if (requireNamespace("gginnards", quietly = TRUE)) {
   library(gginnards)
 
 # This provides a quick way of finding out the names of the variables that
 # are available for mapping to aesthetics.
 
-# default is ouitput.type = "expression"
+# default is output.type = "expression"
   ggplot(my.data, aes(x, y)) +
     geom_point() +
     stat_ma_eq(geom = "debug")
@@ -295,7 +295,7 @@ if (requireNamespace("gginnards", quietly = TRUE)) {
     stat_ma_eq(geom = "debug", output.type = "numeric")
 
 }
-
+}
 
 }
 \seealso{

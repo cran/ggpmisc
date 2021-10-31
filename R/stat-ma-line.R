@@ -53,8 +53,10 @@
 #'   "RMA" is to be computed.
 #' @param method character "MA", "SMA" , "RMA" and "OLS".
 #' @param nperm integer Number of permutation used to estimate significance.
-#' @param se Display confidence interval around smooth? (`TRUE` by default, see
-#'   `level` to control.)
+#' @param se logical Return confidence interval around smooth? (`TRUE` by
+#'   default, see `level` to control.)
+#' @param mf.values logical Add R2, p-value and n as columns to returned data?
+#'   (`FALSE` by default.)
 #' @param fullrange Should the fit span the full range of the plot, or just
 #'   the data?
 #' @param level Level of confidence interval to use (only 0.95 currently).
@@ -63,7 +65,8 @@
 #'   \code{formula}.
 #'
 #' @return The value returned by the statistic is a data frame, that will have
-#'   \code{n} rows of predicted values and and their confidence limits.
+#'   \code{n} rows of predicted values and their confidence limits. Optionally
+#'   it will also include additional values related to the model fit.
 #'
 #' @section Computed variables: `stat_ma_line()` provides the following
 #'   variables, some of which depend on the orientation: \describe{ \item{y *or*
@@ -71,10 +74,16 @@
 #'   interval around the mean} \item{ymax *or* xmax}{upper pointwise confidence
 #'   interval around the mean} \item{se}{standard error} }
 #'
+#'   If \code{mf.values = TRUE} is passed then columns based on the summary of
+#'   the model fit are added, with the same value in each row within a group.
+#'   This is wasteful and disabled by default, but provides a simple and robust
+#'   approach to achieve effects like colouring or hiding of the model fit line
+#'   based on P-values, r-squared or the number of observations.
+#'
 #' @section Aesthetics: \code{stat_ma_line} understands \code{x} and \code{y},
-#'   to be referenced in the \code{formula}. Both must be mapped to \code{numeric}
-#'   variables. In addition, the aesthetics understood by the geom
-#'   (\code{"geom_smooth"} is the default) are understood and grouping
+#'   to be referenced in the \code{formula}. Both must be mapped to
+#'   \code{numeric} variables. In addition, the aesthetics understood by the
+#'   geom (\code{"geom_smooth"} is the default) are understood and grouping
 #'   respected.
 #'
 #' @family ggplot statistics for major axis regression
@@ -143,6 +152,20 @@
 #'   stat_ma_line() +
 #'   facet_wrap(~group)
 #'
+#' # Inspecting the returned data using geom_debug()
+#' \dontrun{
+#' if (requireNamespace("gginnards", quietly = TRUE)) {
+#'   library(gginnards)
+#'
+#'   ggplot(my.data, aes(x, y)) +
+#'     stat_ma_line(geom = "debug")
+#'
+#'   ggplot(my.data, aes(x, y)) +
+#'     stat_ma_line(geom = "debug", mf.values = TRUE)
+#'
+#' }
+#' }
+#'
 #' @export
 #'
 stat_ma_line <- function(mapping = NULL,
@@ -155,6 +178,7 @@ stat_ma_line <- function(mapping = NULL,
                          range.y = NULL,
                          range.x = NULL,
                          se = TRUE,
+                         mf.values = FALSE,
                          n = 80,
                          nperm = 99,
                          fullrange = FALSE,
@@ -206,6 +230,7 @@ stat_ma_line <- function(mapping = NULL,
       range.y = range.y,
       range.x = range.x,
       se = se,
+      mf.values = mf.values,
       n = n,
       nperm = nperm,
       fullrange = fullrange,
@@ -227,7 +252,8 @@ stat_ma_line <- function(mapping = NULL,
 ma_line_compute_group_fun <-
   function(data, scales, method = NULL, formula = NULL,
            range.y = NULL, range.x = NULL,
-           se = TRUE, n = 80, nperm = 99, fullrange = FALSE,
+           se = TRUE, mf.values = FALSE,
+           n = 80, nperm = 99, fullrange = FALSE,
            xseq = NULL, level = 0.95, method.args = list(),
            na.rm = FALSE, flipped_aes = NA, orientation = "x") {
     data <- ggplot2::flip_data(data, flipped_aes)
@@ -261,17 +287,24 @@ ma_line_compute_group_fun <-
         )
     }
 
-    model <- do.call(what = lmodel2::lmodel2, args = fit.args)
+    mf <- do.call(what = lmodel2::lmodel2, args = fit.args)
 
     newdata <- data.frame(x = xseq)
 
-    prediction <- stats::predict(model,
+    prediction <- stats::predict(mf,
                                  method = method,
                                  newdata = newdata,
                                  interval = "confidence"
     )
     names(prediction) <- c("y", "ymin", "ymax")
     prediction <- cbind(newdata, prediction)
+    if (mf.values) {
+      idx <- which(mf[["regression.results"]][["Method"]] == method)
+      prediction[["p.value"]] <- mf[["regression.results"]][["P-perm (1-tailed)"]][idx]
+      prediction[["r.squared"]] <- mf[["rsquare"]]
+      prediction[["n"]] <- mf[["n"]]
+      prediction[["method"]] <- method
+    }
     prediction$flipped_aes <- flipped_aes
     ggplot2::flip_data(prediction, flipped_aes)
   }

@@ -15,6 +15,7 @@ stat_ma_line(
   range.y = NULL,
   range.x = NULL,
   se = TRUE,
+  mf.values = FALSE,
   n = 80,
   nperm = 99,
   fullrange = FALSE,
@@ -50,8 +51,11 @@ instead of original variable names.}
 \item{range.y, range.x}{character Pass "relative" or "interval" if method
 "RMA" is to be computed.}
 
-\item{se}{Display confidence interval around smooth? (`TRUE` by default, see
-`level` to control.)}
+\item{se}{logical Return confidence interval around smooth? (`TRUE` by
+default, see `level` to control.)}
+
+\item{mf.values}{logical Add R2, p-value and n as columns to returned data?
+(`FALSE` by default.)}
 
 \item{n}{Number of points at which to evaluate smoother.}
 
@@ -79,7 +83,8 @@ default plot specification, e.g. \code{\link[ggplot2]{borders}}.}
 }
 \value{
 The value returned by the statistic is a data frame, that will have
-  \code{n} rows of predicted values and and their confidence limits.
+  \code{n} rows of predicted values and their confidence limits. Optionally
+  it will also include additional values related to the model fit.
 }
 \description{
 Predicted values and a confidence band are computed and, by default, plotted.
@@ -115,13 +120,19 @@ new statistics as they are not needed and conceptually transformations of
   x}{predicted value} \item{ymin *or* xmin}{lower pointwise confidence
   interval around the mean} \item{ymax *or* xmax}{upper pointwise confidence
   interval around the mean} \item{se}{standard error} }
+
+  If \code{mf.values = TRUE} is passed then columns based on the summary of
+  the model fit are added, with the same value in each row within a group.
+  This is wasteful and disabled by default, but provides a simple and robust
+  approach to achieve effects like colouring or hiding of the model fit line
+  based on P-values, r-squared or the number of observations.
 }
 
 \section{Aesthetics}{
  \code{stat_ma_line} understands \code{x} and \code{y},
-  to be referenced in the \code{formula}. Both must be mapped to \code{numeric}
-  variables. In addition, the aesthetics understood by the geom
-  (\code{"geom_smooth"} is the default) are understood and grouping
+  to be referenced in the \code{formula}. Both must be mapped to
+  \code{numeric} variables. In addition, the aesthetics understood by the
+  geom (\code{"geom_smooth"} is the default) are understood and grouping
   respected.
 }
 
@@ -186,6 +197,20 @@ ggplot(my.data, aes(x, y)) +
   geom_point() +
   stat_ma_line() +
   facet_wrap(~group)
+
+# Inspecting the returned data using geom_debug()
+\dontrun{
+if (requireNamespace("gginnards", quietly = TRUE)) {
+  library(gginnards)
+
+  ggplot(my.data, aes(x, y)) +
+    stat_ma_line(geom = "debug")
+
+  ggplot(my.data, aes(x, y)) +
+    stat_ma_line(geom = "debug", mf.values = TRUE)
+
+}
+}
 
 }
 \seealso{
