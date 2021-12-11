@@ -1,6 +1,6 @@
-ce6672c3249bdc71697fa6df9115d5ae *DESCRIPTION
+a1676a1c16401420d8521773536d6bb1 *DESCRIPTION
 9276db5e2c2a6677db4b8034b04f50f3 *NAMESPACE
-30187a2296e1b3df46d96c26ad4380fc *NEWS.md
+ca68f81e6308b59c4a0f5e4f635f594e *NEWS.md
 814f0966ba26f8f4d5fa8a646bc92396 *R/example-data.R
 b9b065531aa1f292890e8f4904822dc0 *R/ggpmisc.R
 d2164abe361ae60b6692c72e20886337 *R/lmodel2-util.R
@@ -17,7 +17,7 @@ f1266f7900451228c4fbaeebebd0f6ce *R/scale-continuous-Pvalue.R
 f8f2770d4cd7b40e10922d4b0608e86d *R/stat-fit-residuals.R
 0660f2d5e2c247942262343aed181029 *R/stat-ma-eq.R
 e250ef118756385cc04eb42109180121 *R/stat-ma-line.R
-4c368b7d29cdef1ba5c2dc4d08d7bb3b *R/stat-peaks.R
+6ef401bc93bd500769a2ff9b1c7828a0 *R/stat-peaks.R
 c4370aa412f7ed1a5323df36033f0708 *R/stat-poly-eq.R
 89da18faebfd2a0de6d09180ee321a6d *R/stat-poly-line.R
 941ab232f33371eb55ae8b8807065cb4 *R/stat-quant-band.R
@@ -25,12 +25,12 @@ c4370aa412f7ed1a5323df36033f0708 *R/stat-poly-eq.R
 137f343001cf81c1a1df961a2e3e3837 *R/stat-quant-line.R
 9a097fb24019237c7b93065025438982 *R/utilities.R
 358b31b2c7ff476482b73deded63e650 *README.md
-4e8d4ba524e6f2b30944203796390ae7 *build/vignette.rds
+39e65694b0e71feb455f23efbede99fd *build/vignette.rds
 f9798dcb60cca4f18de36771982f728f *data/quadrant-example-df.rda
 c880b6b4ad74bb70d639066b1cc9f061 *data/volcano-example-df.rda
 f3c3a7c23440ba2988c99bd97cd5e59f *inst/doc/model-based-annotations.R
 08ab751ba9dd1435250db08bc26100ad *inst/doc/model-based-annotations.Rmd
-05e529bd51325cc424ac1054fa010dac *inst/doc/model-based-annotations.html
+75442436544ba917e22c017b3992547d *inst/doc/model-based-annotations.html
 ce14b91c9fd39db7e36f03e524c580c0 *inst/extdata/Isoquercitin.png
 80741f548e590d5fa19cb5cb7892af35 *inst/extdata/Robinin.png
 5d75924c290b2b54b2a9c227b3cc87b4 *man/FC_format.Rd
@@ -66,7 +66,7 @@ ed73d502b85ce812de2dfdf9a31912ea *man/stat_fit_tb.Rd
 e95a13b50d5f8831f8b3253a9d24b168 *man/stat_fit_tidy.Rd
 0723c27162aabac10b66dfa41db62a45 *man/stat_ma_eq.Rd
 3940800cc4455802bc2021542ade8319 *man/stat_ma_line.Rd
-c763de5f1a634884abf3be4fe82aafe6 *man/stat_peaks.Rd
+e1dd5f63d037089fc425f9c29ad045d3 *man/stat_peaks.Rd
 bc26d015215f248ec2a8012ba3b5f000 *man/stat_poly_eq.Rd
 60f7ab30380e7ccb80592c23303dd3f1 *man/stat_poly_line.Rd
 f878a4a9a0a1da5ae1dea5645974362d *man/stat_quant_band.Rd
