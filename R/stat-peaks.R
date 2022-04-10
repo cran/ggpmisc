@@ -1,10 +1,9 @@
 #' Find local maxima or global maximum (peaks)
 #'
 #' This method finds peaks (local maxima) in a spectrum, using a user selectable
-#' span and size threshold relative to the tallest peak (global maximum). This
-#' is a wrapper built on top of function peaks from package 'splus2R'.
+#' span and size threshold relative to the tallest peak (global maximum).
 #'
-#' @param x numeric array
+#' @param x numeric vector
 #' @param ignore_threshold numeric value between 0.0 and 1.0 indicating the size
 #'   threshold below which peaks will be ignored.
 #' @param span a peak is defined as an element in a sequence which is greater
@@ -23,6 +22,7 @@
 #'   \code{\link[splus2R]{peaks}} from \pkg{splus2R} and handles non-finite
 #'   (including NA) values differently than \code{peaks}, instead of giving an
 #'   error they are replaced with the smallest finite value in \code{x}.
+#'   \code{span = NULL} is treated as a special case and returns \code{max(x)}.
 #'
 #' @note The default for parameter \code{strict} is \code{TRUE} in functions
 #'   \code{peaks()} and \code{find_peaks()}, while the default is \code{FALSE}
@@ -135,21 +135,27 @@ find_peaks <-
 #'   \code{splus2R::peaks()} and \code{find_peaks()}, while the default is \code{FALSE}
 #'   in \code{stat_peaks()} and in \code{stat_valleys()}.
 #'
-#' @note These stats check the scale of the \code{x} aesthetic and if it is Date
-#'   or Datetime they correctly generate the labels by transforming the numeric
-#'   \code{x} values to Date or POSIXct objects, respectively. In which case the
-#'   \code{x.label.fmt} must follow the syntax supported by \code{strftime()}
-#'   rather than by \code{sprintf()}. These stats work nicely together with
-#'   geoms \code{\link[ggrepel]{geom_text_repel}} and
+#' @note These statistics check the scale of the \code{x} aesthetic and if it is
+#'   Date or Datetime they correctly generate the labels by transforming the
+#'   numeric \code{x} values to Date or POSIXct objects, respectively. In which
+#'   case the \code{x.label.fmt} must follow the syntax supported by
+#'   \code{strftime()} rather than by \code{sprintf()}. Overlap of labels with
+#'   points can avoided by use of one of the nudge positions, possibly together
+#'   with geometry \code{\link[ggpp]{geom_text_s}} from package
+#'   \code{\link[ggpp]{ggpp}}, or with \code{\link[ggrepel]{geom_text_repel}} or
 #'   \code{\link[ggrepel]{geom_label_repel}} from package
-#'   \code{\link[ggrepel]{ggrepel}} to solve the problem of overlapping labels
-#'   by displacing them. Alternatively, to discard overlapping labels use
-#'   \code{check_overlap = TRUE} as argument to \code{geom_text}. By default the
-#'   labels are character values suitable to be plotted as is, but with a
-#'   suitable format passed as argument to \code{label.fmt} labels suitable for
-#'   parsing by the geoms (e.g. into expressions containing Greek letters,
-#'   super- or subscripts, maths symbols or maths constructs) can be also easily
-#'   obtained.
+#'   \code{\link[ggrepel]{ggrepel}}. To discard overlapping labels use
+#'   \code{check_overlap = TRUE} as argument to \code{geom_text} or
+#'   \code{geom_text_s}. By default the labels are character values suitable to
+#'   be plotted as is, but with a suitable format passed as argument to
+#'   \code{label.fmt} labels suitable for parsing by the geoms (e.g. into
+#'   expressions containing Greek letters, super- or subscripts, maths symbols
+#'   or maths constructs) can be also easily obtained.
+#'
+#' @section Warning!: The current version of these statistics do not support
+#'   passing \code{nudge_x} or \code{nurge_y} named parameters to the geometry.
+#'   Use `position` and one of the position functions such as
+#'   \code{\link{position_nudge_keep}} instead.
 #'
 #' @examples
 #' # lynx is a time.series object
@@ -202,17 +208,11 @@ find_peaks <-
 #'              x.label.fmt = "%Y",
 #'              angle = 33)
 #'
-#' if (packageVersion(pkg = "ggpp") <= "0.4.2") {
-#'   geom_text_s <- "text_linked"
-#' } else {
-#'   geom_text_s <- "text_s"
-#' }
-#'
 #' ggplot(lynx_datetime.df, aes(year, lynx)) +
 #'   geom_line() +
 #'   stat_peaks(colour = "red") +
 #'   stat_peaks(colour = "red",
-#'              geom = geom_text_s,
+#'              geom = "text_s",
 #'              position = position_nudge_keep(x = 0, y = 200),
 #'              hjust = -0.1,
 #'              x.label.fmt = "%Y",
@@ -222,7 +222,7 @@ find_peaks <-
 #' ggplot(lynx_datetime.df, aes(year, lynx)) +
 #'   geom_line() +
 #'   stat_peaks(colour = "red",
-#'              geom = geom_text_s,
+#'              geom = "text_s",
 #'              position = position_nudge_to(y = 7200),
 #'              arrow = arrow(length = grid::unit(1.5, "mm")),
 #'              hjust = -0.1,
@@ -326,17 +326,22 @@ peaks_compute_group_fun <- function(data,
   if (is.null(span)) {
     peaks.df <- data[which.max(data$y), , drop = FALSE]
   } else {
+    # for span to work as expected the data should be in the order they
+    # will be plotted
+    data <- data[order(data$x), ]
     peaks.df <- data[find_peaks(data$y,
                                 span = span,
                                 ignore_threshold = ignore_threshold,
                                 strict = strict,
                                 na.rm = TRUE), , drop = FALSE]
   }
-  peaks.df[["x.label"]] <- as_label(x.label.fmt, peaks.df[["x"]])
-  peaks.df[["y.label"]] <- sprintf(y.label.fmt, peaks.df[["y"]])
 
   peaks.df$flipped_aes <- flipped_aes
-  ggplot2::flip_data(peaks.df, flipped_aes)
+  peaks.df <- ggplot2::flip_data(peaks.df, flipped_aes)
+
+  peaks.df[["x.label"]] <- as_label(x.label.fmt, peaks.df[["x"]])
+  peaks.df[["y.label"]] <- sprintf(y.label.fmt, peaks.df[["y"]])
+  peaks.df
 }
 
 # Define here to avoid a note in check as the imports are not seen by checks
@@ -396,17 +401,22 @@ valleys_compute_group_fun <- function(data,
   if (is.null(span)) {
     valleys.df <- data[which.min(data$y), , drop = FALSE]
   } else {
+    # for span to work as expected the data should be in the order they
+    # will be plotted
+    data <- data[order(data$x), ]
     valleys.df <- data[find_peaks(-data$y,
                                   span = span,
                                   ignore_threshold = ignore_threshold,
                                   strict = strict,
                                   na.rm = TRUE), , drop = FALSE]
   }
-  valleys.df[["x.label"]] <- as_label(x.label.fmt, valleys.df[["x"]])
-  valleys.df[["y.label"]] <- sprintf(y.label.fmt, valleys.df[["y"]])
 
   valleys.df$flipped_aes <- flipped_aes
-  ggplot2::flip_data(valleys.df, flipped_aes)
+  valleys.df <- ggplot2::flip_data(valleys.df, flipped_aes)
+
+  valleys.df[["x.label"]] <- as_label(x.label.fmt, valleys.df[["x"]])
+  valleys.df[["y.label"]] <- sprintf(y.label.fmt, valleys.df[["y"]])
+  valleys.df
 }
 
 #' \code{Stat*} Objects
