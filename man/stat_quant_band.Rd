@@ -2,7 +2,7 @@
 % Please edit documentation in R/stat-quant-band.R
 \name{stat_quant_band}
 \alias{stat_quant_band}
-\title{Compute predicted line from quantile regression fit}
+\title{Predicted band from quantile regression fits}
 \usage{
 stat_quant_band(
   mapping = NULL,
@@ -50,8 +50,13 @@ default.)}
 
 \item{n}{Number of points at which to evaluate smoother.}
 
-\item{method}{function or character If character, "rq" and
-"rqss" are accepted.}
+\item{method}{function or character If character, "rq", "rqss" or the name of
+a model fit function are accepted, possibly followed by the fit function's
+\code{method} argument separated by a colon (e.g. \code{"rq:br"}). If a
+function different to \code{rq()}, it must accept arguments named
+\code{formula}, \code{data}, \code{weights}, \code{tau} and \code{method}
+and return a model fit object of class \code{rq}, \code{rqs} or
+\code{rqss}.}
 
 \item{method.args}{named list with additional arguments.}
 

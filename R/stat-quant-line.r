@@ -5,33 +5,33 @@
 #' band can be interpreted similarly as that produced by \code{stat_smooth()}
 #' and \code{stat_poly_line()}.
 #'
-#' @details
-#' \code{stat_quant_line()} behaves similarly to \code{ggplot2::stat_smooth()}
-#' and \code{stat_poly_line()} but supports fitting regressions for multiple
-#' quantiles in the same plot layer. This statistic interprets the argument
-#' passed to \code{formula} accepting \code{y} as well as \code{x} as
-#' explanatory variable, matching \code{stat_quant_eq()}. While
-#' \code{stat_quant_eq()} supports only method \code{"rq"},
-#' \code{stat_quant_line()} and \code{stat_quant_band()} support both
-#' \code{"rq"} and \code{"rqss"}, In the case of \code{"rqss"} the model
-#' formula makes normally use of \code{qss()} to formulate the spline and its
-#' constraints.
+#' @details \code{stat_quant_line()} behaves similarly to
+#'   \code{ggplot2::stat_smooth()} and \code{stat_poly_line()} but supports
+#'   fitting regressions for multiple quantiles in the same plot layer. This
+#'   statistic interprets the argument passed to \code{formula} accepting
+#'   \code{y} as well as \code{x} as explanatory variable, matching
+#'   \code{stat_quant_eq()}. While \code{stat_quant_eq()} supports only method
+#'   \code{"rq"}, \code{stat_quant_line()} and \code{stat_quant_band()} support
+#'   both \code{"rq"} and \code{"rqss"}, In the case of \code{"rqss"} the model
+#'   formula makes normally use of \code{qss()} to formulate the spline and its
+#'   constraints.
 #'
-#' \code{\link[ggplot2]{geom_smooth}}, which is used by default, treats each
-#' axis different and thus is dependent on orientation. If no argument is passed
-#' to \code{formula}, it defaults to \code{y ~ x}. Formulas with \code{y} as
-#' explanatory variable are treated as if \code{x} was the explanatory variable
-#' and \code{orientation = "y"}.
+#'   \code{\link[ggplot2]{geom_smooth}}, which is used by default, treats each
+#'   axis differently and thus is dependent on orientation. If no argument is
+#'   passed to \code{formula}, it defaults to \code{y ~ x}. Formulas with
+#'   \code{y} as explanatory variable are treated as if \code{x} was the
+#'   explanatory variable and \code{orientation = "y"}.
 #'
-#' Package 'ggpmisc' does not define a new geometry matching this statistic
-#' as it is enough for the statistic to return suitable \code{x}, \code{y},
-#' \code{ymin}, \code{ymax} and \code{group} values.
+#'   Package 'ggpmisc' does not define a new geometry matching this statistic as
+#'   it is enough for the statistic to return suitable \code{x}, \code{y},
+#'   \code{ymin}, \code{ymax} and \code{group} values.
 #'
-#' There are multiple uses for double regression on x and y. For example, when
-#' two variables are subject to mutual constrains, it is useful to consider both
-#' of them as explanatory and interpret the relationship based on them. So, from
-#' version 0.4.1 'ggpmisc' makes it possible to easily implement the approach
-#' described by Cardoso (2019) under the name of "Double quantile regression".
+#'   There are multiple uses for double regression on x and y. For example, when
+#'   two variables are subject to mutual constrains, it is useful to consider
+#'   both of them as explanatory and interpret the relationship based on them.
+#'   So, from version 0.4.1 'ggpmisc' makes it possible to easily implement the
+#'   approach described by Cardoso (2019) under the name of "Double quantile
+#'   regression".
 #'
 #' @param mapping The aesthetic mapping, usually constructed with
 #'   \code{\link[ggplot2]{aes}} or \code{\link[ggplot2]{aes_}}. Only needs to be
@@ -56,13 +56,16 @@
 #' @param formula a formula object. Using aesthetic names \code{x} and \code{y}
 #'   instead of original variable names.
 #' @param quantiles numeric vector Values in 0..1 indicating the quantiles.
-#' @param method function or character If character, "rq" and
-#'   "rqss" are accepted. If a function, it must have formal parameters
-#'   \code{formula} and \code{data} and return a model fit object for which
-#'   \code{summary()} and \code{coefficients()} are consistent with those for
-#'   \code{lm} fits.
-#' @param method.args named list with additional arguments passed to \code{rq()}
-#'   or \code{rqss()}..
+#' @param method function or character If character, "rq", "rqss" or the name of
+#'   a model fit function are accepted, possibly followed by the fit function's
+#'   \code{method} argument separated by a colon (e.g. \code{"rq:br"}). If a
+#'   function different to \code{rq()}, it must accept arguments named
+#'   \code{formula}, \code{data}, \code{weights}, \code{tau} and \code{method}
+#'   and return a model fit object of class \code{rq}, \code{rqs} or
+#'   \code{rqss}.
+#' @param method.args named list with additional arguments passed to
+#'   \code{rq()}, \code{rqss()} or to a function passed as argument to
+#'   \code{method}.
 #' @param n Number of points at which to evaluate smoother.
 #' @param orientation character Either "x" or "y" controlling the default for
 #'   \code{formula}.
@@ -251,6 +254,13 @@ stat_quant_line <- function(mapping = NULL,
            "the formula should have 'x' as explanatory variable.")
     }
   }
+  if (is.character(method)) {
+    if (grepl("^lm|^rlm", method)) {
+      stop("Methods 'lm' and 'rlm' not supported, please use 'stat_poly_eq()'.")
+    } else if (grepl("^lmodel2", method)) {
+      stop("Method 'lmodel2' not supported, please use 'stat_ma_eq()'.")
+    }
+  }
 
   ggplot2::layer(
     data = data,
@@ -300,7 +310,7 @@ quant_line_compute_group_fun <- function(data,
                                          mf.values = FALSE,
                                          na.rm = FALSE,
                                          flipped_aes = NA) {
-  rlang::check_installed("quantreg", reason = "for `stat_quantile()`")
+  rlang::check_installed("quantreg", reason = "for `stat_quant_line()`")
 
   data <- ggplot2::flip_data(data, flipped_aes)
 
@@ -314,20 +324,42 @@ quant_line_compute_group_fun <- function(data,
 
   grid <- data.frame(x = seq.indep)
 
-  # if method was specified as a character string, replace with
-  # the corresponding function
+  # If method was specified as a character string, replace with
+  # the corresponding function. Some model fit functions themselves have a
+  # method parameter accepting character strings as argument. We support
+  # these by splitting strings passed as argument at a colon.
   if (is.character(method)) {
-    method.name <- method
-    if (identical(method, "rq")) {
-      method <- quantreg::rq
-    } else if (identical(method, "rqss")) {
-      method <- quantreg::rqss
-    } else {
-      method <- match.fun(method) # allow users to supply their own methods
+    if (method %in% c("br", "fn", "pfn", "sfn", "fnc", "conquer",
+                      "pfnb", "qfnb", "ppro", "lasso")) {
+      method <- paste("rq", method, sep = ":")
+      message("Using method: ", method)
     }
-  } else {
-    stopifnot(is.function(method))
-    method.name <- "function"
+    method.name <- method
+    method <- strsplit(x = method, split = ":", fixed = TRUE)[[1]]
+    if (length(method) > 1L) {
+      fun.method <- method[2]
+      method <- method[1]
+    } else {
+      fun.method <- character()
+    }
+    method <- switch(method,
+                     rq = quantreg::rq,
+                     rqss = quantreg::rqss,
+                     match.fun(method))
+  } else if (is.function(method)) {
+    fun.method <- method.args[["method"]]
+    if (is.name(quote(method))) {
+      method.name <- as.character(quote(method))
+    } else {
+      method.name <- "function"
+    }
+    if (length(fun.method)) {
+      method.name <- paste(method.name, fun.method, sep = ":")
+    }
+  }
+
+  if (length(fun.method)) {
+    method.args[["method"]] <- fun.method
   }
 
   z <- dplyr::bind_rows(

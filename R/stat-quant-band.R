@@ -1,4 +1,4 @@
-#' Compute predicted line from quantile regression fit
+#' Predicted band from quantile regression fits
 #'
 #' Predicted values are computed and, by default, plotted as a band plus an
 #' optional line within. \code{stat_quant_band()} supports the use of both
@@ -42,8 +42,13 @@
 #'   instead of original variable names.
 #' @param quantiles numeric vector Two or three values in 0..1 indicating the
 #'   quantiles at the  edges of the band and optionally a line within the band.
-#' @param method function or character If character, "rq" and
-#'   "rqss" are accepted.
+#' @param method function or character If character, "rq", "rqss" or the name of
+#'   a model fit function are accepted, possibly followed by the fit function's
+#'   \code{method} argument separated by a colon (e.g. \code{"rq:br"}). If a
+#'   function different to \code{rq()}, it must accept arguments named
+#'   \code{formula}, \code{data}, \code{weights}, \code{tau} and \code{method}
+#'   and return a model fit object of class \code{rq}, \code{rqs} or
+#'   \code{rqss}.
 #' @param method.args named list with additional arguments.
 #' @param n Number of points at which to evaluate smoother.
 #' @param orientation character Either "x" or "y" controlling the default for
@@ -185,6 +190,13 @@ stat_quant_band <- function(mapping = NULL,
            "the formula should have 'x' as explanatory variable.")
     }
   }
+  if (is.character(method)) {
+    if (grepl("^lm|^rlm", method)) {
+      stop("Methods 'lm' and 'rlm' not supported, please use 'stat_poly_eq()'.")
+    } else if (grepl("^lmodel2", method)) {
+      stop("Method 'lmodel2' not supported, please use 'stat_ma_eq()'.")
+    }
+  }
 
   ggplot2::layer(
     data = data,
@@ -221,13 +233,13 @@ quant_band_compute_group_fun <- function(data,
                                          quantiles = c(0.25, 0.5, 0.75),
                                          formula = NULL,
                                          n = 80,
-                                         method = "rq",
+                                         method = "rq:br",
                                          method.args = list(),
                                          lambda = 1,
                                          mf.values = FALSE,
                                          na.rm = FALSE,
                                          flipped_aes = NA) {
-  rlang::check_installed("quantreg", reason = "for `stat_quantile()`")
+  rlang::check_installed("quantreg", reason = "for `stat_quant_band()`")
 
   data <- ggplot2::flip_data(data, flipped_aes)
 
@@ -241,24 +253,46 @@ quant_band_compute_group_fun <- function(data,
 
   grid <- data.frame(x = seq.indep)
 
-  # if method was specified as a character string, replace with
-  # the corresponding function
+  # If method was specified as a character string, replace with
+  # the corresponding function. Some model fit functions themselves have a
+  # method parameter accepting character strings as argument. We support
+  # these by splitting strings passed as argument at a colon.
   if (is.character(method)) {
-    method.name <- method
-    if (identical(method, "rq")) {
-      method <- quantreg::rq
-    } else if (identical(method, "rqss")) {
-      method <- quantreg::rqss
-    } else {
-      method <- match.fun(method) # allow users to supply their own methods
+    if (method %in% c("br", "fn", "pfn", "sfn", "fnc", "conquer",
+                      "pfnb", "qfnb", "ppro", "lasso")) {
+      method <- paste("rq", method, sep = ":")
+      message("Using method: ", method)
     }
-  } else {
-    stopifnot(is.function(method))
-    method.name <- "function"
+    method.name <- method
+    method <- strsplit(x = method, split = ":", fixed = TRUE)[[1]]
+    if (length(method) > 1L) {
+      fun.method <- method[2]
+      method <- method[1]
+    } else {
+      fun.method <- NULL
+    }
+    method <- switch(method,
+                     rq = quantreg::rq,
+                     rqss = quantreg::rqss,
+                     match.fun(method))
+  } else if (is.function(method)) {
+    fun.method <- method.args[["method"]]
+    if (is.name(quote(method))) {
+      method.name <- as.character(quote(method))
+    } else {
+      method.name <- "function"
+    }
+    if (length(fun.method)) {
+      method.name <- paste(method.name, fun.method, sep = ":")
+    }
+  }
+
+  if (length(fun.method)) {
+    method.args[["method"]] <- fun.method
   }
 
   z.ls <- lapply(sort(quantiles), quant_pred, data = data, method = method,
-                 formula = formula, weight = data$weight, grid = grid,
+                 formula = formula, weight = data[["weight"]], grid = grid,
                  method.args = method.args, orientation = "x",
                  make.groups = FALSE)
   z <- z.ls[[2]]
