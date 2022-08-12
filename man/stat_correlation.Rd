@@ -13,7 +13,7 @@ stat_correlation(
   method = "pearson",
   alternative = "two.sided",
   exact = NULL,
-  conf.level = 0.95,
+  r.conf.level = 0.95,
   continuity = FALSE,
   small.r = FALSE,
   small.p = FALSE,
@@ -21,11 +21,13 @@ stat_correlation(
   r.digits = 2,
   t.digits = 3,
   p.digits = 3,
+  CI.brackets = c("[", "]"),
   label.x = "left",
   label.y = "top",
   hstep = 0,
   vstep = NULL,
   output.type = NULL,
+  boot.R = ifelse(method == "pearson", 0, 999),
   na.rm = FALSE,
   parse = NULL,
   show.legend = FALSE,
@@ -37,8 +39,8 @@ stat_correlation(
 \code{\link[ggplot2]{aes}} or \code{\link[ggplot2]{aes_}}. Only needs to be
 set at the layer level if you are overriding the plot defaults.}
 
-\item{data}{A layer specific dataset, only needed if you want to override
-the plot defaults.}
+\item{data}{A layer specific dataset, only needed if you want to override the
+plot defaults.}
 
 \item{geom}{The geometric object to use display the data}
 
@@ -56,20 +58,25 @@ can include aesthetics whose values you want to set, not map. See
 \item{exact}{logical Whether an exact p-value should be computed. Used for
 Kendall's tau and Spearman's rho.}
 
-\item{conf.level}{numeric Confidence level for the returned confidence
-interval (only if \code{method = "pearson"} which is the default).}
+\item{r.conf.level}{numeric Confidence level for the returned confidence
+interval.}
 
 \item{continuity}{logical If TRUE , a continuity correction is used for
 Kendall's tau and Spearman's rho when not computed exactly.}
 
 \item{small.r, small.p}{logical Flags to switch use of lower case r and p for
-coefficient of correlation (only for \code{method = "pearson"}) and p-value.}
+coefficient of correlation (only for \code{method = "pearson"}) and
+p-value.}
 
 \item{coef.keep.zeros}{logical Keep or drop trailing zeros when formatting
-the correlation coefficients and t-value, z-value or S-value (see note below).}
+the correlation coefficients and t-value, z-value or S-value (see note
+below).}
 
-\item{r.digits, t.digits, p.digits}{integer Number of digits after the decimal point to
-use for R, r.squared, tau or rho and P-value in labels.}
+\item{r.digits, t.digits, p.digits}{integer Number of digits after the decimal
+point to use for R, r.squared, tau or rho and P-value in labels.}
+
+\item{CI.brackets}{character vector of length 2. The opening and closing
+brackets used for the CI label.}
 
 \item{label.x, label.y}{\code{numeric} with range 0..1 "normalized parent
 coordinates" (npc units) or character if using \code{geom_text_npc()} or
@@ -79,8 +86,11 @@ numeric in native data units. If too short they will be recycled.}
 \item{hstep, vstep}{numeric in npc units, the horizontal and vertical step
 used between labels for different groups.}
 
-\item{output.type}{character One of "expression", "LaTeX", "text",
-"markdown" or "numeric".}
+\item{output.type}{character One of "expression", "LaTeX", "text", "markdown"
+or "numeric".}
+
+\item{boot.R}{interger The number of bootstrap resamples. Set to zero for no
+bootstrap estimates for the CI.}
 
 \item{na.rm}{a logical indicating whether NA values should be stripped before
 the computation proceeds.}
@@ -114,7 +124,8 @@ This statistic can be used to annotate a plot with the correlation
   device), markdown (use package 'ggtext') and plain text are also supported,
   as well as numeric values for user-generated text labels. The character
   labels include the symbol describing the quantity together with the numeric
-  value.
+  value. For the confidence interval (CI) the default is to follow the APA
+  recommendation of using square brackets.
 
   The value of \code{parse} is set automatically based on \code{output-type},
   but if you assemble labels that need parsing from \code{numeric} output,
@@ -147,10 +158,14 @@ Currently \code{coef.keep.zeros} is ignored, with trailing zeros always
 \describe{
   \item{x,npcx}{x position}
   \item{y,npcy}{y position}
-  \item{cor, tau or rho}{numeric values for correlation coefficient estimates}
+  \item{r, and cor, tau or rho}{numeric values for correlation coefficient estimates}
   \item{t.value and its df, z.value or S.value }{numeric values for statistic estimates}
-  \item{p.value, n}{numeric values}
+  \item{p.value, n}{numeric values.}
+  \item{r.conf.level}{numeric value, as fraction of one.}
+  \item{r.confint.low}{Confidence interval limit for \code{r}.}
+  \item{r.confint.high}{Confidence interval limit for \code{r}.}
   \item{grp.label}{Set according to mapping in \code{aes}.}
+  \item{method.label}{Set according \code{method} used.}
   \item{method, test}{character values}}
 
 If output.type different from \code{"numeric"} the returned tibble contains
@@ -161,6 +176,7 @@ value is missing the label is set to \code{character(0L)}.
   \item{r.label, and cor.label, tau.label or rho.label}{Correlation coefficient as a character string.}
   \item{t.value.label, z.value.label or S.value.label}{t-value and degrees of freedom, z-value or S-value as a character string.}
   \item{p.value.label}{P-value for test against zero, as a character string.}
+  \item{r.confint.label, and cor.conint.label, tau.confint.label or rho.confint.label}{Confidence interval for \code{r} (only with \code{method = "pearson"}).}
   \item{n.label}{Number of observations used in the fit, as a character string.}
   \item{grp.label}{Set according to mapping in \code{aes}, as a character string.}}
 
@@ -178,33 +194,20 @@ my.data <- data.frame(x = x,
                       y.desc = - y,
                       group = c("A", "B"))
 
+# by default only R is displayed
 ggplot(my.data, aes(x, y)) +
   geom_point() +
   stat_correlation()
-
-ggplot(my.data, aes(x, y.desc)) +
-  geom_point() +
-  stat_correlation(label.x = "right")
-
-ggplot(my.data, aes(x, y)) +
-  geom_point() +
-  stat_correlation(aes(label = paste(after_stat(r.label),
-                              after_stat(p.value.label),
-                              after_stat(n.label),
-                              sep = "*\"; \"*")))
 
 ggplot(my.data, aes(x, y)) +
   geom_point() +
   stat_correlation(small.r = TRUE)
 
-ggplot(my.data, aes(x, y)) +
+ggplot(my.data, aes(x, y.desc)) +
   geom_point() +
-  stat_correlation(aes(label = paste(after_stat(r.label),
-                              after_stat(p.value.label),
-                              after_stat(n.label),
-                              sep = "*\"; \"*")),
-            method = "kendall")
+  stat_correlation(label.x = "right")
 
+# non-default methods
 ggplot(my.data, aes(x, y)) +
   geom_point() +
   stat_correlation(method = "kendall")
@@ -213,13 +216,47 @@ ggplot(my.data, aes(x, y)) +
   geom_point() +
   stat_correlation(method = "spearman")
 
+# use_label() can map a user selected label
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  stat_correlation(use_label("R2"))
+
+# use_label() can assemble and map a combined label
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  stat_correlation(use_label(c("R", "P", "n", "method")))
+
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  stat_correlation(use_label(c("R", "R.CI")))
+
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  stat_correlation(use_label(c("R", "R.CI")), boot.R = 999)
+
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  stat_correlation(use_label(c("R", "R.CI")), method = "kendall")
+
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  stat_correlation(use_label(c("R", "R.CI")), method = "spearman")
+
+# manually assemble and map a specific label using paste() and aes()
 ggplot(my.data, aes(x, y)) +
   geom_point() +
   stat_correlation(aes(label = paste(after_stat(r.label),
-                              after_stat(p.value.label),
-                              after_stat(n.label),
-                              sep = "*\"; \"*")),
-            method = "spearman")
+                                     after_stat(p.value.label),
+                                     after_stat(n.label),
+                                     sep = "*\", \"*")))
+
+# manually format and map a specific label using sprintf() and aes()
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  stat_correlation(aes(label = sprintf("\%s*\" with \"*\%s*\" for \"*\%s",
+                                       after_stat(r.label),
+                                       after_stat(p.value.label),
+                                       after_stat(t.value.label))))
 
 # Inspecting the returned data using geom_debug()
 if (requireNamespace("gginnards", quietly = TRUE)) {

@@ -21,11 +21,30 @@ following the syntax of package ‘broom’ are supported. Package
 ‘**ggpmisc**’ continues to give access to extensions moved as of version
 0.4.0 to package [‘**ggpp**’](https://docs.r4photobiology.info/ggpp/).
 
+## Philosophy
+
+Package ‘**ggpmisc**’ is consistent with the grammar of graphics, and
+opens new possibilities retaining the flexibility inherent to this
+grammar. Its aim is not to automate plotting or annotations in a way
+suitable for fast data exploration by use of a “fits-all-sizes”
+predefined design. Package ‘**ggpmisc**’ together with package
+‘**ggpp**’, provide new layer functions, position functions and scales.
+In fact, these packages follow the tenets of the grammar even more
+strictly than ‘**ggplot2**’ in the distinction between geometries and
+statistics. The new statistics in ‘**ggpmisc**’ focus mainly on model
+fitting, but there is not yet support for multiple comparisons among
+groups. The default annotations are those most broadly valid and of
+easiest interpretation. We follow R’s approach of expecting that users
+know what they need or want, and will usually want to adjust how results
+from model fits are presented both graphically and textually. The
+approach and mechanics of plot construction and rendering remain
+unchanged from those implemented in package ‘**ggplot2**’.
+
 ## Statistics
 
 Statistics that help with reporting the results of model fits are:
 
-| Statistic               | `after_stat` values (*default geometry*)          | Methods                                      |
+| Statistic               | Returned values (*default geometry*) \| Met       | hods                                         |
 |-------------------------|---------------------------------------------------|----------------------------------------------|
 | `stat_poly_eq()`        | equation, *R*<sup>2</sup>, *P*, etc. (`text_npc`) | lm, rlm (1, 2, 7)                            |
 | `stat_ma_eq()`          | equation, *R*<sup>2</sup>, *P*, etc. (`text_npc`) | lmodel2 (6, 7)                               |
@@ -119,7 +138,8 @@ ggplot(lynx, as.numeric = FALSE) + geom_line() +
 In the second example we add the equation for a fitted polynomial plus
 the adjusted coefficient of determination to a plot showing the
 observations plus the fitted curve, deviations and confidence band. We
-use `stat_poly_eq()`.
+use `stat_poly_eq()` together with `use_label()` to assemble and map the
+desired annotations.
 
 ``` r
 formula <- y ~ x + I(x^2)
@@ -127,8 +147,7 @@ ggplot(cars, aes(speed, dist)) +
   geom_point() +
   stat_fit_deviations(formula = formula, colour = "red") +
   stat_poly_line(formula = formula) +
-  stat_poly_eq(aes(label =  paste(stat(eq.label), stat(adj.rr.label), sep = "*\", \"*")),
-               formula = formula)
+  stat_poly_eq(use_label(c("eq", "adj.R2")), formula = formula)
 ```
 
 ![](man/figures/README-readme-04-1.png)<!-- -->
@@ -167,8 +186,7 @@ formula <- y ~ x + I(x^2)
 ggplot(cars, aes(speed, dist)) +
   geom_point() +
   stat_quant_line(formula = formula, quantiles = 0.5) +
-  stat_quant_eq(aes(label = paste(stat(grp.label), stat(eq.label), sep = "*\": \"*")),
-               formula = formula, quantiles = 0.5)
+  stat_quant_eq(formula = formula, quantiles = 0.5)
 ```
 
 ![](man/figures/README-readme-04b-1.png)<!-- -->

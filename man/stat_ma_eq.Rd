@@ -23,6 +23,7 @@ stat_ma_eq(
   coef.digits = 3,
   coef.keep.zeros = TRUE,
   rr.digits = 2,
+  theta.digits = 2,
   p.digits = max(1, ceiling(log10(nperm))),
   label.x = "left",
   label.y = "top",
@@ -87,8 +88,8 @@ the fitted coefficients.}
 \item{coef.keep.zeros}{logical Keep or drop trailing zeros when formatting
 the fitted coefficients and F-value.}
 
-\item{rr.digits, p.digits}{integer Number of digits after the decimal point to
-use for R^2 and P-value in labels.}
+\item{rr.digits, p.digits, theta.digits}{integer Number of digits after the
+decimal point to use for R^2, theta and P-value in labels.}
 
 \item{label.x, label.y}{\code{numeric} with range 0..1 "normalized parent
 coordinates" (npc units) or character if using \code{geom_text_npc()} or
@@ -127,13 +128,17 @@ generates several labels including the equation, p-value,
 coefficient of determination (R^2), and number of observations.
 }
 \details{
-This stat can be used to automatically annotate a plot with R^2,
-  P_value, n and/or the fitted model equation. It supports linear major axis
+This stat can be used to automatically annotate a plot with \eqn{R^2},
+  \eqn{P}-value, \eqn{n} and/or the fitted model equation. It supports linear major axis
   (MA), standard major axis (SMA) and ranged major axis (RMA) regression by
   means of function \code{\link[lmodel2]{lmodel2}}. Please see the
   documentation, including the vignette of package 'lmodel2' for details.
   The parameters in \code{stat_ma_eq()} follow the same naming as in function
   \code{lmodel2()}.
+
+  It is important to keep in mind that although the fitted line does not
+  depend on whether the \eqn{x} or \eqn{y} appears on the rhs of the model
+  formula, the numeric estimates for the parameters do depend on this.
 
   A ggplot statistic receives as \code{data} a data frame that is not the one
   passed as argument by the user, but instead a data frame with the variables
@@ -179,10 +184,12 @@ the label is set to \code{character(0L)}.
   \item{y,npcy}{y position}
   \item{eq.label}{equation for the fitted polynomial as a character string to be parsed}
   \item{rr.label}{\eqn{R^2} of the fitted model as a character string to be parsed}
-  \item{p.value.label}{P-value for the F-value above.}
+  \item{p.value.label}{P-value if available, depends on \code{method}.}
+  \item{theta.label}{Angle in degrees between the two OLS lines for lines estimated from \code{y ~ x} and \code{x ~ y} linear model (\code{lm}) fits.}
   \item{n.label}{Number of observations used in the fit.}
   \item{grp.label}{Set according to mapping in \code{aes}.}
-  \item{r.squared, p.value, n}{numeric values, from the model fit object}}
+  \item{method.label}{Set according \code{method} used.}
+  \item{r.squared, theta, p.value, n}{numeric values, from the model fit object}}
 
 If output.type is \code{"numeric"} the returned tibble contains columns
 listed below. If the model fit function used does not return a value,
@@ -191,7 +198,7 @@ the variable is set to \code{NA_real_}.
   \item{x,npcx}{x position}
   \item{y,npcy}{y position}
   \item{coef.ls}{list containing the "coefficients" matrix from the summary of the fit object}
-  \item{r.squared, adj.r.squared, f.value, f.df1, f.df2, p.value, AIC, BIC, n}{numeric values, from the model fit object}
+  \item{r.squared, theta, p.value, n}{numeric values, from the model fit object}
   \item{grp.label}{Set according to mapping in \code{aes}.}
   \item{b_0.constant}{TRUE is polynomial is forced through the origin}
   \item{b_i}{One or two columns with the coefficient estimates}}
@@ -213,55 +220,42 @@ ggplot(my.data, aes(x, y)) +
   stat_ma_line() +
   stat_ma_eq()
 
-# using major axis regression
+# use_label() can assemble and map a combined label
 ggplot(my.data, aes(x, y)) +
   geom_point() +
   stat_ma_line(method = "MA") +
-  stat_ma_eq(aes(label =
-    paste(after_stat(eq.label),
-          after_stat(p.value.label),
-          sep = "*\", \"*")),
-          method = "MA")
+  stat_ma_eq(use_label(c("eq", "R2", "P")))
 
-# using standard major axis regression
 ggplot(my.data, aes(x, y)) +
   geom_point() +
-  stat_ma_line(method = "SMA") +
-  stat_ma_eq(aes(label =
-    paste(after_stat(eq.label),
-          after_stat(p.value.label),
-          sep = "*\", \"*")),
-          method = "SMA")
+  stat_ma_line(method = "MA") +
+  stat_ma_eq(use_label(c("R2", "P", "theta", "method")))
 
 # using ranged major axis regression
 ggplot(my.data, aes(x, y)) +
   geom_point() +
-  stat_ma_line(method = "RMA", range.y = "interval", range.x = "interval") +
-  stat_ma_eq(aes(label =
-    paste(after_stat(eq.label),
-          after_stat(p.value.label),
-          sep = "*\", \"*")),
-          method = "RMA",
-          range.y = "interval", range.x = "interval")
+  stat_ma_line(method = "RMA",
+               range.y = "interval",
+               range.x = "interval") +
+  stat_ma_eq(use_label(c("eq", "R2", "P")),
+             method = "RMA",
+             range.y = "interval",
+             range.x = "interval")
 
 # No permutation-based test
 ggplot(my.data, aes(x, y)) +
   geom_point() +
   stat_ma_line(method = "MA") +
-  stat_ma_eq(aes(label =
-    paste(after_stat(eq.label),
-          after_stat(p.value.label),
-          sep = "*\", \"*")),
-          method = "MA", nperm = 0)
+  stat_ma_eq(use_label(c("eq", "R2")),
+             method = "MA",
+             nperm = 0)
 
 # explicit formula "x explained by y"
 ggplot(my.data, aes(x, y)) +
   geom_point() +
   stat_ma_line(formula = x ~ y) +
   stat_ma_eq(formula = x ~ y,
-             aes(label = paste(after_stat(eq.label),
-                               after_stat(p.value.label),
-                               sep = "*\", \"*")))
+             use_label(c("eq", "R2", "P")))
 
 # grouping
 ggplot(my.data, aes(x, y, color = group)) +
@@ -270,20 +264,12 @@ ggplot(my.data, aes(x, y, color = group)) +
   stat_ma_eq()
 
 # labelling equations
-ggplot(my.data, aes(x, y,  shape = group, linetype = group,
-       grp.label = group)) +
+ggplot(my.data,
+       aes(x, y,  shape = group, linetype = group, grp.label = group)) +
   geom_point() +
   stat_ma_line(color = "black") +
-  stat_ma_eq(aes(label = paste(after_stat(grp.label),
-                               after_stat(eq.label),
-                               sep = "*\": \"*"))) +
+  stat_ma_eq(use_label(c("grp", "eq", "R2"))) +
   theme_classic()
-
-# geom = "text"
-ggplot(my.data, aes(x, y)) +
-  geom_point() +
-  stat_ma_line() +
-  stat_ma_eq(label.x = "left", label.y = "top")
 
 # Inspecting the returned data using geom_debug()
 \dontrun{
@@ -318,17 +304,16 @@ if (requireNamespace("gginnards", quietly = TRUE)) {
 }
 \seealso{
 The major axis regression model is fitted with function
-  \code{\link[lmodel2]{lmodel2}}, please consult its documentation. This
-  \code{stat_ma_eq} statistic can return ready formatted labels depending on
-  the argument passed to \code{output.type}. If ordinary least squares
-  polynomial regression is desired, then \code{\link{stat_poly_eq}}. For
-  quantile fits of polynomial regression is desired,
+  \code{\link[lmodel2]{lmodel2}}, please consult its documentation. Statistic
+  \code{stat_ma_eq()} can return different ready formatted labels depending
+  on the argument passed to \code{output.type}. If ordinary least squares
+  polynomial regression is desired, then \code{\link{stat_poly_eq}}. If
+  quantile-fitted polynomial regression is desired,
   \code{\link{stat_quant_eq}} should be used. For other types of models such
   as non-linear models, statistics \code{\link{stat_fit_glance}} and
   \code{\link{stat_fit_tidy}} should be used and the code for construction of
   character strings from numeric values and their mapping to aesthetic
-  \code{label} needs to be explicitly supplied
-  in the call.
+  \code{label} explicitly supplied in the call.
 
 Other ggplot statistics for major axis regression: 
 \code{\link{stat_ma_line}()}

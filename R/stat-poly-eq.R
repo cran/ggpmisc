@@ -30,9 +30,10 @@
 #' @param method function or character If character, "lm", "rlm" or the name of
 #'   a model fit function are accepted, possibly followed by the fit function's
 #'   \code{method} argument separated by a colon (e.g. \code{"rlm:M"}). If a
-#'   function different to \code{lm()}, it must accept arguments named
-#'   \code{formula}, \code{data}, \code{weights}, and \code{method} and return a
-#'   model fit object of class \code{lm}.
+#'   function different to \code{lm()}, it must accept as a minimum a model
+#'   formula through its first parameter, and have formal parameters named
+#'   \code{data}, \code{weights}, and \code{method}, and return a model fit
+#'   object of class \code{lm}.
 #' @param method.args named list with additional arguments.
 #' @param eq.with.lhs If \code{character} the string is pasted to the front of
 #'   the equation label before parsing or a \code{logical} (see note).
@@ -41,6 +42,10 @@
 #'   it.
 #' @param small.r,small.p logical Flags to switch use of lower case r and p for
 #'   coefficient of determination and p-value.
+#' @param rsquared.conf.level numeric Confidence level for the returned
+#'   confidence interval.
+#' @param CI.brackets character vector of length 2. The opening and closing
+#'   brackets used for the CI label.
 #' @param coef.digits,f.digits integer Number of significant digits to use for
 #'   the fitted coefficients and F-value.
 #' @param coef.keep.zeros logical Keep or drop trailing zeros when formatting
@@ -77,23 +82,25 @@
 #' @details This statistic can be used to automatically annotate a plot with
 #'   \eqn{R^2}, adjusted \eqn{R^2} or the fitted model equation. It supports
 #'   linear regression, robust linear regression and median regression fitted
-#'   with functions \code{lm()}, \code{MASS::rlm()} or \code{quanreg::rq()}. The
-#'   \eqn{R^2} and adjusted \eqn{R^2} annotations can be used with any linear
-#'   model formula. The fitted equation label is correctly generated for
-#'   polynomials or quasi-polynomials through the origin. Model formulas can use
-#'   \code{poly()} or be defined algebraically with terms of powers of
-#'   increasing magnitude with no missing intermediate terms, except possibly
-#'   for the intercept indicated by "- 1" or "-1" or \code{"+ 0"} in the
-#'   formula. The validity of the \code{formula} is not checked in the current
-#'   implementation, and for this reason the default aesthetics sets \eqn{R^2}
-#'   as label for the annotation. This stat generates labels as R expressions by
-#'   default but LaTeX (use TikZ device), markdown (use package 'ggtext') and
-#'   plain text are also supported, as well as numeric values for user-generated
-#'   text labels. The value of \code{parse} is set automatically based on
-#'   \code{output-type}, but if you assemble labels that need parsing from
-#'   \code{numeric} output, the default needs to be overridden. This stat only
-#'   generates annotation labels, the predicted values/line need to be added to
-#'   the plot as a separate layer using \code{\link{stat_poly_line}} or
+#'   with functions \code{\link{lm}}, \code{\link[MASS]{rlm}} or
+#'   \code{\link[quantreg]{rq}}. The \eqn{R^2} and adjusted \eqn{R^2} annotations
+#'   can be used with any linear model formula. The confidence interval for
+#'   \eqn{R^2} is computed with package \code{\link[confintr]{ci_rsquared}}. The
+#'   fitted equation label is correctly generated for polynomials or
+#'   quasi-polynomials through the origin. Model formulas can use \code{poly()}
+#'   or be defined algebraically with terms of powers of increasing magnitude
+#'   with no missing intermediate terms, except possibly for the intercept
+#'   indicated by "- 1" or "-1" or \code{"+ 0"} in the formula. The validity of
+#'   the \code{formula} is not checked in the current implementation, and for
+#'   this reason the default aesthetics sets \eqn{R^2} as label for the
+#'   annotation. This statistic generates labels as R expressions by default but
+#'   LaTeX (use TikZ device), markdown (use package 'ggtext') and plain text are
+#'   also supported, as well as numeric values for user-generated text labels.
+#'   The value of \code{parse} is set automatically based on \code{output-type},
+#'   but if you assemble labels that need parsing from \code{numeric} output,
+#'   the default needs to be overridden. This stat only generates annotation
+#'   labels, the predicted values/line need to be added to the plot as a
+#'   separate layer using \code{\link{stat_poly_line}} or
 #'   \code{\link[ggplot2]{stat_smooth}}, so to make sure that the same model
 #'   formula is used in all steps it is best to save the formula as an object
 #'   and supply this object as argument to the different statistics.
@@ -113,7 +120,7 @@
 #'   authorship). \code{stat_regline_equation()} lacks important functionality
 #'   and contains bugs that have been fixed in \code{stat_poly_eq()}.
 #'
-#' @section Aesthetics: \code{stat_poly_eq} understands \code{x} and \code{y},
+#' @section Aesthetics: \code{stat_poly_eq()} understands \code{x} and \code{y},
 #'   to be referenced in the \code{formula} and \code{weight} passed as argument
 #'   to parameter \code{weights}. All three must be mapped to
 #'   \code{numeric} variables. In addition, the aesthetics understood by the geom
@@ -129,12 +136,14 @@
 #'   \item{eq.label}{equation for the fitted polynomial as a character string to be parsed}
 #'   \item{rr.label}{\eqn{R^2} of the fitted model as a character string to be parsed}
 #'   \item{adj.rr.label}{Adjusted \eqn{R^2} of the fitted model as a character string to be parsed}
+#'   \item{rr.confint.label}{Confidence interval for \eqn{R^2} of the fitted model as a character string to be parsed}
 #'   \item{f.value.label}{F value and degrees of freedom for the fitted model as a whole.}
 #'   \item{p.value.label}{P-value for the F-value above.}
 #'   \item{AIC.label}{AIC for the fitted model.}
 #'   \item{BIC.label}{BIC for the fitted model.}
 #'   \item{n.label}{Number of observations used in the fit.}
 #'   \item{grp.label}{Set according to mapping in \code{aes}.}
+#'   \item{method.label}{Set according \code{method} used.}
 #'   \item{r.squared, adj.r.squared, p.value, n}{numeric values, from the model fit object}}
 #'
 #' If output.type is \code{"numeric"} the returned tibble contains columns
@@ -144,7 +153,7 @@
 #'   \item{x,npcx}{x position}
 #'   \item{y,npcy}{y position}
 #'   \item{coef.ls}{list containing the "coefficients" matrix from the summary of the fit object}
-#'   \item{r.squared, adj.r.squared, f.value, f.df1, f.df2, p.value, AIC, BIC, n}{numeric values, from the model fit object}
+#'   \item{r.squared, rr.confint.level, rr.confint.low, rr.confint.high, adj.r.squared, f.value, f.df1, f.df2, p.value, AIC, BIC, n}{numeric values, from the model fit object}
 #'   \item{grp.label}{Set according to mapping in \code{aes}.}
 #'   \item{b_0.constant}{TRUE is polynomial is forced through the origin}
 #'   \item{b_i}{One or columns with the coefficient estimates}}
@@ -170,91 +179,113 @@
 #' set.seed(4321)
 #' x <- 1:100
 #' y <- (x + x^2 + x^3) + rnorm(length(x), mean = 0, sd = mean(x^3) / 4)
+#' y <- y / max(y)
 #' my.data <- data.frame(x = x, y = y,
 #'                       group = c("A", "B"),
-#'                       y2 = y * c(0.5,2),
+#'                       y2 = y * c(1, 2) + c(0, 0.1),
 #'                       w = sqrt(x))
 #'
 #' # give a name to a formula
 #' formula <- y ~ poly(x, 3, raw = TRUE)
 #'
+#' # using defaults
+#' ggplot(my.data, aes(x, y)) +
+#'   geom_point() +
+#'   stat_poly_line() +
+#'   stat_poly_eq()
+#'
 #' # no weights
 #' ggplot(my.data, aes(x, y)) +
 #'   geom_point() +
-#'   geom_smooth(method = "lm", formula = formula) +
+#'   stat_poly_line(formula = formula) +
 #'   stat_poly_eq(formula = formula)
 #'
-#' # grouping
-#' ggplot(my.data, aes(x, y, color = group)) +
+#' # other labels
+#' ggplot(my.data, aes(x, y)) +
 #'   geom_point() +
-#'   geom_smooth(method = "lm", formula = formula) +
+#'   stat_poly_line(formula = formula) +
+#'   stat_poly_eq(use_label("eq"), formula = formula)
+#'
+#' ggplot(my.data, aes(x, y)) +
+#'   geom_point() +
+#'   stat_poly_line(formula = formula) +
+#'   stat_poly_eq(use_label(c("eq", "R2")), formula = formula)
+#'
+#' ggplot(my.data, aes(x, y)) +
+#'   geom_point() +
+#'   stat_poly_line(formula = formula) +
+#'   stat_poly_eq(use_label(c("R2", "R2.CI", "P", "method")), formula = formula)
+#'
+#' ggplot(my.data, aes(x, y)) +
+#'   geom_point() +
+#'   stat_poly_line(formula = formula) +
+#'   stat_poly_eq(use_label(c("R2", "F", "P", "n"), sep = "*\"; \"*"),
+#'                formula = formula)
+#'
+#' # grouping
+#' ggplot(my.data, aes(x, y2, color = group)) +
+#'   geom_point() +
+#'   stat_poly_line(formula = formula) +
 #'   stat_poly_eq(formula = formula)
 #'
 #' # rotation
 #' ggplot(my.data, aes(x, y)) +
 #'   geom_point() +
-#'   geom_smooth(method = "lm", formula = formula) +
-#'   stat_poly_eq(formula = formula, angle = 90, hjust = 1)
+#'   stat_poly_line(formula = formula) +
+#'   stat_poly_eq(formula = formula, angle = 90)
 #'
 #' # label location
 #' ggplot(my.data, aes(x, y)) +
 #'   geom_point() +
-#'   geom_smooth(method = "lm", formula = formula) +
+#'   stat_poly_line(formula = formula) +
 #'   stat_poly_eq(formula = formula, label.y = "bottom", label.x = "right")
 #'
 #' ggplot(my.data, aes(x, y)) +
 #'   geom_point() +
-#'   geom_smooth(method = "lm", formula = formula) +
+#'   stat_poly_line(formula = formula) +
 #'   stat_poly_eq(formula = formula, label.y = 0.1, label.x = 0.9)
 #'
 #' # using weights
 #' ggplot(my.data, aes(x, y, weight = w)) +
 #'   geom_point() +
-#'   geom_smooth(method = "lm", formula = formula) +
+#'   stat_poly_line(formula = formula) +
 #'   stat_poly_eq(formula = formula)
 #'
-#' # no weights, digits for R square
+#' # no weights, 4 digits for R square
 #' ggplot(my.data, aes(x, y)) +
 #'   geom_point() +
-#'   geom_smooth(method = "lm", formula = formula) +
+#'   stat_poly_line(formula = formula) +
 #'   stat_poly_eq(formula = formula, rr.digits = 4)
 #'
-#' # user specified label
+#' # manually assemble and map a specific label using paste() and aes()
 #' ggplot(my.data, aes(x, y)) +
 #'   geom_point() +
-#'   geom_smooth(method = "lm", formula = formula) +
+#'   stat_poly_line(formula = formula) +
 #'   stat_poly_eq(aes(label =  paste(after_stat(rr.label),
 #'                                   after_stat(n.label), sep = "*\", \"*")),
 #'                formula = formula)
 #'
+#' # manually assemble and map a specific label using sprintf() and aes()
 #' ggplot(my.data, aes(x, y)) +
 #'   geom_point() +
-#'   geom_smooth(method = "lm", formula = formula) +
-#'   stat_poly_eq(aes(label =  paste(after_stat(eq.label),
-#'                                   after_stat(adj.rr.label), sep = "*\", \"*")),
-#'                formula = formula)
-#'
-#' ggplot(my.data, aes(x, y)) +
-#'   geom_point() +
-#'   geom_smooth(method = "lm", formula = formula) +
-#'   stat_poly_eq(aes(label =  paste(after_stat(f.value.label),
-#'                                   after_stat(p.value.label),
-#'                                   sep = "*\", \"*")),
+#'   stat_poly_line(formula = formula) +
+#'   stat_poly_eq(aes(label =  sprintf("%s*\" with \"*%s*\" and \"*%s",
+#'                                     after_stat(rr.label),
+#'                                     after_stat(f.value.label),
+#'                                     after_stat(p.value.label))),
 #'                formula = formula)
 #'
 #' # x on y regression
 #' ggplot(my.data, aes(x, y)) +
 #'   geom_point() +
-#'   geom_smooth(method = "lm", formula = formula, orientation = "y") +
-#'   stat_poly_eq(aes(label =  paste(after_stat(eq.label),
-#'                                   after_stat(adj.rr.label),
-#'                                   sep = "*\", \"*")),
+#'   stat_poly_line(formula = formula, orientation = "y") +
+#'   stat_poly_eq(use_label(c("eq", "adj.R2")),
 #'                formula = x ~ poly(y, 3, raw = TRUE))
 #'
 #' # conditional user specified label
-#' ggplot(my.data, aes(x, y, color = group)) +
+#' ggplot(my.data, aes(x, y2, color = group)) +
 #'   geom_point() +
-#'   geom_smooth(method = "lm", formula = formula) +
+#'   stat_poly_line(formula = formula) +
 #'   stat_poly_eq(aes(label =  ifelse(after_stat(adj.r.squared) > 0.96,
 #'                                    paste(after_stat(adj.rr.label),
 #'                                          after_stat(eq.label),
@@ -266,7 +297,7 @@
 #' # geom = "text"
 #' ggplot(my.data, aes(x, y)) +
 #'   geom_point() +
-#'   geom_smooth(method = "lm", formula = formula) +
+#'   stat_poly_line(formula = formula) +
 #'   stat_poly_eq(geom = "text", label.x = 100, label.y = 0, hjust = 1,
 #'                formula = formula)
 #'
@@ -276,7 +307,7 @@
 #'   "b[0]~`=`~%.3g*\", \"*b[1]~`=`~%.3g*\", \"*b[2]~`=`~%.3g*\", \"*b[3]~`=`~%.3g"
 #' ggplot(my.data, aes(x, y)) +
 #'   geom_point() +
-#'   geom_smooth(method = "lm", formula = formula) +
+#'   stat_poly_line(formula = formula) +
 #'   stat_poly_eq(formula = formula,
 #'                output.type = "numeric",
 #'                parse = TRUE,
@@ -295,25 +326,25 @@
 #' # the whole of data
 #'   ggplot(my.data, aes(x, y)) +
 #'     geom_point() +
-#'     geom_smooth(method = "lm", formula = formula) +
+#'     stat_poly_line(formula = formula) +
 #'     stat_poly_eq(formula = formula, geom = "debug")
 #'
 #'   ggplot(my.data, aes(x, y)) +
 #'     geom_point() +
-#'     geom_smooth(method = "lm", formula = formula) +
+#'     stat_poly_line(formula = formula) +
 #'     stat_poly_eq(formula = formula, geom = "debug", output.type = "numeric")
 #'
 #' # names of the variables
 #'   ggplot(my.data, aes(x, y)) +
 #'     geom_point() +
-#'     geom_smooth(method = "lm", formula = formula) +
+#'     stat_poly_line(formula = formula) +
 #'     stat_poly_eq(formula = formula, geom = "debug",
 #'                  summary.fun = colnames)
 #'
 #' # only data$eq.label
 #'   ggplot(my.data, aes(x, y)) +
 #'     geom_point() +
-#'     geom_smooth(method = "lm", formula = formula) +
+#'     stat_poly_line(formula = formula) +
 #'     stat_poly_eq(formula = formula, geom = "debug",
 #'                  output.type = "expression",
 #'                  summary.fun = function(x) {x[["eq.label"]]})
@@ -321,7 +352,7 @@
 #' # only data$eq.label
 #'   ggplot(my.data, aes(x, y)) +
 #'     geom_point() +
-#'     geom_smooth(method = "lm", formula = formula) +
+#'     stat_poly_line(formula = formula) +
 #'     stat_poly_eq(aes(label = after_stat(eq.label)),
 #'                  formula = formula, geom = "debug",
 #'                  output.type = "markdown",
@@ -330,7 +361,7 @@
 #' # only data$eq.label
 #'   ggplot(my.data, aes(x, y)) +
 #'     geom_point() +
-#'     geom_smooth(method = "lm", formula = formula) +
+#'     stat_poly_line(formula = formula) +
 #'     stat_poly_eq(formula = formula, geom = "debug",
 #'                  output.type = "latex",
 #'                  summary.fun = function(x) {x[["eq.label"]]})
@@ -338,7 +369,7 @@
 #' # only data$eq.label
 #'   ggplot(my.data, aes(x, y)) +
 #'     geom_point() +
-#'     geom_smooth(method = "lm", formula = formula) +
+#'     stat_poly_line(formula = formula) +
 #'     stat_poly_eq(formula = formula, geom = "debug",
 #'                  output.type = "text",
 #'                  summary.fun = function(x) {x[["eq.label"]]})
@@ -346,7 +377,7 @@
 #' # show the content of a list column
 #'   ggplot(my.data, aes(x, y)) +
 #'     geom_point() +
-#'     geom_smooth(method = "lm", formula = formula) +
+#'     stat_poly_line(formula = formula) +
 #'     stat_poly_eq(formula = formula, geom = "debug", output.type = "numeric",
 #'                  summary.fun = function(x) {x[["coef.ls"]][[1]]})
 #' }
@@ -364,6 +395,8 @@ stat_poly_eq <- function(mapping = NULL, data = NULL,
                          eq.x.rhs = NULL,
                          small.r = FALSE,
                          small.p = FALSE,
+                         CI.brackets = c("[", "]"),
+                         rsquared.conf.level = 0.95,
                          coef.digits = 3,
                          coef.keep.zeros = TRUE,
                          rr.digits = 2,
@@ -426,6 +459,8 @@ stat_poly_eq <- function(mapping = NULL, data = NULL,
                   eq.x.rhs = eq.x.rhs,
                   small.r = small.r,
                   small.p = small.p,
+                  CI.brackets = CI.brackets,
+                  rsquared.conf.level = rsquared.conf.level,
                   coef.digits = coef.digits,
                   coef.keep.zeros = coef.keep.zeros,
                   rr.digits = rr.digits,
@@ -465,6 +500,8 @@ poly_eq_compute_group_fun <- function(data,
                                       eq.x.rhs,
                                       small.r,
                                       small.p,
+                                      CI.brackets,
+                                      rsquared.conf.level,
                                       coef.digits,
                                       coef.keep.zeros,
                                       rr.digits,
@@ -508,13 +545,14 @@ poly_eq_compute_group_fun <- function(data,
 
   if (exists("grp.label", data)) {
     if (length(unique(data[["grp.label"]])) > 1L) {
-    warning("Non-unique value in 'data$grp.label' for group.")
-      grp.label <- ""
+      warning("Non-unique value in 'data$grp.label' using group index ", data[["group"]][1], " as label.")
+      grp.label <- as.character(data[["group"]][1])
     } else {
       grp.label <- data[["grp.label"]][1]
     }
   } else {
-    grp.label <- ""
+    # if nothing mapped to grp.label we use group index as label
+    grp.label <- as.character(data[["group"]][1])
   }
 
   group.idx <- abs(data$group[1])
@@ -586,43 +624,51 @@ poly_eq_compute_group_fun <- function(data,
   # some model fit functions contain code with partial matching of names!
   # so we silence selectively only these warnings
   withCallingHandlers({
-    mf <- do.call(method, args = fun.args)
-    mf.summary <- summary(mf)
+    fm <- do.call(method, args = fun.args)
+    fm.summary <- summary(fm)
   }, warning = function(w) {
     if (startsWith(conditionMessage(w), "partial match of 'coef'") ||
         startsWith(conditionMessage(w), "partial argument match of 'contrasts'"))
       invokeRestart("muffleWarning")
   })
+  fm.class <- class(fm)
 
   # allow model formula selection by the method function
-  if (inherits(mf, "lm")) {
-    formula <- mf[["terms"]]
+  if (inherits(fm, "lm")) {
+    formula <- fm[["terms"]]
   } else {
     stop("Fitted model object does not inherit from class \"lm\"")
   }
 
-  if ("r.squared" %in% names(mf.summary)) {
-    rr <- mf.summary[["r.squared"]]
+  if ("r.squared" %in% names(fm.summary)) {
+    rr <- fm.summary[["r.squared"]]
   } else {
     rr <- NA_real_
   }
-  if ("adj.r.squared" %in% names(mf.summary)) {
-    adj.rr <- mf.summary[["adj.r.squared"]]
+  if ("adj.r.squared" %in% names(fm.summary)) {
+    adj.rr <- fm.summary[["adj.r.squared"]]
   } else {
     adj.rr <- NA_real_
   }
-  AIC <- AIC(mf)
-  BIC <- BIC(mf)
-  n <- length(mf.summary[["residuals"]])
-  if ("fstatistic" %in% names(mf.summary)) {
-    f.value <- mf.summary[["fstatistic"]]["value"]
-    f.df1 <- mf.summary[["fstatistic"]]["numdf"]
-    f.df2 <- mf.summary[["fstatistic"]]["dendf"]
+  AIC <- AIC(fm)
+  BIC <- BIC(fm)
+  n <- length(fm.summary[["residuals"]])
+  if ("fstatistic" %in% names(fm.summary)) {
+    f.value <- fm.summary[["fstatistic"]]["value"]
+    f.df1 <- fm.summary[["fstatistic"]]["numdf"]
+    f.df2 <- fm.summary[["fstatistic"]]["dendf"]
     p.value <- stats::pf(q = f.value, f.df1, f.df2, lower.tail = FALSE)
+    rr.confint <- confintr::ci_rsquared(x = f.value,
+                                        df1 = f.df1,
+                                        df2 = f.df2,
+                                        probs =  ((1 - rsquared.conf.level) / 2) * c(1, -1) + c(0, 1))
+    rr.confint.low  <- rr.confint[["interval"]][1]
+    rr.confint.high <- rr.confint[["interval"]][2]
   } else {
     f.value <- f.df1 <- f.df2 <- p.value <- NA_real_
+    rr.confint.low <- rr.confint.high <- NA_real_
   }
-  coefs <- stats::coefficients(mf)
+  coefs <- stats::coefficients(fm)
 
   formula.rhs.chr <- as.character(formula)[3]
   forced.origin <- grepl("-[[:space:]]*1|+[[:space:]]*0", formula.rhs.chr)
@@ -632,8 +678,11 @@ poly_eq_compute_group_fun <- function(data,
   names(coefs) <- paste("b", (1:length(coefs)) - 1, sep = "_")
 
   if (output.type == "numeric") {
-    z <- tibble::tibble(coef.ls = list(summary(mf)[["coefficients"]]),
+    z <- tibble::tibble(coef.ls = list(summary(fm)[["coefficients"]]),
                         r.squared = rr,
+                        rr.confint.level = rsquared.conf.level,
+                        rr.confint.low = rr.confint.low,
+                        rr.confint.high = rr.confint.high,
                         adj.r.squared = adj.rr,
                         f.value = f.value,
                         f.df1 = f.df1,
@@ -687,6 +736,15 @@ poly_eq_compute_group_fun <- function(data,
     if (output.type == "expression") {
       rr.char <- sprintf("\"%#.*f\"", rr.digits, rr)
       adj.rr.char <- sprintf("\"%#.*f\"", rr.digits, adj.rr)
+      rr.confint.chr <- sprintf("%#.*f, %#.*f",
+                                rr.digits, rr.confint.low,
+                                rr.digits, rr.confint.high)
+      if (as.logical((rsquared.conf.level * 100) %% 1)) {
+        conf.level.digits = 1L
+      } else {
+        conf.level.digits = 0L
+      }
+      conf.level.chr <- sprintf("%.*f", conf.level.digits, rsquared.conf.level * 100)
       AIC.char <- sprintf("\"%.4g\"", AIC)
       BIC.char <- sprintf("\"%.4g\"", BIC)
       f.value.char <- sprintf("\"%#.*g\"", f.digits, f.value)
@@ -696,6 +754,15 @@ poly_eq_compute_group_fun <- function(data,
     } else {
       rr.char <- sprintf("%#.*f", rr.digits, rr)
       adj.rr.char <- sprintf("%#.*f", rr.digits, adj.rr)
+      rr.confint.chr <- sprintf("%#.*f, %#.*f",
+                               rr.digits, rr.confint.low,
+                               rr.digits, rr.confint.high)
+      if (as.logical((rsquared.conf.level * 100) %% 1)) {
+        conf.level.digits = 1L
+      } else {
+        conf.level.digits = 0L
+      }
+      conf.level.chr <- sprintf("%.*f", conf.level.digits, rsquared.conf.level * 100)
       AIC.char <- sprintf("%.4g", AIC)
       BIC.char <- sprintf("%.4g", BIC)
       f.value.char <- sprintf("%#.*g", f.digits, f.value)
@@ -726,6 +793,8 @@ poly_eq_compute_group_fun <- function(data,
                                          sep = ifelse(adj.rr < 10^(-rr.digits) & adj.rr != 0,
                                                       "~`<`~",
                                                       "~`=`~"))),
+                          rr.confint.label =
+                            paste("\"", conf.level.chr, "% CI ", CI.brackets[1], rr.confint.chr, CI.brackets[2], "\"", sep = ""),
                           AIC.label =
                             ifelse(is.na(AIC), character(0L),
                                    paste("AIC", AIC.char, sep = "~`=`~")),
@@ -748,6 +817,7 @@ poly_eq_compute_group_fun <- function(data,
                                                       "~`=`~"))),
                           n.label = paste("italic(n)~`=`~\"", n, "\"", sep = ""),
                           grp.label = grp.label,
+                          method.label = paste("\"method: ", method.name, "\"", sep = ""),
                           r.squared = rr,
                           adj.r.squared = adj.rr,
                           p.value = p.value,
@@ -765,6 +835,8 @@ poly_eq_compute_group_fun <- function(data,
                                    paste(ifelse(small.r, "r_{adj}^2", "R_{adj}^2"),
                                          ifelse(adj.rr < 10^(-rr.digits), as.character(10^(-rr.digits)), adj.rr.char),
                                          sep = ifelse(adj.rr < 10^(-rr.digits), " < ", " = "))),
+                          rr.confint.label =
+                            paste(conf.level.chr, "% CI ", CI.brackets[1], rr.confint.chr, CI.brackets[2], sep = ""),
                           AIC.label =
                             ifelse(is.na(AIC), character(0L),
                                    paste("AIC", AIC.char, sep = " = ")),
@@ -782,6 +854,7 @@ poly_eq_compute_group_fun <- function(data,
                                          sep = ifelse(p.value < 10^(-p.digits), " < ", " = "))),
                           n.label = paste("n = ", n, sep = ""),
                           grp.label = grp.label,
+                          method.label = paste("method: ", method.name, sep = ""),
                           r.squared = rr,
                           adj.r.squared = adj.rr,
                           p.value = p.value,
@@ -799,6 +872,8 @@ poly_eq_compute_group_fun <- function(data,
                                    paste(ifelse(small.r, "_r_<sup>2</sup><sub>adj</sub>", "_R_<sup>2</sup><sub>adj</sub>"),
                                          ifelse(adj.rr < 10^(-rr.digits), as.character(10^(-rr.digits)), adj.rr.char),
                                          sep = ifelse(adj.rr < 10^(-rr.digits), " < ", " = "))),
+                          rr.confint.label =
+                            paste(conf.level.chr, "% CI ", CI.brackets[1], rr.confint.chr, CI.brackets[2], sep = ""),
                           AIC.label =
                             ifelse(is.na(AIC), character(0L),
                                    paste("AIC", AIC.char, sep = " = ")),
@@ -816,6 +891,7 @@ poly_eq_compute_group_fun <- function(data,
                                          sep = ifelse(p.value < 10^(-p.digits), " < ", " = "))),
                           n.label = paste("_n_ = ", n, sep = ""),
                           grp.label = grp.label,
+                          method.label = paste("method: ", method.name, sep = ""),
                           r.squared = rr,
                           adj.r.squared = adj.rr,
                           p.value = p.value,
@@ -825,7 +901,9 @@ poly_eq_compute_group_fun <- function(data,
     }
   }
 
-  z[["method"]] <- method.name
+  z[["fm.method"]] <- method.name
+  z[["fm.class"]] <- fm.class[1]
+  z[["fm.formula.chr"]] <- format(formula)
 
   # Compute label positions
   if (is.character(label.x)) {
@@ -888,7 +966,8 @@ StatPolyEq <-
                                   label = after_stat(rr.label),
                                   hjust = "inward", vjust = "inward",
                                   weight = 1),
-                   required_aes = c("x", "y")
+                   required_aes = c("x", "y"),
+                   optional_aes = "grp.label"
   )
 
 ### Utility functions shared between stat_poly_eq() and stat_quant_eq()
