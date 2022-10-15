@@ -1,8 +1,8 @@
 Package: ggpmisc
 Type: Package
 Title: Miscellaneous Extensions to 'ggplot2'
-Version: 0.5.0
-Date: 2022-08-04
+Version: 0.5.1
+Date: 2022-10-12
 Authors@R: 
     c(
     person("Pedro J.", "Aphalo", email = "pedro.aphalo@helsinki.fi", role = c("aut", "cre"), comment = c(ORCID = "0000-0003-3385-972X")),
@@ -23,7 +23,7 @@ License: GPL (>= 2)
 LazyData: TRUE
 LazyLoad: TRUE
 ByteCompile: TRUE
-Depends: R (>= 4.0.0), ggpp (>= 0.4.4)
+Depends: R (>= 4.0.0), ggpp (>= 0.4.5)
 Imports: grid, stats, ggplot2 (>= 3.3.5), scales (>= 1.2.0), rlang (>=
         1.0.0), generics (>= 0.1.2), MASS (>= 7.3-51.6), confintr (>=
         0.1.2), polynom (>= 1.4-0), quantreg (>= 5.93), lmodel2 (>=
@@ -39,9 +39,9 @@ Encoding: UTF-8
 RoxygenNote: 7.2.1
 VignetteBuilder: knitr
 NeedsCompilation: no
-Packaged: 2022-08-12 09:33:52 UTC; Aphalo
+Packaged: 2022-10-14 21:18:06 UTC; aphalo_2
 Author: Pedro J. Aphalo [aut, cre] (<https://orcid.org/0000-0003-3385-972X>),
   Kamil Slowikowski [ctb] (<https://orcid.org/0000-0002-2843-6370>),
   Samer Mouksassi [ctb] (<https://orcid.org/0000-0002-7152-6654>)
 Repository: CRAN
-Date/Publication: 2022-08-12 12:40:07 UTC
+Date/Publication: 2022-10-16 00:23:23 UTC

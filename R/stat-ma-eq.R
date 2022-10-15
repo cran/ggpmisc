@@ -218,33 +218,37 @@
 #'   theme_classic()
 #'
 #' # Inspecting the returned data using geom_debug()
-#' \dontrun{
-#' if (requireNamespace("gginnards", quietly = TRUE)) {
+#' # This provides a quick way of finding out the names of the variables that
+#' # are available for mapping to aesthetics with after_stat().
+#'
+#' gginnards.installed <- requireNamespace("gginnards", quietly = TRUE)
+#'
+#' if (gginnards.installed)
 #'   library(gginnards)
 #'
-#' # This provides a quick way of finding out the names of the variables that
-#' # are available for mapping to aesthetics.
-#'
 #' # default is output.type = "expression"
+#' if (gginnards.installed)
 #'   ggplot(my.data, aes(x, y)) +
 #'     geom_point() +
 #'     stat_ma_eq(geom = "debug")
 #'
+#' \dontrun{
+#' if (gginnards.installed)
 #'   ggplot(my.data, aes(x, y)) +
 #'     geom_point() +
 #'     stat_ma_eq(aes(label = after_stat(eq.label)),
 #'                geom = "debug",
 #'                output.type = "markdown")
 #'
+#' if (gginnards.installed)
 #'   ggplot(my.data, aes(x, y)) +
 #'     geom_point() +
 #'     stat_ma_eq(geom = "debug", output.type = "text")
 #'
+#' if (gginnards.installed)
 #'   ggplot(my.data, aes(x, y)) +
 #'     geom_point() +
 #'     stat_ma_eq(geom = "debug", output.type = "numeric")
-#'
-#' }
 #' }
 #'
 #' @export
@@ -308,35 +312,36 @@ stat_ma_eq <- function(mapping = NULL, data = NULL,
     position = position,
     show.legend = show.legend,
     inherit.aes = inherit.aes,
-    params = list(method = method,
-                  method.args = method.args,
-                  formula = formula,
-                  range.y = range.y,
-                  range.x = range.x,
-                  nperm = nperm,
-                  eq.with.lhs = eq.with.lhs,
-                  eq.x.rhs = eq.x.rhs,
-                  small.r = small.r,
-                  small.p = small.p,
-                  coef.digits = coef.digits,
-                  coef.keep.zeros = coef.keep.zeros,
-                  rr.digits = rr.digits,
-                  theta.digits = theta.digits,
-                  p.digits = p.digits,
-                  label.x = label.x,
-                  label.y = label.y,
-                  hstep = hstep,
-                  vstep = ifelse(is.null(vstep),
-                                 ifelse(grepl("label", geom),
-                                        0.10,
-                                        0.05),
-                                 vstep),
-                  npc.used = grepl("_npc", geom),
-                  output.type = output.type,
-                  na.rm = na.rm,
-                  orientation = orientation,
-                  parse = parse,
-                  ...)
+    params =
+      rlang::list2(method = method,
+                   method.args = method.args,
+                   formula = formula,
+                   range.y = range.y,
+                   range.x = range.x,
+                   nperm = nperm,
+                   eq.with.lhs = eq.with.lhs,
+                   eq.x.rhs = eq.x.rhs,
+                   small.r = small.r,
+                   small.p = small.p,
+                   coef.digits = coef.digits,
+                   coef.keep.zeros = coef.keep.zeros,
+                   rr.digits = rr.digits,
+                   theta.digits = theta.digits,
+                   p.digits = p.digits,
+                   label.x = label.x,
+                   label.y = label.y,
+                   hstep = hstep,
+                   vstep = ifelse(is.null(vstep),
+                                  ifelse(grepl("label", geom),
+                                         0.10,
+                                         0.05),
+                                  vstep),
+                   npc.used = grepl("_npc", geom),
+                   output.type = output.type,
+                   na.rm = na.rm,
+                   orientation = orientation,
+                   parse = parse,
+                   ...)
   )
 }
 
@@ -513,6 +518,9 @@ ma_eq_compute_group_fun <- function(data,
     stop("Method \"", method.name, "\" did not return a \"lmodel2\" object")
   }
   fm.class <- class(fm)
+  # allow model formula selection by the model fit method
+  # extract formula from fitted model if possible, but fall back on argument if needed
+  formula.ls <- fail_safe_formula(fm, fit.args, verbose = TRUE)
 
   n <- fm[["n"]]
   coefs <- stats::coefficients(fm, method = fun.method)
@@ -520,6 +528,9 @@ ma_eq_compute_group_fun <- function(data,
   theta <- fm[["theta"]]
   idx <- which(fm[["regression.results"]][["Method"]] == fun.method)
   p.value <- fm[["regression.results"]][["P-perm (1-tailed)"]][idx]
+
+  formula <- formula.ls[[1]]
+  stopifnot(isa(formula, "formula"))
 
   formula.rhs.chr <- as.character(formula)[3]
   forced.origin <- grepl("-[[:space:]]*1|+[[:space:]]*0", formula.rhs.chr)
@@ -664,7 +675,8 @@ ma_eq_compute_group_fun <- function(data,
 
   z[["fm.method"]] <- method.name
   z[["fm.class"]] <- fm.class[1]
-  z[["fm.formula.char"]] <- format(formula)
+  z[["fm.formula"]] <- formula.ls
+  z[["fm.formula.chr"]] <- format(formula.ls)
 
   # Compute label positions
   if (is.character(label.x)) {

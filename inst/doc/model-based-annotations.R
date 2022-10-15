@@ -20,6 +20,8 @@ eval_broom <-  requireNamespace("broom", quietly = TRUE)
 if (eval_broom) library(broom)
 eval_broom_mixed <-  requireNamespace("broom.mixed", quietly = TRUE)
 if (eval_broom_mixed) library(broom.mixed)
+eval_gginnards <-  requireNamespace("gginnards", quietly = TRUE)
+if (eval_gginnards) library(gginnards)
 
 ## -----------------------------------------------------------------------------
 old_theme <- theme_set(theme_bw())
@@ -216,11 +218,11 @@ ggplot(my.data, aes(x, y)) +
 
 ## -----------------------------------------------------------------------------
 poly_or_mean <- function(formula, data, ...) {
-   mf <- lm(formula = formula, data = data, ...)
-   if (anova(mf)[["Pr(>F)"]][1] > 0.1) {
+   fm <- lm(formula = formula, data = data, ...)
+   if (anova(fm)[["Pr(>F)"]][1] > 0.1) {
       lm(formula = y ~ 1, data = data, ...)
    } else {
-      mf
+      fm
    }
 }
 
@@ -375,7 +377,7 @@ ggplot(my.data, aes(x, y, color = group)) +
 ggplot(my.data, aes(x, y, group = group, linetype = group, 
                     shape = group, grp.label = group)) +
   geom_point() +
-  stat_quantile(formula = formula, color = "black") +
+  stat_quant_line(formula = formula, quantiles = c(0.05, 0.95), color = "black") +
   stat_quant_eq(aes(label = paste(after_stat(grp.label), "*\": \"*",
                                   after_stat(eq.label), sep = "")),
                 formula = formula, quantiles = c(0.05, 0.95)) +
@@ -439,7 +441,7 @@ ggplot(my.data.outlier, aes(x, y)) +
   scale_color_gradient(low = "red", high = "blue", limits = c(0, 1)) +
   geom_point()
 
-## -----------------------------------------------------------------------------
+## ---- eval=eval_broom---------------------------------------------------------
 # formula <- y ~ poly(x, 3, raw = TRUE)
 # broom::augment does not handle poly() correctly!
 formula <- y ~ x + I(x^2) + I(x^3)
@@ -454,7 +456,7 @@ ggplot(my.data, aes(x, y, colour = group)) +
                                       after_stat(p.value))),
                   parse = TRUE)
 
-## -----------------------------------------------------------------------------
+## ---- eval=eval_broom---------------------------------------------------------
 micmen.formula <- y ~ SSmicmen(x, Vm, K) 
 ggplot(Puromycin, aes(conc, rate, colour = state)) +
   geom_point() +
@@ -468,7 +470,7 @@ ggplot(Puromycin, aes(conc, rate, colour = state)) +
                                     sep = "")),
                   label.x = "centre", label.y = "bottom")
 
-## -----------------------------------------------------------------------------
+## ---- eval=eval_broom---------------------------------------------------------
 formula <- y ~ x + I(x^2) + I(x^3)
 ggplot(my.data, aes(x, y)) +
   geom_point() +
@@ -483,7 +485,7 @@ ggplot(my.data, aes(x, y)) +
               label.y = "top", label.x = "left",
               parse = TRUE)
 
-## -----------------------------------------------------------------------------
+## ---- eval=eval_broom---------------------------------------------------------
 formula <- y ~ x + I(x^2) + I(x^3)
 ggplot(my.data, aes(x, y)) +
   geom_point() +
@@ -499,7 +501,7 @@ ggplot(my.data, aes(x, y)) +
               label.y = "top", label.x = "left",
               parse = TRUE)
 
-## -----------------------------------------------------------------------------
+## ---- eval=eval_broom---------------------------------------------------------
 formula <- y ~ x + I(x^2) + I(x^3)
 ggplot(my.data, aes(x, y)) +
   geom_point() +
@@ -509,7 +511,7 @@ ggplot(my.data, aes(x, y)) +
               tb.type = "fit.coefs", parse = TRUE,
               label.y = "center", label.x = "left")
 
-## -----------------------------------------------------------------------------
+## ---- eval=eval_broom---------------------------------------------------------
 micmen.formula <- y ~ SSmicmen(x, Vm, K)
 ggplot(Puromycin, aes(conc, rate, colour = state)) +
   facet_wrap(~state) +
@@ -525,7 +527,7 @@ ggplot(Puromycin, aes(conc, rate, colour = state)) +
   theme(legend.position = "none") +
   labs(x = "C", y = "V")
 
-## -----------------------------------------------------------------------------
+## ---- eval=eval_broom---------------------------------------------------------
 ggplot(chickwts, aes(factor(feed), weight)) +
   stat_summary(fun.data = "mean_se") +
   stat_fit_tb(tb.type = "fit.anova",
@@ -533,14 +535,14 @@ ggplot(chickwts, aes(factor(feed), weight)) +
               label.y = "bottom") +
   expand_limits(y = 0)
 
-## -----------------------------------------------------------------------------
+## ---- eval=eval_broom---------------------------------------------------------
 ggplot(chickwts, aes(factor(feed), weight)) +
   stat_summary(fun.data = "mean_se") +
   stat_fit_tb(tb.type = "fit.anova", label.x = "left", size = 3) +
   scale_x_discrete(expand = expansion(mult = c(0.2, 0.5))) +
   coord_flip()
 
-## ---- eval=eval_flag----------------------------------------------------------
+## ---- eval=(eval_flag && eval_broom)------------------------------------------
 ggplot(chickwts, aes(factor(feed), weight)) +
   stat_summary(fun.data = "mean_se") +
   stat_fit_tb(tb.type = "fit.anova",
@@ -556,7 +558,7 @@ ggplot(chickwts, aes(factor(feed), weight)) +
   scale_x_discrete(expand = expansion(mult = c(0.1, 0.35))) +
   expand_limits(y = 0)
 
-## -----------------------------------------------------------------------------
+## ---- eval=eval_broom---------------------------------------------------------
 micmen.formula <- y ~ SSmicmen(x, Vm, K) 
 ggplot(Puromycin, aes(conc, rate, colour = state)) +
   geom_point() +
@@ -574,7 +576,7 @@ ggplot(Puromycin, aes(conc, rate, colour = state)) +
                                   sep = "")),
                 parse = TRUE)
 
-## -----------------------------------------------------------------------------
+## ---- eval=eval_broom---------------------------------------------------------
 micmen.formula <- y ~ SSmicmen(x, Vm, K) 
 ggplot(Puromycin, aes(conc, rate, colour = state)) +
   geom_point() +
@@ -593,7 +595,7 @@ ggplot(Puromycin, aes(conc, rate, colour = state)) +
                 parse = TRUE) +
   labs(x = "C", y = "V")
 
-## -----------------------------------------------------------------------------
+## ---- eval=eval_broom---------------------------------------------------------
 stat_micmen_eq <- function(vstep = 0.12,
                            size = 3,
                            ...) {
@@ -608,7 +610,7 @@ stat_micmen_eq <- function(vstep = 0.12,
                 ...)
 }
 
-## ---- eval=eval_flag----------------------------------------------------------
+## ---- eval=(eval_flag && eval_broom)------------------------------------------
 micmen.formula <- y ~ SSmicmen(x, Vm, K) 
 ggplot(Puromycin, aes(conc, rate, colour = state)) +
   geom_point() +
@@ -619,7 +621,7 @@ ggplot(Puromycin, aes(conc, rate, colour = state)) +
                 label.y = "bottom") +
   labs(x = "C", y = "V")
 
-## -----------------------------------------------------------------------------
+## ---- eval=eval_broom---------------------------------------------------------
 my_formula <- y ~ x
 
 ggplot(mpg, aes(displ, 1 / hwy)) +
@@ -634,7 +636,7 @@ ggplot(mpg, aes(displ, 1 / hwy)) +
                                               after_stat(x_p.value))),
                 parse = TRUE)
 
-## -----------------------------------------------------------------------------
+## ---- eval=eval_broom---------------------------------------------------------
 stat_rq_eqn <- 
   function(formula = y ~ x, 
            tau = 0.5,
@@ -654,13 +656,13 @@ stat_rq_eqn <-
                   ...)
   }
 
-## ---- eval=eval_flag----------------------------------------------------------
+## ---- eval=(eval_flag && eval_broom)------------------------------------------
 ggplot(mpg, aes(displ, 1 / hwy)) +
   geom_point() +
   geom_quantile(quantiles = 0.5, formula = my_formula) +
   stat_rq_eqn(tau = 0.5, formula = my_formula)
 
-## -----------------------------------------------------------------------------
+## ---- eval=eval_broom---------------------------------------------------------
 # formula <- y ~ poly(x, 3, raw = TRUE)
 # broom::augment does not handle poly correctly!
 formula <- y ~ x + I(x^2) + I(x^3)
@@ -669,14 +671,14 @@ ggplot(my.data, aes(x, y)) +
   stat_fit_augment(method = "lm",
                    method.args = list(formula = formula))
 
-## -----------------------------------------------------------------------------
+## ---- eval=eval_broom---------------------------------------------------------
 formula <- y ~ x + I(x^2) + I(x^3)
 ggplot(my.data, aes(x, y, colour = group)) +
   geom_point() +
   stat_fit_augment(method = "lm", 
                    method.args = list(formula = formula))
 
-## ---- eval=eval_flag----------------------------------------------------------
+## ---- eval=(eval_flag && eval_broom)------------------------------------------
 formula <- y ~ x + I(x^2) + I(x^3)
 ggplot(my.data, aes(x, y)) +
   stat_fit_augment(method = "lm",
@@ -684,7 +686,7 @@ ggplot(my.data, aes(x, y)) +
                    geom = "point",
                    y.out = ".resid")
 
-## -----------------------------------------------------------------------------
+## ---- eval=eval_broom---------------------------------------------------------
 formula <- y ~ x + I(x^2) + I(x^3)
 ggplot(my.data, aes(x, y, colour = group)) +
   stat_fit_augment(method = "lm",
@@ -692,7 +694,7 @@ ggplot(my.data, aes(x, y, colour = group)) +
                    geom = "point",
                    y.out = ".std.resid")
 
-## ---- eval=eval_flag----------------------------------------------------------
+## ---- eval=(eval_flag && eval_broom)------------------------------------------
 args <- list(formula = y ~ k * e ^ x,
              start = list(k = 1, e = 2))
 ggplot(mtcars, aes(wt, mpg)) +
@@ -700,7 +702,7 @@ ggplot(mtcars, aes(wt, mpg)) +
   stat_fit_augment(method = "nls",
                    method.args = args)
 
-## ---- eval=eval_flag----------------------------------------------------------
+## ---- eval=(eval_flag && eval_broom)------------------------------------------
 args <- list(formula = y ~ k * e ^ x,
              start = list(k = 1, e = 2))
 ggplot(mtcars, aes(wt, mpg)) +
@@ -720,40 +722,69 @@ ggplot(Orange, aes(age, circumference, colour = Tree)) +
                    method.args = args,
                    augment.args = list(data = quote(data)))
 
+## ---- eval=(eval_broom && eval_gginnards)-------------------------------------
+# formula <- y ~ poly(x, 3, raw = TRUE)
+# broom::augment does not handle poly() correctly!
+formula <- y ~ x + I(x^2) + I(x^3)
+ggplot(my.data, aes(x, y, colour = group)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = formula) +
+  stat_fit_glance(geom = "debug",
+                  method = "lm", 
+                  method.args = list(formula = formula),
+                  label.x = "right",
+                  label.y = "bottom",
+                  aes(label = sprintf("italic(P)*\"-value = \"*%.3g", 
+                                      after_stat(p.value))),
+                  parse = TRUE)
+
+## ---- eval=(eval_broom && eval_gginnards)-------------------------------------
+formula <- y ~ x + I(x^2) + I(x^3)
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = formula) +
+  stat_fit_tb(geom = "debug",
+              summary.fun = str,
+              method = "lm",
+              method.args = list(formula = formula),
+              tb.vars = c(Parameter = "term", 
+                          Estimate = "estimate", 
+                          "s.e." = "std.error", 
+                          "italic(t)" = "statistic", 
+                          "italic(P)" = "p.value"),
+              label.y = "top", label.x = "left",
+              parse = TRUE)
+
 ## -----------------------------------------------------------------------------
 head(volcano_example.df) 
 
 ## -----------------------------------------------------------------------------
-volcano_example.df %>%
-  mutate(., outcome.fct = outcome2factor(outcome)) %>%
-  ggplot(., aes(logFC, PValue, colour = outcome.fct)) +
+ggplot(volcano_example.df, 
+       aes(logFC, PValue, colour = outcome2factor(outcome))) +
   geom_point() +
   scale_x_logFC(name = "Transcript abundance%unit") +
   scale_y_Pvalue() +
   scale_colour_outcome() +
-  stat_quadrant_counts(data = . %>% filter(outcome != 0))
+  stat_quadrant_counts(data = function(x) {subset(x, outcome != 0)})
 
 ## -----------------------------------------------------------------------------
-volcano_example.df %>%
-  mutate(., outcome.fct = outcome2factor(outcome, n.levels = 2)) %>%
-  ggplot(., aes(logFC, PValue, colour = outcome.fct)) +
+ggplot(volcano_example.df, 
+       aes(logFC, PValue, colour = outcome2factor(outcome, n.levels = 2))) +
   geom_point() +
   scale_x_logFC(name = "Transcript abundance%unit") +
   scale_y_Pvalue() +
   scale_colour_outcome() +
-  stat_quadrant_counts(data = . %>% filter(outcome != 0))
+  stat_quadrant_counts(data = function(x) {subset(x, outcome != 0)})
 
 ## -----------------------------------------------------------------------------
 head(quadrant_example.df)
 
 ## -----------------------------------------------------------------------------
-quadrant_example.df %>%
-  mutate(.,
-         outcome.x.fct = outcome2factor(outcome.x),
-         outcome.y.fct = outcome2factor(outcome.y),
-         outcome.xy.fct = xy_outcomes2factor(outcome.x, outcome.y)) %>%
-         filter(outcome.xy.fct != "none") %>%
-  ggplot(., aes(logFC.x, logFC.y, colour = outcome.x.fct, fill = outcome.y.fct)) +
+  ggplot(subset(quadrant_example.df, 
+                xy_outcomes2factor(outcome.x, outcome.y) != "none"),
+         aes(logFC.x, logFC.y, 
+             colour = outcome2factor(outcome.x), 
+             fill = outcome2factor(outcome.y))) +
   geom_quadrant_lines(linetype = "dotted") +
   stat_quadrant_counts(size = 3, colour = "white") +
   geom_point(shape = "circle filled") +
@@ -779,13 +810,13 @@ all_quadrant_lines <- function(...) {
     geom_hline(data =  data.frame(outcome.xy.fct = factor(c("xy", "x", "y", "none"),
                                                           levels = c("xy", "x", "y", "none")),
                                   yintercept = c(0, NA, 0, NA)),
-               aes_(yintercept = ~yintercept),
+               aes(yintercept = yintercept),
                na.rm = TRUE,
                ...),
     geom_vline(data =  data.frame(outcome.xy.fct = factor(c("xy", "x", "y", "none"),
                                                           levels = c("xy", "x", "y", "none")),
                                   xintercept = c(0, 0, NA, NA)),
-               aes_(xintercept = ~xintercept),
+               aes(xintercept = xintercept),
                na.rm = TRUE,
                ...)
   )

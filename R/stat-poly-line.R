@@ -26,7 +26,7 @@
 #' statistics in the grammar of graphics.
 #'
 #' @param mapping The aesthetic mapping, usually constructed with
-#'   \code{\link[ggplot2]{aes}} or \code{\link[ggplot2]{aes_}}. Only needs to be
+#'   \code{\link[ggplot2]{aes}}. Only needs to be
 #'   set at the layer level if you are overriding the plot defaults.
 #' @param data A layer specific dataset, only needed if you want to override
 #'   the plot defaults.
@@ -123,19 +123,22 @@
 #'   facet_wrap(~drv)
 #'
 #' # Inspecting the returned data using geom_debug()
-#' if (requireNamespace("gginnards", quietly = TRUE)) {
+#' gginnards.installed <- requireNamespace("gginnards", quietly = TRUE)
+#'
+#' if (gginnards.installed)
 #'   library(gginnards)
 #'
+#' if (gginnards.installed)
 #'   ggplot(mpg, aes(displ, hwy)) +
 #'     stat_poly_line(geom = "debug")
 #'
+#' if (gginnards.installed)
 #'   ggplot(mpg, aes(displ, hwy)) +
 #'     stat_poly_line(geom = "debug", fm.values = TRUE)
 #'
+#' if (gginnards.installed)
 #'   ggplot(mpg, aes(displ, hwy)) +
 #'     stat_poly_line(geom = "debug", method = lm, fm.values = TRUE)
-#'
-#' }
 #'
 #' @export
 #'
@@ -194,7 +197,7 @@ stat_poly_line <- function(mapping = NULL, data = NULL,
     position = position,
     show.legend = show.legend,
     inherit.aes = inherit.aes,
-    params = list(
+    params = rlang::list2(
       method = method,
       formula = formula,
       se = se,
@@ -329,7 +332,10 @@ poly_line_compute_group_fun <-
       } else {
         prediction[["n"]] <- NA_real_
       }
-      prediction[["method"]] <- method.name
+      prediction[["fm.class"]] <- class(fm)[1]
+      prediction[["fm.method"]] <- method.name
+      prediction[["fm.formula"]] <- fail_safe_formula(fm, method.args)
+      prediction[["fm.formula.chr"]] <- format(prediction[["fm.formula"]])
     }
 
     prediction$flipped_aes <- flipped_aes

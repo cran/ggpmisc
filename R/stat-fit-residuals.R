@@ -4,7 +4,7 @@
 #'    residuals ready to be plotted as points.
 #'
 #' @param mapping The aesthetic mapping, usually constructed with
-#'   \code{\link[ggplot2]{aes}} or \code{\link[ggplot2]{aes_}}. Only needs
+#'   \code{\link[ggplot2]{aes}}. Only needs
 #'   to be set at the layer level if you are overriding the plot defaults.
 #' @param data A layer specific dataset - only needed if you want to override
 #'   the plot defaults.
@@ -149,17 +149,20 @@
 #'   method.args = list(tau = 0.75))
 #'
 #' # inspecting the returned data
-#' if (requireNamespace("gginnards", quietly = TRUE)) {
+#' gginnards.installed <- requireNamespace("gginnards", quietly = TRUE)
+#'
+#' if (gginnards.installed)
 #'   library(gginnards)
 #'
+#' if (gginnards.installed)
 #'   ggplot(my.data, aes(x, y)) +
 #'    stat_fit_residuals(formula = my.formula, resid.type = "working",
 #'                       geom = "debug")
 #'
+#' if (gginnards.installed)
 #'   ggplot(my.data, aes(x, y)) +
 #'     stat_fit_residuals(formula = my.formula, method = "rlm",
 #'                        geom = "debug")
-#' }
 #'
 #' @export
 #'
@@ -179,14 +182,15 @@ stat_fit_residuals <- function(mapping = NULL,
   ggplot2::layer(
     stat = StatFitResiduals, data = data, mapping = mapping, geom = geom,
     position = position, show.legend = show.legend, inherit.aes = inherit.aes,
-    params = list(method = method,
-                  method.args = method.args,
-                  formula = formula,
-                  resid.type = resid.type,
-                  weighted = weighted,
-                  na.rm = na.rm,
-                  orientation = orientation,
-                  ...)
+    params =
+      rlang::list2(method = method,
+                   method.args = method.args,
+                   formula = formula,
+                   resid.type = resid.type,
+                   weighted = weighted,
+                   na.rm = na.rm,
+                   orientation = orientation,
+                   ...)
   )
 }
 

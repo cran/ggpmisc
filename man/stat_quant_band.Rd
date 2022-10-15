@@ -24,7 +24,7 @@ stat_quant_band(
 }
 \arguments{
 \item{mapping}{The aesthetic mapping, usually constructed with
-\code{\link[ggplot2]{aes}} or \code{\link[ggplot2]{aes_}}. Only needs to be
+\code{\link[ggplot2]{aes}}. Only needs to be
 set at the layer level if you are overriding the plot defaults.}
 
 \item{data}{A layer specific dataset, only needed if you want to override
@@ -174,16 +174,18 @@ ggplot(mpg, aes(displ, hwy)) +
   geom_point()
 
 # Inspecting the returned data using geom_debug()
-if (requireNamespace("gginnards", quietly = TRUE)) {
+gginnards.installed <- requireNamespace("gginnards", quietly = TRUE)
+
+if (gginnards.installed)
   library(gginnards)
 
+if (gginnards.installed)
   ggplot(mpg, aes(displ, hwy)) +
     stat_quant_band(geom = "debug")
 
+if (gginnards.installed)
   ggplot(mpg, aes(displ, hwy)) +
     stat_quant_band(geom = "debug", fm.values = TRUE)
-
-}
 
 }
 \seealso{

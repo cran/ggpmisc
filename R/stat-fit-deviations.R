@@ -4,8 +4,8 @@
 #' residuals ready to be plotted as segments.
 #'
 #' @param mapping The aesthetic mapping, usually constructed with
-#'   \code{\link[ggplot2]{aes}} or \code{\link[ggplot2]{aes_}}. Only needs
-#'   to be set at the layer level if you are overriding the plot defaults.
+#'   \code{\link[ggplot2]{aes}}. Only needs to be set at the layer level if you
+#'   are overriding the plot defaults.
 #' @param data A layer specific dataset - only needed if you want to override
 #'   the plot defaults.
 #' @param geom The geometric object to use display the data
@@ -148,21 +148,24 @@
 #'                       method = "rq", method.args = list(tau = 0.75)) +
 #'   geom_point()
 #'
-#' # inspecting the returned data
-#' if (requireNamespace("gginnards", quietly = TRUE)) {
+#' # inspecting the returned data with geom_debug()
+#' gginnards.installed <- requireNamespace("gginnards", quietly = TRUE)
+#'
+#' if (gginnards.installed)
 #'   library(gginnards)
 #'
 #' # plot, using geom_debug() to explore the after_stat data
+#' if (gginnards.installed)
 #'   ggplot(my.data, aes(x, y)) +
 #'     geom_smooth(method = "lm", formula = my.formula) +
 #'     stat_fit_deviations(formula = my.formula, geom = "debug") +
 #'     geom_point()
 #'
+#' if (gginnards.installed)
 #'   ggplot(my.data.outlier, aes(x, y)) +
 #'     stat_smooth(method = MASS::rlm, formula = my.formula) +
 #'     stat_fit_deviations(formula = my.formula, method = "rlm", geom = "debug") +
 #'     geom_point()
-#' }
 #'
 #' @export
 #'
@@ -178,12 +181,13 @@ stat_fit_deviations <- function(mapping = NULL, data = NULL, geom = "segment",
   ggplot2::layer(
     stat = StatFitDeviations, data = data, mapping = mapping, geom = geom,
     position = position, show.legend = show.legend, inherit.aes = inherit.aes,
-    params = list(method = method,
-                  method.args = method.args,
-                  formula = formula,
-                  na.rm = na.rm,
-                  orientation = orientation,
-                  ...)
+    params =
+      rlang::list2(method = method,
+                   method.args = method.args,
+                   formula = formula,
+                   na.rm = na.rm,
+                   orientation = orientation,
+                   ...)
   )
 }
 

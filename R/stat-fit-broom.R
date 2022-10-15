@@ -7,7 +7,7 @@
 #'   'broom.mixed', or other sources.
 #'
 #' @param mapping The aesthetic mapping, usually constructed with
-#'   \code{\link[ggplot2]{aes}} or \code{\link[ggplot2]{aes_}}. Only needs
+#'   \code{\link[ggplot2]{aes}}. Only needs
 #'   to be set at the layer level if you are overriding the plot defaults.
 #' @param data A layer specific data set - only needed if you want to override
 #'   the plot defaults.
@@ -200,16 +200,17 @@ stat_fit_glance <- function(mapping = NULL, data = NULL, geom = "text_npc",
   ggplot2::layer(
     stat = StatFitGlance, data = data, mapping = mapping, geom = geom,
     position = position, show.legend = show.legend, inherit.aes = inherit.aes,
-    params = list(method = method,
-                  method.args = method.args,
-                  glance.args = glance.args,
-                  label.x = label.x,
-                  label.y = label.y,
-                  hstep = hstep,
-                  vstep = vstep,
-                  npc.used = grepl("_npc", geom),
-                  na.rm = na.rm,
-                  ...)
+    params =
+      rlang::list2(method = method,
+                   method.args = method.args,
+                   glance.args = glance.args,
+                   label.x = label.x,
+                   label.y = label.y,
+                   hstep = hstep,
+                   vstep = vstep,
+                   npc.used = grepl("_npc", geom),
+                   na.rm = na.rm,
+                   ...)
   )
 }
 
@@ -275,29 +276,24 @@ fit_glance_compute_group_fun <- function(data,
 #    method.args <- c(method.args, list(data = quote(data)))  works in most cases and avoids copying data
     method.args <- c(method.args, list(data = data)) # cor.test() needs the actual data
   } else {
-    message("Only the 'formula' interface of methods is well supported.")
-    if ("x" %in% names(method.args)) {
-      message("Passing data$x as 'x'.")
-      method.args[["x"]] <- data[["x"]]
-    }
-    if ("y" %in% names(method.args)) {
-      message("Passing data$y as 'y'.")
-      method.args[["y"]] <- data[["y"]]
+    if (method.name == "cor.test" ) {
+      warning("Only the 'formula' interface of methods is supported. No formula found, using '~ x + y'")
+      selector <- setdiff(names(method.args), c("x", "y"))
+      method.args <- c(method.args[selector], list(formula = ~ x + y, data = data)) # cor.test() needs the actual data
+    } else {
+      warning("Only the 'formula' interface of methods is supported. No formula found, using 'y ~ x' default")
+      method.args <- c(method.args, list(formula = y ~ x, data = data)) # cor.test() needs the actual data
     }
   }
   fm <- do.call(method, method.args)
   fm.class <- class(fm) # keep track of fitted model class
-  if (inherits(fm, "lm")) {
-    fm.formula <- fm[["terms"]]
-  } else {
-    fm.formula <- NA
-  }
 
   glance.args <- c(list(x = quote(fm), glance.args))
   z <- do.call(generics::glance, glance.args)
   z[["fm.class"]] <- fm.class[1]
   z[["fm.method"]] <- method.name
-  z[["fm.formula.chr"]] <- format(fm.formula)
+  z[["fm.formula"]] <- fail_safe_formula(fm, method.args)
+  z[["fm.formula.chr"]] <- format(z[["fm.formula"]])
 
   n.labels <- nrow(z)
   if (length(label.x) != n.labels) {
@@ -399,7 +395,7 @@ StatFitGlance <-
 #'   prediction can be added to the plot as a curve.
 #'
 #' @param mapping The aesthetic mapping, usually constructed with
-#'   \code{\link[ggplot2]{aes}} or \code{\link[ggplot2]{aes_}}. Only needs
+#'   \code{\link[ggplot2]{aes}}. Only needs
 #'   to be set at the layer level if you are overriding the plot defaults.
 #' @param data A layer specific dataset - only needed if you want to override
 #'   the plot defaults.
@@ -571,13 +567,14 @@ stat_fit_augment <- function(mapping = NULL, data = NULL, geom = "smooth",
   ggplot2::layer(
     stat = StatFitAugment, data = data, mapping = mapping, geom = geom,
     position = position, show.legend = show.legend, inherit.aes = inherit.aes,
-    params = list(method = method,
-                  method.args = method.args,
-                  augment.args = augment.args,
-                  level = level,
-                  y.out = y.out,
-                  na.rm = na.rm,
-                  ...)
+    params =
+      rlang::list2(method = method,
+                   method.args = method.args,
+                   augment.args = augment.args,
+                   level = level,
+                   y.out = y.out,
+                   na.rm = na.rm,
+                   ...)
   )
 }
 
@@ -617,31 +614,24 @@ fit_augment_compute_group_fun <- function(data,
     method.name <- deparse(substitute(method))
   }
 
-  #  data <- data[order(data[["x"]]), ]
   if ("data" %in% names(method.args)) {
     message("External 'data' passed can be inconsistent with plot!\n",
             "These data must be available at the time of printing!!!")
   } else if (any(grepl("formula|fixed|random|model", names(method.args)))) {
-#    method.args <- c(method.args, list(data = quote(data)))
-    method.args <- c(method.args, list(data = data))
+    #    method.args <- c(method.args, list(data = quote(data)))  works in most cases and avoids copying data
+    method.args <- c(method.args, list(data = data)) # cor.test() needs the actual data
   } else {
-    message("Only the 'formula' interface of methods is well supported.")
-    if ("x" %in% names(method.args)) {
-      message("Passing data$x as 'x'.")
-      method.args[["x"]] <- data[["x"]]
-    }
-    if ("y" %in% names(method.args)) {
-      message("Passing data$y as 'y'.")
-      method.args[["y"]] <- data[["y"]]
+    if (method.name == "cor.test" ) {
+      warning("Only the 'formula' interface of methods is supported. No formula found, using '~ x + y'")
+      selector <- setdiff(names(method.args), c("x", "y"))
+      method.args <- c(method.args[selector], list(formula = ~ x + y, data = data)) # cor.test() needs the actual data
+    } else {
+      warning("Only the 'formula' interface of methods is supported. No formula found, using 'y ~ x' default")
+      method.args <- c(method.args, list(formula = y ~ x, data = data)) # cor.test() needs the actual data
     }
   }
   fm <- do.call(method, method.args)
   fm.class <- class(fm) # keep track of fitted model class
-  if (inherits(fm, "lm")) {
-    fm.formula <- fm[["terms"]]
-  } else {
-    fm.formula <- NA
-  }
 
   augment.args <- c(list(x = fm), augment.args)
   z <- do.call(generics::augment, augment.args)
@@ -660,7 +650,8 @@ fit_augment_compute_group_fun <- function(data,
   }
   z[["fm.class"]] <- rep_len(fm.class[1], nrow(z))
   z[["fm.method"]] <- rep_len(method.name, nrow(z))
-  z[["fm.formula.chr"]] <- rep_len(format(fm.formula), nrow(z))
+  z[["fm.formula"]] <- rep_len(fail_safe_formula(fm, method.args), nrow(z))
+  z[["fm.formula.chr"]] <- format(z[["fm.formula"]])
 
   z
 }
@@ -691,7 +682,7 @@ StatFitAugment <-
 #'   mapping for label.
 #'
 #' @param mapping The aesthetic mapping, usually constructed with
-#'   \code{\link[ggplot2]{aes}} or \code{\link[ggplot2]{aes_}}. Only needs
+#'   \code{\link[ggplot2]{aes}}. Only needs
 #'   to be set at the layer level if you are overriding the plot defaults.
 #' @param data A layer specific dataset - only needed if you want to override
 #'   the plot defaults.
@@ -901,21 +892,22 @@ stat_fit_tidy <- function(mapping = NULL, data = NULL, geom = "text_npc",
   ggplot2::layer(
     stat = StatFitTidy, data = data, mapping = mapping, geom = geom,
     position = position, show.legend = show.legend, inherit.aes = inherit.aes,
-    params = list(method = method,
-                  method.args = method.args,
-                  tidy.args = tidy.args,
-                  label.x = label.x,
-                  label.y = label.y,
-                  hstep = hstep,
-                  vstep = ifelse(is.null(vstep),
-                                 ifelse(grepl("label", geom),
-                                        0.125,
-                                        0.075),
-                                 vstep),
-                  sanitize.names = sanitize.names,
-                  npc.used = grepl("_npc", geom),
-                  na.rm = na.rm,
-                  ...)
+    params =
+      rlang::list2(method = method,
+                   method.args = method.args,
+                   tidy.args = tidy.args,
+                   label.x = label.x,
+                   label.y = label.y,
+                   hstep = hstep,
+                   vstep = ifelse(is.null(vstep),
+                                  ifelse(grepl("label", geom),
+                                         0.125,
+                                         0.075),
+                                  vstep),
+                   sanitize.names = sanitize.names,
+                   npc.used = grepl("_npc", geom),
+                   na.rm = na.rm,
+                   ...)
   )
 }
 
@@ -977,26 +969,20 @@ fit_tidy_compute_group_fun <- function(data,
     message("External 'data' passed can be inconsistent with plot!\n",
             "These data must be available at the time of printing!!!")
   } else if (any(grepl("formula|fixed|random|model", names(method.args)))) {
-#    method.args <- c(method.args, list(data = quote(data)))
-    method.args <- c(method.args, list(data = data))
+    #    method.args <- c(method.args, list(data = quote(data)))  works in most cases and avoids copying data
+    method.args <- c(method.args, list(data = data)) # cor.test() needs the actual data
   } else {
-    message("Only the 'formula' interface of methods is well supported.")
-    if ("x" %in% names(method.args)) {
-      message("Passing data$x as 'x'.")
-      method.args[["x"]] <- quote(data[["x"]])
-    }
-    if ("y" %in% names(method.args)) {
-      message("Passing data$y as 'y'.")
-      method.args[["y"]] <- quote(data[["y"]])
+    if (method.name == "cor.test" ) {
+      warning("Only the 'formula' interface of methods is supported. No formula found, using '~ x + y'")
+      selector <- setdiff(names(method.args), c("x", "y"))
+      method.args <- c(method.args[selector], list(formula = ~ x + y, data = data)) # cor.test() needs the actual data
+    } else {
+      warning("Only the 'formula' interface of methods is supported. No formula found, using 'y ~ x' default")
+      method.args <- c(method.args, list(formula = y ~ x, data = data)) # cor.test() needs the actual data
     }
   }
   fm <- do.call(method, method.args)
   fm.class <- class(fm) # keep track of fitted model class
-  if (inherits(fm, "lm")) {
-    fm.formula <- fm[["terms"]]
-  } else {
-    fm.formula <- NA
-  }
 
   tidy.args <- c(list(x = quote(fm)), tidy.args)
   fm.td <- do.call(generics::tidy, tidy.args)
@@ -1075,7 +1061,8 @@ fit_tidy_compute_group_fun <- function(data,
   }
   z[["fm.class"]] <-rep_len(fm.class[1], nrow(z))
   z[["fm.method"]] <- rep_len(method.name, nrow(z))
-  z[["fm.formula.chr"]] <- rep_len(format(fm.formula), nrow(z))
+  z[["fm.formula"]] <- rep_len(fail_safe_formula(fm, method.args), nrow(z))
+  z[["fm.formula.chr"]] <- format(z[["fm.formula"]])
 
   z
 }

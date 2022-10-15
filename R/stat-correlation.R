@@ -7,7 +7,7 @@
 #'   determination (R^2) for method "pearson" and number of observations.
 #'
 #' @param mapping The aesthetic mapping, usually constructed with
-#'   \code{\link[ggplot2]{aes}} or \code{\link[ggplot2]{aes_}}. Only needs to be
+#'   \code{\link[ggplot2]{aes}}. Only needs to be
 #'   set at the layer level if you are overriding the plot defaults.
 #' @param data A layer specific dataset, only needed if you want to override the
 #'   plot defaults.
@@ -198,42 +198,49 @@
 #'                                        after_stat(t.value.label))))
 #'
 #' # Inspecting the returned data using geom_debug()
-#' if (requireNamespace("gginnards", quietly = TRUE)) {
+#' # This provides a quick way of finding out the names of the variables that
+#' # are available for mapping to aesthetics with after_stat().
+#'
+#' gginnards.installed <- requireNamespace("gginnards", quietly = TRUE)
+#'
+#' if (gginnards.installed)
 #'   library(gginnards)
 #'
-#' # This provides a quick way of finding out the names of the variables that
-#' # are available for mapping to aesthetics.
-#'
-#' # the whole of data
+#' # the whole of computed data
+#' if (gginnards.installed)
 #'   ggplot(my.data, aes(x, y)) +
 #'     geom_point() +
 #'     stat_correlation(geom = "debug")
 #'
+#' if (gginnards.installed)
 #'   ggplot(my.data, aes(x, y)) +
 #'     geom_point() +
 #'     stat_correlation(geom = "debug", method = "pearson")
 #'
+#' if (gginnards.installed)
 #'   ggplot(my.data, aes(x, y)) +
 #'     geom_point() +
 #'     stat_correlation(geom = "debug", method = "kendall")
 #'
+#' if (gginnards.installed)
 #'   ggplot(my.data, aes(x, y)) +
 #'     geom_point() +
 #'     stat_correlation(geom = "debug", method = "spearman")
 #'
+#' if (gginnards.installed)
 #'   ggplot(my.data, aes(x, y)) +
 #'     geom_point() +
 #'     stat_correlation(geom = "debug", output.type = "numeric")
 #'
+#' if (gginnards.installed)
 #'   ggplot(my.data, aes(x, y)) +
 #'     geom_point() +
 #'     stat_correlation(geom = "debug", output.type = "markdown")
 #'
+#' if (gginnards.installed)
 #'   ggplot(my.data, aes(x, y)) +
 #'     geom_point() +
 #'     stat_correlation(geom = "debug", output.type = "LaTeX")
-#'
-#' }
 #'
 #' @family ggplot statistics for correlation.
 #'
@@ -285,32 +292,33 @@ stat_correlation <- function(mapping = NULL,
     position = position,
     show.legend = show.legend,
     inherit.aes = inherit.aes,
-    params = list(method = method,
-                  alternative = alternative,
-                  exact = exact,
-                  conf.level = r.conf.level,
-                  continuity = continuity,
-                  small.r = small.r,
-                  small.p = small.p,
-                  coef.keep.zeros = coef.keep.zeros,
-                  r.digits = r.digits,
-                  t.digits = t.digits,
-                  p.digits = p.digits,
-                  CI.brackets = CI.brackets,
-                  label.x = label.x,
-                  label.y = label.y,
-                  hstep = hstep,
-                  vstep = ifelse(is.null(vstep),
-                                 ifelse(grepl("label", geom),
-                                        0.10,
-                                        0.05),
-                                 vstep),
-                  npc.used = grepl("_npc", geom),
-                  output.type = output.type,
-                  boot.R = boot.R,
-                  na.rm = na.rm,
-                  parse = parse,
-                  ...)
+    params =
+      rlang::list2(method = method,
+                   alternative = alternative,
+                   exact = exact,
+                   conf.level = r.conf.level,
+                   continuity = continuity,
+                   small.r = small.r,
+                   small.p = small.p,
+                   coef.keep.zeros = coef.keep.zeros,
+                   r.digits = r.digits,
+                   t.digits = t.digits,
+                   p.digits = p.digits,
+                   CI.brackets = CI.brackets,
+                   label.x = label.x,
+                   label.y = label.y,
+                   hstep = hstep,
+                   vstep = ifelse(is.null(vstep),
+                                  ifelse(grepl("label", geom),
+                                         0.10,
+                                         0.05),
+                                  vstep),
+                   npc.used = grepl("_npc", geom),
+                   output.type = output.type,
+                   boot.R = boot.R,
+                   na.rm = na.rm,
+                   parse = parse,
+                   ...)
   )
 }
 

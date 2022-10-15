@@ -23,7 +23,7 @@ stat_fit_residuals(
 }
 \arguments{
 \item{mapping}{The aesthetic mapping, usually constructed with
-\code{\link[ggplot2]{aes}} or \code{\link[ggplot2]{aes_}}. Only needs
+\code{\link[ggplot2]{aes}}. Only needs
 to be set at the layer level if you are overriding the plot defaults.}
 
 \item{data}{A layer specific dataset - only needed if you want to override
@@ -187,17 +187,20 @@ ggplot(my.data, aes(x, y)) +
   method.args = list(tau = 0.75))
 
 # inspecting the returned data
-if (requireNamespace("gginnards", quietly = TRUE)) {
+gginnards.installed <- requireNamespace("gginnards", quietly = TRUE)
+
+if (gginnards.installed)
   library(gginnards)
 
+if (gginnards.installed)
   ggplot(my.data, aes(x, y)) +
    stat_fit_residuals(formula = my.formula, resid.type = "working",
                       geom = "debug")
 
+if (gginnards.installed)
   ggplot(my.data, aes(x, y)) +
     stat_fit_residuals(formula = my.formula, method = "rlm",
                        geom = "debug")
-}
 
 }
 \seealso{

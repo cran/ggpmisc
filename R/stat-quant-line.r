@@ -34,7 +34,7 @@
 #'   regression".
 #'
 #' @param mapping The aesthetic mapping, usually constructed with
-#'   \code{\link[ggplot2]{aes}} or \code{\link[ggplot2]{aes_}}. Only needs to be
+#'   \code{\link[ggplot2]{aes}}. Only needs to be
 #'   set at the layer level if you are overriding the plot defaults.
 #' @param data A layer specific dataset, only needed if you want to override
 #'   the plot defaults.
@@ -192,16 +192,18 @@
 #'   facet_wrap(~drv)
 #'
 #' # Inspecting the returned data using geom_debug()
-#' if (requireNamespace("gginnards", quietly = TRUE)) {
+#' gginnards.installed <- requireNamespace("gginnards", quietly = TRUE)
+#'
+#' if (gginnards.installed)
 #'   library(gginnards)
 #'
+#' if (gginnards.installed)
 #'   ggplot(mpg, aes(displ, hwy)) +
 #'     stat_quant_line(geom = "debug")
 #'
+#' if (gginnards.installed)
 #'   ggplot(mpg, aes(displ, hwy)) +
 #'     stat_quant_line(geom = "debug", fm.values = TRUE)
-#'
-##' }
 #'
 #' @export
 #'
@@ -270,21 +272,22 @@ stat_quant_line <- function(mapping = NULL,
     position = position,
     show.legend = show.legend,
     inherit.aes = inherit.aes,
-    params = list(
-      quantiles = quantiles,
-      formula = formula,
-      se = se,
-      fm.values = fm.values,
-      n = n,
-      method = method,
-      method.args = method.args,
-      na.rm = na.rm,
-      orientation = orientation,
-      level = level,
-      type = type,
-      interval = interval,
-      ...
-    )
+    params =
+      rlang::list2(
+        quantiles = quantiles,
+        formula = formula,
+        se = se,
+        fm.values = fm.values,
+        n = n,
+        method = method,
+        method.args = method.args,
+        na.rm = na.rm,
+        orientation = orientation,
+        level = level,
+        type = type,
+        interval = interval,
+        ...
+      )
   )
 }
 
@@ -378,7 +381,10 @@ quant_line_compute_group_fun <- function(data,
 
   if (fm.values) {
       z[["n"]] <- nrow(na.omit(data[, c("x", "y")]))
-      z[["method"]] <- method.name
+#      z[["fm.class"]] <- class(fm)[1] # fm gets dropped in quant_pred()
+      z[["fm.method"]] <- method.name
+      z[["fm.formula"]] <- list(formula) # fm gets dropped in quant_pred()
+      z[["fm.formula.chr"]] <- format(z[["fm.formula"]])
   }
 
   # a factor with nicely formatted labels for levels is helpful
@@ -412,6 +418,9 @@ StatQuantLine <-
   )
 
 # modified from 'ggplot2'
+# !!!
+# !!! fitting and prediction should be split so that metadata from fm can be recovered
+# !!!
 quant_pred <- function(quantile, data, method, formula, weight, grid,
                        method.args = method.args, orientation = "x",
                        level = 0.95, type = "none", interval = "none",
@@ -421,7 +430,7 @@ quant_pred <- function(quantile, data, method, formula, weight, grid,
   # quantreg contains code with partial matching of names!
   # so we silence selectively only these warnings
   withCallingHandlers({
-    model <- do.call(method, args)
+    fm <- do.call(method, args)
   }, warning = function(w) {
     if (startsWith(conditionMessage(w), "partial match of") ||
         startsWith(conditionMessage(w), "partial argument match of")) {
@@ -430,10 +439,10 @@ quant_pred <- function(quantile, data, method, formula, weight, grid,
   })
 
   if (orientation == "x") {
-    grid[["y"]] <- stats::predict(model, newdata = grid, level = level,
+    grid[["y"]] <- stats::predict(fm, newdata = grid, level = level,
                                   type = type, interval = interval)
   } else {
-    grid[["x"]] <- stats::predict(model, newdata = grid, level = level,
+    grid[["x"]] <- stats::predict(fm, newdata = grid, level = level,
                                   type = type, interval = interval)
   }
   grid[["quantile"]] <- quantile

@@ -6,7 +6,7 @@
 #' coefficient of determination (R^2), 'AIC', 'BIC', and number of observations.
 #'
 #' @param mapping The aesthetic mapping, usually constructed with
-#'   \code{\link[ggplot2]{aes}} or \code{\link[ggplot2]{aes_}}. Only needs to be
+#'   \code{\link[ggplot2]{aes}}. Only needs to be
 #'   set at the layer level if you are overriding the plot defaults.
 #' @param data A layer specific dataset, only needed if you want to override
 #'   the plot defaults.
@@ -317,24 +317,28 @@
 #'                                     after_stat(b_2), after_stat(b_3))))
 #'
 #' # Inspecting the returned data using geom_debug()
-#' if (requireNamespace("gginnards", quietly = TRUE)) {
+#' # This provides a quick way of finding out the names of the variables that
+#' # are available for mapping to aesthetics with after_stat().
+#'
+#' gginnards.installed <- requireNamespace("gginnards", quietly = TRUE)
+#'
+#' if (gginnards.installed)
 #'   library(gginnards)
 #'
-#' # This provides a quick way of finding out the names of the variables that
-#' # are available for mapping to aesthetics.
-#'
-#' # the whole of data
+#' if (gginnards.installed)
 #'   ggplot(my.data, aes(x, y)) +
 #'     geom_point() +
 #'     stat_poly_line(formula = formula) +
 #'     stat_poly_eq(formula = formula, geom = "debug")
 #'
+#' if (gginnards.installed)
 #'   ggplot(my.data, aes(x, y)) +
 #'     geom_point() +
 #'     stat_poly_line(formula = formula) +
 #'     stat_poly_eq(formula = formula, geom = "debug", output.type = "numeric")
 #'
 #' # names of the variables
+#' if (gginnards.installed)
 #'   ggplot(my.data, aes(x, y)) +
 #'     geom_point() +
 #'     stat_poly_line(formula = formula) +
@@ -342,6 +346,7 @@
 #'                  summary.fun = colnames)
 #'
 #' # only data$eq.label
+#' if (gginnards.installed)
 #'   ggplot(my.data, aes(x, y)) +
 #'     geom_point() +
 #'     stat_poly_line(formula = formula) +
@@ -350,6 +355,7 @@
 #'                  summary.fun = function(x) {x[["eq.label"]]})
 #'
 #' # only data$eq.label
+#' if (gginnards.installed)
 #'   ggplot(my.data, aes(x, y)) +
 #'     geom_point() +
 #'     stat_poly_line(formula = formula) +
@@ -359,6 +365,7 @@
 #'                  summary.fun = function(x) {x[["eq.label"]]})
 #'
 #' # only data$eq.label
+#' if (gginnards.installed)
 #'   ggplot(my.data, aes(x, y)) +
 #'     geom_point() +
 #'     stat_poly_line(formula = formula) +
@@ -367,6 +374,7 @@
 #'                  summary.fun = function(x) {x[["eq.label"]]})
 #'
 #' # only data$eq.label
+#' if (gginnards.installed)
 #'   ggplot(my.data, aes(x, y)) +
 #'     geom_point() +
 #'     stat_poly_line(formula = formula) +
@@ -375,12 +383,12 @@
 #'                  summary.fun = function(x) {x[["eq.label"]]})
 #'
 #' # show the content of a list column
+#' if (gginnards.installed)
 #'   ggplot(my.data, aes(x, y)) +
 #'     geom_point() +
 #'     stat_poly_line(formula = formula) +
 #'     stat_poly_eq(formula = formula, geom = "debug", output.type = "numeric",
 #'                  summary.fun = function(x) {x[["coef.ls"]][[1]]})
-#' }
 #'
 #' @export
 #'
@@ -452,7 +460,8 @@ stat_poly_eq <- function(mapping = NULL, data = NULL,
     position = position,
     show.legend = show.legend,
     inherit.aes = inherit.aes,
-    params = list(method = method,
+    params =
+      rlang::list2(method = method,
                   method.args = method.args,
                   formula = formula,
                   eq.with.lhs = eq.with.lhs,
@@ -633,12 +642,9 @@ poly_eq_compute_group_fun <- function(data,
   })
   fm.class <- class(fm)
 
-  # allow model formula selection by the method function
-  if (inherits(fm, "lm")) {
-    formula <- fm[["terms"]]
-  } else {
-    stop("Fitted model object does not inherit from class \"lm\"")
-  }
+  # allow model formula selection by the model fit method
+  # extract formula from fitted model if possible, but fall back on argument if needed
+  formula.ls <- fail_safe_formula(fm, fun.args, verbose = TRUE)
 
   if ("r.squared" %in% names(fm.summary)) {
     rr <- fm.summary[["r.squared"]]
@@ -670,10 +676,13 @@ poly_eq_compute_group_fun <- function(data,
   }
   coefs <- stats::coefficients(fm)
 
+  formula <- formula.ls[[1L]]
+  stopifnot(isa(formula, "formula"))
+
   formula.rhs.chr <- as.character(formula)[3]
   forced.origin <- grepl("-[[:space:]]*1|+[[:space:]]*0", formula.rhs.chr)
   if (forced.origin) {
-      coefs <- c(0, coefs)
+    coefs <- c(0, coefs)
   }
   names(coefs) <- paste("b", (1:length(coefs)) - 1, sep = "_")
 
@@ -903,7 +912,8 @@ poly_eq_compute_group_fun <- function(data,
 
   z[["fm.method"]] <- method.name
   z[["fm.class"]] <- fm.class[1]
-  z[["fm.formula.chr"]] <- format(formula)
+  z[["fm.formula"]] <- formula.ls
+  z[["fm.formula.chr"]] <- format(formula.ls)
 
   # Compute label positions
   if (is.character(label.x)) {

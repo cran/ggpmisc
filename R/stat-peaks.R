@@ -76,7 +76,7 @@ find_peaks <-
 #' by a format string compatible with \code{sprintf()} or \code{strftime()}.
 #'
 #' @param mapping The aesthetic mapping, usually constructed with
-#'   \code{\link[ggplot2]{aes}} or \code{\link[ggplot2]{aes_}}. Only needs to be
+#'   \code{\link[ggplot2]{aes}}. Only needs to be
 #'   set at the layer level if you are overriding the plot defaults.
 #' @param data A layer specific dataset - only needed if you want to override
 #'    the plot defaults.
@@ -255,17 +255,18 @@ stat_peaks <- function(mapping = NULL,
     position = position,
     show.legend = show.legend,
     inherit.aes = inherit.aes,
-    params = list(
-      span = span,
-      ignore_threshold = ignore_threshold,
-      strict = strict,
-      label.fmt = label.fmt,
-      x.label.fmt = x.label.fmt,
-      y.label.fmt = y.label.fmt,
-      orientation = orientation,
-      na.rm = na.rm,
-      ...
-    )
+    params =
+      rlang::list2(
+        span = span,
+        ignore_threshold = ignore_threshold,
+        strict = strict,
+        label.fmt = label.fmt,
+        x.label.fmt = x.label.fmt,
+        y.label.fmt = y.label.fmt,
+        orientation = orientation,
+        na.rm = na.rm,
+        ...
+      )
   )
 }
 
@@ -485,17 +486,18 @@ stat_valleys <- function(mapping = NULL,
     position = position,
     show.legend = show.legend,
     inherit.aes = inherit.aes,
-    params = list(
-      span = span,
-      ignore_threshold = ignore_threshold,
-      strict = strict,
-      label.fmt = label.fmt,
-      x.label.fmt = x.label.fmt,
-      y.label.fmt = y.label.fmt,
-      orientation = orientation,
-      na.rm = na.rm,
-      ...
-    )
+    params =
+      rlang::list2(
+        span = span,
+        ignore_threshold = ignore_threshold,
+        strict = strict,
+        label.fmt = label.fmt,
+        x.label.fmt = x.label.fmt,
+        y.label.fmt = y.label.fmt,
+        orientation = orientation,
+        na.rm = na.rm,
+        ...
+      )
   )
 }
 

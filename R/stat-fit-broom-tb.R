@@ -8,7 +8,7 @@
 #'   annotation is added to the plots in tabular form.
 #'
 #' @param mapping The aesthetic mapping, usually constructed with
-#'   \code{\link[ggplot2]{aes}} or \code{\link[ggplot2]{aes_}}. Only needs to be
+#'   \code{\link[ggplot2]{aes}}. Only needs to be
 #'   set at the layer level if you are overriding the plot defaults.
 #' @param data A layer specific dataset, only needed if you want to override the
 #'   plot defaults.
@@ -104,9 +104,9 @@
 #' @examples
 #' # Package 'broom' needs to be installed to run these examples.
 #' # We check availability before running them to avoid errors.
+#' broom.installed <- requireNamespace("broom", quietly = TRUE)
 #'
-#' if (requireNamespace("broom", quietly = TRUE)) {
-#'   broom.installed <- TRUE
+#' if (broom.installed)
 #'   library(broom)
 #'
 #' # data for examples
@@ -114,7 +114,11 @@
 #'   covariate <- sqrt(x) + rnorm(9)
 #'   group <- factor(c(rep("A", 4), rep("B", 5)))
 #'   my.df <- data.frame(x, group, covariate)
-#' }
+#'
+#' gginnards.installed  <- requireNamespace("gginnards", quietly = TRUE)
+#'
+#' if (gginnards.installed)
+#'   library(gginnards)
 #'
 #' ## covariate is a numeric or continuous variable
 #' # Linear regression fit summary, all defaults
@@ -122,6 +126,15 @@
 #'   ggplot(my.df, aes(covariate, x)) +
 #'     geom_point() +
 #'     stat_fit_tb() +
+#'     expand_limits(y = 70)
+#'
+#' # we can use geom_debug() and str() to inspect the returned value
+#' # and discover the variables that can be mapped to aesthetics with
+#' # after_stat()
+#' if (broom.installed && gginnards.installed)
+#'   ggplot(my.df, aes(covariate, x)) +
+#'     geom_point() +
+#'     stat_fit_tb(geom = "debug", summary.fun = str) +
 #'     expand_limits(y = 70)
 #'
 #' # Linear regression fit summary, with default formatting
@@ -333,24 +346,25 @@ stat_fit_tb <- function(mapping = NULL, data = NULL, geom = "table_npc",
   ggplot2::layer(
     stat = StatFitTb, data = data, mapping = mapping, geom = geom,
     position = position, show.legend = show.legend, inherit.aes = inherit.aes,
-    params = list(method = method,
-                  method.args = method.args,
-                  tidy.args = tidy.args,
-                  tb.type = tb.type,
-                  tb.vars = tb.vars,
-                  tb.params = tb.params,
-                  digits = digits,
-                  p.digits = p.digits,
-                  label.x = label.x,
-                  label.y = label.y,
-                  npc.used = grepl("_npc", geom),
-                  table.theme = table.theme,
-                  table.rownames = table.rownames,
-                  table.colnames = table.colnames,
-                  table.hjust = table.hjust,
-                  parse = parse,
-                  na.rm = na.rm,
-                  ...)
+    params =
+      rlang::list2(method = method,
+                   method.args = method.args,
+                   tidy.args = tidy.args,
+                   tb.type = tb.type,
+                   tb.vars = tb.vars,
+                   tb.params = tb.params,
+                   digits = digits,
+                   p.digits = p.digits,
+                   label.x = label.x,
+                   label.y = label.y,
+                   npc.used = grepl("_npc", geom),
+                   table.theme = table.theme,
+                   table.rownames = table.rownames,
+                   table.colnames = table.colnames,
+                   table.hjust = table.hjust,
+                   parse = parse,
+                   na.rm = na.rm,
+                   ...)
   )
 }
 
@@ -374,8 +388,8 @@ fit_tb_compute_panel_fun <- function(data,
                                      npc.used = TRUE,
                                      label.x,
                                      label.y) {
-  force(data)
 
+  force(data)
   if (length(unique(data$x)) < 2) {
     # Not enough data to perform fit
     return(data.frame())
@@ -408,23 +422,17 @@ fit_tb_compute_panel_fun <- function(data,
     #    method.args <- c(method.args, list(data = quote(data)))  works in most cases and avoids copying data
     method.args <- c(method.args, list(data = data)) # cor.test() needs the actual data
   } else {
-    message("Only the 'formula' interface of methods is well supported.")
-    if ("x" %in% names(method.args)) {
-      message("Passing data$x as 'x'.")
-      method.args[["x"]] <- data[["x"]]
-    }
-    if ("y" %in% names(method.args)) {
-      message("Passing data$y as 'y'.")
-      method.args[["y"]] <- data[["y"]]
+    if (method.name == "cor.test" ) {
+      warning("Only the 'formula' interface of methods is supported. No formula found, using '~ x + y'")
+      selector <- setdiff(names(method.args), c("x", "y"))
+      method.args <- c(method.args[selector], list(formula = ~ x + y, data = data)) # cor.test() needs the actual data
+    } else {
+      warning("Only the 'formula' interface of methods is supported. No formula found, using 'y ~ x' default")
+      method.args <- c(method.args, list(formula = y ~ x, data = data)) # cor.test() needs the actual data
     }
   }
   fm <- do.call(method, method.args)
   fm.class <- class(fm) # keep track of fitted model class
-  if (inherits(fm, "lm")) {
-    fm.formula <- fm[["terms"]]
-  } else {
-    fm.formula <- NA
-  }
 
   if (tolower(tb.type) %in% c("fit.anova", "anova")) {
     tidy.args <- c(x = quote(stats::anova(fm)), tidy.args)
@@ -504,7 +512,8 @@ fit_tb_compute_panel_fun <- function(data,
         tb.vars <- tb.vars[idxs]
       }
     }
-    if (!(1L %in% idxs)) {
+    if (!(1L %in% idxs) && nrow(fm.tb > 1L)) {
+      # we warn only if params are two or more
       message("Dropping param names from table!")
     }
     if (length(idxs) < 1L) {
@@ -521,11 +530,13 @@ fit_tb_compute_panel_fun <- function(data,
   }
 
   # enclose the tibble and the call in lists to make them acceptable as columns
+  formula.ls <- fail_safe_formula(fm, method.args)
   z <- tibble::tibble(fm.tb = list(fm.tb),
                       fm.tb.type = tb.type,
                       fm.class = fm.class[1],
                       fm.method = method.name,
-                      fm.formula.chr = format(formula))
+                      fm.formula = formula.ls,
+                      fm.formula.chr = format(formula.ls))
 
   if (npc.used) {
     margin.npc <- 0.05

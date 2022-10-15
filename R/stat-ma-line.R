@@ -160,18 +160,18 @@
 #'   facet_wrap(~group)
 #'
 #' # Inspecting the returned data using geom_debug()
-#' \dontrun{
-#' if (requireNamespace("gginnards", quietly = TRUE)) {
+#' gginnards.installed <- requireNamespace("gginnards", quietly = TRUE)
+#'
+#' if (gginnards.installed)
 #'   library(gginnards)
 #'
+#' if (gginnards.installed)
 #'   ggplot(my.data, aes(x, y)) +
 #'     stat_ma_line(geom = "debug")
 #'
+#' if (gginnards.installed)
 #'   ggplot(my.data, aes(x, y)) +
 #'     stat_ma_line(geom = "debug", fm.values = TRUE)
-#'
-#' }
-#' }
 #'
 #' @export
 #'
@@ -236,7 +236,7 @@ stat_ma_line <- function(mapping = NULL,
     position = position,
     show.legend = show.legend,
     inherit.aes = inherit.aes,
-    params = list(
+    params = rlang::list2(
       method = method,
       method.args = method.args,
       formula = formula,
@@ -385,7 +385,10 @@ ma_line_compute_group_fun <-
       prediction[["p.value"]] <- fm[["regression.results"]][["P-perm (1-tailed)"]][idx]
       prediction[["r.squared"]] <- fm[["rsquare"]]
       prediction[["n"]] <- fm[["n"]]
-      prediction[["method"]] <- method.name
+      prediction[["fm.class"]] <- class(fm)[1]
+      prediction[["fm.method"]] <- method.name
+      prediction[["fm.formula"]] <- fail_safe_formula(fm, method.args)
+      prediction[["fm.formula.chr"]] <- format(prediction[["fm.formula"]])
     }
     prediction$flipped_aes <- flipped_aes
     ggplot2::flip_data(prediction, flipped_aes)
