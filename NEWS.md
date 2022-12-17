@@ -4,6 +4,12 @@ editor_options:
     wrap: 72
 ---
 
+# ggpmisc 0.5.2
+
+-   Fix bug caused by the use of `base::isa()` which is not supported for `"formula"` in R < 4.1.0 (reported by Johnny Le).
+-   Fix bug in `stat_peaks()` and `stat_valleys()` that made peak and valley labels for datetime variables mapped to _x_ to be always formatted in the local system's timezone instead of in the timezone of the _x_ scale of the ggplot.
+-   Fix bug in `stat_poly_eq()`, `stat_ma_eq()`, `stat_quant_eq()`, and `stat_correlation()` that caused some labels not to obey R option `OutDec`. (Problem described at [Stackoverflow](https://stackoverflow.com/questions/74813032/modifying-the-decimal-mark-of-stat-poly-eq).)
+
 # ggpmisc 0.5.1
 
 -   Revise approach used to extract the formula from the fitted model object. Use `formula()` method on fitted model but fall-back onto the 'formula' argument in case of error or return `NA` if everything fails, without triggering an error condition.
