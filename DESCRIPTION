@@ -1,8 +1,8 @@
 Package: ggpmisc
 Type: Package
 Title: Miscellaneous Extensions to 'ggplot2'
-Version: 0.5.2
-Date: 2022-12-17
+Version: 0.5.3
+Date: 2023-06-23
 Authors@R: 
     c(
     person("Pedro J.", "Aphalo", email = "pedro.aphalo@helsinki.fi", role = c("aut", "cre"), comment = c(ORCID = "0000-0003-3385-972X")),
@@ -31,7 +31,7 @@ Imports: grid, stats, ggplot2 (>= 3.4.0), scales (>= 1.2.0), rlang (>=
         dplyr (>= 1.0.6), lubridate (>= 1.7.10)
 Suggests: knitr (>= 1.39), rmarkdown (>= 2.14), ggrepel (>= 0.9.1),
         broom (>= 0.8.0), broom.mixed (>= 0.2.9.4), nlme (>= 3.1-152),
-        gginnards (>= 0.1.0-1)
+        gginnards (>= 0.1.0-1), testthat, vdiffr
 URL: https://docs.r4photobiology.info/ggpmisc/,
         https://github.com/aphalo/ggpmisc
 BugReports: https://github.com/aphalo/ggpmisc/issues
@@ -39,9 +39,9 @@ Encoding: UTF-8
 RoxygenNote: 7.2.3
 VignetteBuilder: knitr
 NeedsCompilation: no
-Packaged: 2022-12-17 20:46:11 UTC; aphalo_2
+Packaged: 2023-06-23 23:48:45 UTC; aphalo_2
 Author: Pedro J. Aphalo [aut, cre] (<https://orcid.org/0000-0003-3385-972X>),
   Kamil Slowikowski [ctb] (<https://orcid.org/0000-0002-2843-6370>),
   Samer Mouksassi [ctb] (<https://orcid.org/0000-0002-7152-6654>)
 Repository: CRAN
-Date/Publication: 2022-12-17 23:10:02 UTC
+Date/Publication: 2023-06-24 18:50:02 UTC

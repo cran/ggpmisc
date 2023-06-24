@@ -2,6 +2,7 @@
 % Please edit documentation in R/stat-fit-deviations.R
 \name{stat_fit_deviations}
 \alias{stat_fit_deviations}
+\alias{stat_fit_fitted}
 \title{Residuals from model fit as segments}
 \usage{
 stat_fit_deviations(
@@ -10,6 +11,23 @@ stat_fit_deviations(
   geom = "segment",
   method = "lm",
   method.args = list(),
+  n.min = 2L,
+  formula = NULL,
+  position = "identity",
+  na.rm = FALSE,
+  orientation = NA,
+  show.legend = FALSE,
+  inherit.aes = TRUE,
+  ...
+)
+
+stat_fit_fitted(
+  mapping = NULL,
+  data = NULL,
+  geom = "point",
+  method = "lm",
+  method.args = list(),
+  n.min = 2L,
   formula = NULL,
   position = "identity",
   na.rm = FALSE,
@@ -37,6 +55,9 @@ parameters \code{formula}, \code{data}, \code{weights} and \code{method}. A
 \code{fitted()} method must exist for the returned model fit object class.}
 
 \item{method.args}{named list with additional arguments.}
+
+\item{n.min}{integer Minimum number of distinct values in the explanatory
+variable (on the rhs of formula) for fitting to the attempted.}
 
 \item{formula}{a "formula" object. Using aesthetic names instead of
 original variable names.}
@@ -92,7 +113,7 @@ In the case of \code{method = "rq"} quantiles are fixed at \code{tau =
 \section{Computed variables}{
  Data frame with same \code{nrow} as \code{data}
   as subset for each group containing five numeric variables. \describe{
-  \item{x}{x coordinates of observations} \item{y.fitted}{x coordinates of
+  \item{x}{x coordinates of observations} \item{x.fitted}{x coordinates of
   fitted values} \item{y}{y coordinates of observations} \item{y.fitted}{y
   coordinates of fitted values}}
 

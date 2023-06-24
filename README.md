@@ -7,6 +7,8 @@
 
 [![cran
 version](https://www.r-pkg.org/badges/version/ggpmisc)](https://cran.r-project.org/package=ggpmisc)
+[![cran
+checks](https://badges.cranchecks.info/worst/ggpmisc.svg)](https://cran.r-project.org/web/checks/check_results_ggpmisc.html)
 [![R-CMD-check](https://github.com/aphalo/ggpmisc/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/aphalo/ggpmisc/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
 
@@ -58,6 +60,7 @@ Statistics that help with reporting the results of model fits are:
 | `stat_quant_band()`     | median + quartiles (`smooth`)                     | rq, rqss (1, 4, 5, 7)                        |
 | `stat_fit_residuals()`  | residuals (`point`)                               | lm, rlm, rq (1, 2, 4, 7, 8)                  |
 | `stat_fit_deviations()` | deviations from observations (`segment`)          | lm, rlm, lqs, rq (1, 2, 4, 7, 9)             |
+| `stat_fit_fitted()`     | fitted values (`point`)                           | lm, rlm, lqs, rq (1, 2, 4, 7, 9)             |
 | `stat_fit_glance()`     | equation, *R*<sup>2</sup>, *P*, etc. (`text_npc`) | all those supported by ‘broom’               |
 | `stat_fit_augment()`    | predicted and other values (`smooth`)             | all those supported by ‘broom’               |
 | `stat_fit_tidy()`       | fit results, e.g., for equation (`text_npc`)      | all those supported by ‘broom’               |
@@ -265,10 +268,9 @@ publications, please cite according to:
 
 ``` r
 citation("ggpmisc")
-#> 
 #> To cite package 'ggpmisc' in publications use:
 #> 
-#>   Aphalo P (2022). _ggpmisc: Miscellaneous Extensions to 'ggplot2'_.
+#>   Aphalo P (2023). _ggpmisc: Miscellaneous Extensions to 'ggplot2'_.
 #>   https://docs.r4photobiology.info/ggpmisc/,
 #>   https://github.com/aphalo/ggpmisc.
 #> 
@@ -277,7 +279,7 @@ citation("ggpmisc")
 #>   @Manual{,
 #>     title = {ggpmisc: Miscellaneous Extensions to 'ggplot2'},
 #>     author = {Pedro J. Aphalo},
-#>     year = {2022},
+#>     year = {2023},
 #>     note = {https://docs.r4photobiology.info/ggpmisc/,
 #> https://github.com/aphalo/ggpmisc},
 #>   }
@@ -307,6 +309,6 @@ Computational and Graphical Statistics 19 (1): 3–28.
 
 ## License
 
-© 2016-2022 Pedro J. Aphalo (<pedro.aphalo@helsinki.fi>). Released under
+© 2016-2023 Pedro J. Aphalo (<pedro.aphalo@helsinki.fi>). Released under
 the GPL, version 2 or greater. This software carries no warranty of any
 kind.

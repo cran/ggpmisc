@@ -10,9 +10,10 @@ stat_poly_eq(
   geom = "text_npc",
   position = "identity",
   ...,
+  formula = NULL,
   method = "lm",
   method.args = list(),
-  formula = NULL,
+  n.min = 2L,
   eq.with.lhs = TRUE,
   eq.x.rhs = NULL,
   small.r = FALSE,
@@ -55,6 +56,9 @@ layer}
 can include aesthetics whose values you want to set, not map. See
 \code{\link[ggplot2]{layer}} for more details.}
 
+\item{formula}{a formula object. Using aesthetic names \code{x} and \code{y}
+instead of original variable names.}
+
 \item{method}{function or character If character, "lm", "rlm" or the name of
 a model fit function are accepted, possibly followed by the fit function's
 \code{method} argument separated by a colon (e.g. \code{"rlm:M"}). If a
@@ -65,8 +69,8 @@ object of class \code{lm}.}
 
 \item{method.args}{named list with additional arguments.}
 
-\item{formula}{a formula object. Using aesthetic names \code{x} and \code{y}
-instead of original variable names.}
+\item{n.min}{integer Minimum number of distinct values in the explanatory
+variable (on the rhs of formula) for fitting to the attempted.}
 
 \item{eq.with.lhs}{If \code{character} the string is pasted to the front of
 the equation label before parsing or a \code{logical} (see note).}
@@ -128,6 +132,12 @@ than combining with them. This is most useful for helper functions that
 define both data and aesthetics and shouldn't inherit behaviour from the
 default plot specification, e.g. \code{\link[ggplot2]{borders}}.}
 }
+\value{
+A data frame, with a single row and columns as described under
+  \strong{Computed variables}. In cases when the number of observations is
+  less than \code{n.min} a data frame with no rows or columns is returned
+  rendered as an empty/invisible plot layer.
+}
 \description{
 \code{stat_poly_eq} fits a polynomial by default with \code{stats::lm()} but
 alternatively using robust regression. From the fitted model it
@@ -138,28 +148,29 @@ coefficient of determination (R^2), 'AIC', 'BIC', and number of observations.
 This statistic can be used to automatically annotate a plot with
   \eqn{R^2}, adjusted \eqn{R^2} or the fitted model equation. It supports
   linear regression, robust linear regression and median regression fitted
-  with functions \code{\link{lm}}, \code{\link[MASS]{rlm}} or
-  \code{\link[quantreg]{rq}}. The \eqn{R^2} and adjusted \eqn{R^2} annotations
-  can be used with any linear model formula. The confidence interval for
-  \eqn{R^2} is computed with package \code{\link[confintr]{ci_rsquared}}. The
-  fitted equation label is correctly generated for polynomials or
-  quasi-polynomials through the origin. Model formulas can use \code{poly()}
-  or be defined algebraically with terms of powers of increasing magnitude
-  with no missing intermediate terms, except possibly for the intercept
-  indicated by "- 1" or "-1" or \code{"+ 0"} in the formula. The validity of
-  the \code{formula} is not checked in the current implementation, and for
-  this reason the default aesthetics sets \eqn{R^2} as label for the
-  annotation. This statistic generates labels as R expressions by default but
-  LaTeX (use TikZ device), markdown (use package 'ggtext') and plain text are
-  also supported, as well as numeric values for user-generated text labels.
-  The value of \code{parse} is set automatically based on \code{output-type},
-  but if you assemble labels that need parsing from \code{numeric} output,
-  the default needs to be overridden. This stat only generates annotation
-  labels, the predicted values/line need to be added to the plot as a
-  separate layer using \code{\link{stat_poly_line}} or
-  \code{\link[ggplot2]{stat_smooth}}, so to make sure that the same model
-  formula is used in all steps it is best to save the formula as an object
-  and supply this object as argument to the different statistics.
+  with functions \code{\link{lm}}, or \code{\link[MASS]{rlm}}. The \eqn{R^2}
+  and adjusted \eqn{R^2} annotations can be used with any linear model
+  formula. The confidence interval for \eqn{R^2} is computed with function
+  \code{\link[confintr]{ci_rsquared}} from package 'confintr'. The fitted
+  equation label is correctly generated for polynomials or quasi-polynomials
+  through the origin. Model formulas can use \code{poly()} or be defined
+  algebraically with terms of powers of increasing magnitude with no missing
+  intermediate terms, except possibly for the intercept indicated by "- 1" or
+  "-1" or \code{"+ 0"} in the formula. The validity of the \code{formula} is
+  not checked in the current implementation, and for this reason the default
+  aesthetics sets \eqn{R^2} as label for the annotation. This statistic
+  generates labels as R expressions by default but LaTeX (use TikZ device),
+  markdown (use package 'ggtext') and plain text are also supported, as well
+  as numeric values for user-generated text labels. The value of \code{parse}
+  is set automatically based on \code{output-type}, but if you assemble
+  labels that need parsing from \code{numeric} output, the default needs to
+  be overridden. This stat only generates annotation labels, the predicted
+  values/line need to be added to the plot as a separate layer using
+  \code{\link{stat_poly_line}} (or \code{\link[ggplot2]{stat_smooth}}), if
+  the default formula is overriden with an argument, it is crucial to make
+  sure that the same model formula is used in all layers. In this case it is
+  best to save the formula as an object and supply this object as argument to
+  the different statistics.
 
   A ggplot statistic receives as \code{data} a data frame that is not the one
   passed as argument by the user, but instead a data frame with the variables
@@ -167,6 +178,25 @@ This statistic can be used to automatically annotate a plot with
   works, except that only polynomials can be fitted. Similarly to these
   statistics the model fits respect grouping, so the scales used for \code{x}
   and \code{y} should both be continuous scales rather than discrete.
+
+  With method \code{"lm"}, singularity results in terms being dropped with a
+  message if more numerous than can be fitted with a singular (exact) fit.
+  In this case or if the model results in a perfect fit due to a low
+  number of observations, estimates for various parameters are \code{NaN} or
+  \code{NA}. When this is the case the corresponding labels are set to
+  \code{character(0L)} and thus not visble in the plot.
+
+  With methods other than \code{"lm"}, the model fit functions simply fail
+  in case of singularity, e.g., singular fits are not implemented in
+  \code{"rlm"}.
+
+  In both cases the minimum number of observations with distinct values in
+  the explanatory variable can be set through parameter \code{n.min}. The
+  default \code{n.min = 2L} is the smallest suitable for method \code{"lm"}
+  but too small for method \code{"rlm"} for which \code{n.min = 3L} is
+  needed. Anyway, model fits with very few observations are of little
+  interest and using larger values of \code{n.min} than the default is
+  usually wise.
 }
 \note{
 For backward compatibility a logical is accepted as argument for
@@ -185,7 +215,7 @@ For backward compatibility a logical is accepted as argument for
 \section{IMPORTANT}{
  \code{stat_regline_equation()} in package 'ggpubr' is
   a renamed but almost unchanged copy of \code{stat_poly_eq()} taken from an
-  earlier version of this package (without acknowledgement of source and
+  oldr version of this package (without acknowledgement of source and
   authorship). \code{stat_regline_equation()} lacks important functionality
   and contains bugs that have been fixed in \code{stat_poly_eq()}.
 }
@@ -193,8 +223,8 @@ For backward compatibility a logical is accepted as argument for
 \section{Aesthetics}{
  \code{stat_poly_eq()} understands \code{x} and \code{y},
   to be referenced in the \code{formula} and \code{weight} passed as argument
-  to parameter \code{weights}. All three must be mapped to
-  \code{numeric} variables. In addition, the aesthetics understood by the geom
+  to parameter \code{weights}. All three must be mapped to \code{numeric}
+  variables. In addition, the aesthetics understood by the geom
   (\code{"text"} is the default) are understood and grouping respected.
 }
 
@@ -453,19 +483,27 @@ if (gginnards.installed)
 
 }
 \references{
-Written as an answer to question 7549694 at Stackoverflow.
+Originally written as an answer to question 7549694 at
+  Stackoverflow but enhanced based on suggestions from users and my own
+  needs.
 }
 \seealso{
-This \code{stat_poly_eq} statistic can return ready formatted labels
+This statistics fits a model with function \code{\link[stats]{lm}},
+  function \code{\link[MASS]{rlm}} or a user supplied function returning an
+  object of class \code{"lm"}. Consult the documentation of these functions
+  for the details and additional arguments that can be passed to them by name
+  through parameter \code{method.args}.
+
+  This \code{stat_poly_eq} statistic can return ready formatted labels
   depending on the argument passed to \code{output.type}. This is possible
-  because only polynomial models are supported. For quantile regression
-  \code{\link{stat_quant_eq}} should be used instead of \code{stat_poly_eq}
-  while for model II or major axis regression \code{\link{stat_ma_eq}} should
-  be used. For other types of models such as non-linear models, statistics
-  \code{\link{stat_fit_glance}} and \code{\link{stat_fit_tidy}} should be
-  used and the code for construction of character strings from
-  numeric values and their mapping to aesthetic \code{label} needs to be
-  explicitly supplied by the user.
+  because only polynomial and quasy-polynomial models are supported. For
+  quantile regression \code{\link{stat_quant_eq}} should be used instead of
+  \code{stat_poly_eq} while for model II or major axis regression
+  \code{\link{stat_ma_eq}} should be used. For other types of models such as
+  non-linear models, statistics \code{\link{stat_fit_glance}} and
+  \code{\link{stat_fit_tidy}} should be used and the code for construction of
+  character strings from numeric values and their mapping to aesthetic
+  \code{label} needs to be explicitly supplied by the user.
 
 Other ggplot statistics for linear and polynomial regression: 
 \code{\link{stat_poly_line}()}

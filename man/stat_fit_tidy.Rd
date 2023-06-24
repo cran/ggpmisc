@@ -10,6 +10,7 @@ stat_fit_tidy(
   geom = "text_npc",
   method = "lm",
   method.args = list(formula = y ~ x),
+  n.min = 2L,
   tidy.args = list(),
   label.x = "left",
   label.y = "top",
@@ -37,6 +38,9 @@ the plot defaults.}
 
 \item{method.args, tidy.args}{list of arguments to pass to \code{method},
 and to [generics::tidy], respectively.}
+
+\item{n.min}{integer Minimum number of distinct values in the explanatory
+variable (on the rhs of formula) for fitting to the attempted.}
 
 \item{label.x, label.y}{\code{numeric} with range 0..1 or character.
 Coordinates to be used for positioning the output, expressed in "normalized
@@ -183,7 +187,7 @@ if (requireNamespace("broom", quietly = TRUE)) {
 # Regression by panel example
 if (broom.installed)
   ggplot(mtcars, aes(x = disp, y = mpg)) +
-    stat_smooth(method = "lm") +
+    stat_smooth(method = "lm", formula = y ~ x) +
     geom_point(aes(colour = factor(cyl))) +
     stat_fit_tidy(method = "lm",
                   label.x = "right",
@@ -195,7 +199,7 @@ if (broom.installed)
 # Regression by group example
 if (broom.installed)
   ggplot(mtcars, aes(x = disp, y = mpg, colour = factor(cyl))) +
-    stat_smooth(method = "lm") +
+    stat_smooth(method = "lm", formula = y ~ x) +
     geom_point() +
     stat_fit_tidy(method = "lm",
                   label.x = "right",
@@ -207,7 +211,7 @@ if (broom.installed)
 # Weighted regression example
 if (broom.installed)
   ggplot(mtcars, aes(x = disp, y = mpg, weight = cyl)) +
-    stat_smooth(method = "lm") +
+    stat_smooth(method = "lm", formula = y ~ x) +
     geom_point(aes(colour = factor(cyl))) +
     stat_fit_tidy(method = "lm",
                   label.x = "right",
@@ -216,22 +220,10 @@ if (broom.installed)
                                                 after_stat(x_estimate),
                                                 after_stat(x_p.value))))
 
-# Correlation test
-if (broom.installed)
-  ggplot(mtcars, aes(x = disp, y = mpg)) +
-    stat_smooth(method = "lm") +
-    geom_point() +
-    stat_fit_tidy(method = "cor.test",
-                  label.y = "bottom",
-                  method.args = list(formula = ~ x + y),
-                  mapping = aes(label = sprintf("R = \%.3g\np-value = \%.3g",
-                                                after_stat(`_estimate`),
-                                                after_stat(`_p.value`))))
-
 # Quantile regression
 if (broom.installed)
   ggplot(mtcars, aes(x = disp, y = mpg)) +
-    stat_smooth(method = "lm") +
+    stat_smooth(method = "lm", formula = y ~ x) +
     geom_point() +
     stat_fit_tidy(method = "rq",
                   label.y = "bottom",

@@ -36,6 +36,8 @@
 #'   \code{data}, \code{range.y}, \code{range.x} and \code{nperm} and return a
 #'   model fit object of class \code{lmodel2}.
 #' @param method.args named list with additional arguments.
+#' @param n.min integer Minimum number of distinct values in the explanatory
+#'   variable (on the rhs of formula) for fitting to the attempted.
 #' @param nperm integer Number of permutation used to estimate significance.
 #' @param eq.with.lhs If \code{character} the string is pasted to the front of
 #'   the equation label before parsing or a \code{logical} (see note).
@@ -106,11 +108,22 @@
 #'   statistics the model fits respect grouping, so the scales used for \code{x}
 #'   and \code{y} should both be continuous scales rather than discrete.
 #'
+#'   The minimum number of observations with distinct values can be set through
+#'   parameter \code{n.min}. The default \code{n.min = 2L} is the smallest
+#'   possible value. However, model fits with very few observations are of
+#'   little interest and using a larger number for \code{n.min} than the default
+#'   is usually wise.
+#'
 #' @section Aesthetics: \code{stat_ma_eq} understands \code{x} and \code{y}, to
 #'   be referenced in the \code{formula} while the \code{weight} aesthetic is
 #'   ignored. Both \code{x} and \code{y} must be mapped to \code{numeric}
 #'   variables. In addition, the aesthetics understood by the geom
 #'   (\code{"text"} is the default) are understood and grouping respected.
+#'
+#' @return A data frame, with a single row and columns as described under
+#'   \strong{Computed variables}. In cases when the number of observations is
+#'   less than \code{n.min} a data frame with no rows or columns is returned
+#'   rendered as an empty/invisible plot layer.
 #'
 #' @section Computed variables:
 #' If output.type different from \code{"numeric"} the returned tibble contains
@@ -261,9 +274,10 @@ stat_ma_eq <- function(mapping = NULL, data = NULL,
                        geom = "text_npc",
                        position = "identity",
                        ...,
+                       formula = NULL,
                        method = "lmodel2:MA",
                        method.args = list(),
-                       formula = NULL,
+                       n.min = 2L,
                        range.y = NULL,
                        range.x = NULL,
                        nperm = 99,
@@ -320,6 +334,7 @@ stat_ma_eq <- function(mapping = NULL, data = NULL,
       rlang::list2(method = method,
                    method.args = method.args,
                    formula = formula,
+                   n.min = n.min,
                    range.y = range.y,
                    range.x = range.x,
                    nperm = nperm,
@@ -361,6 +376,7 @@ ma_eq_compute_group_fun <- function(data,
                                     method,
                                     method.args,
                                     formula,
+                                    n.min,
                                     range.y,
                                     range.x,
                                     nperm,
@@ -382,6 +398,11 @@ ma_eq_compute_group_fun <- function(data,
                                     na.rm,
                                     orientation) {
   force(data)
+
+  if (length(unique(data$x)) < n.min ||
+      length(unique(data$y)) < n.min) {
+    return(data.frame())
+  }
 
   # parse uses this option, but as for some labels or output types we do not use
   # parse() to avoid dropping of trailing zeros, we need to manage this in our
@@ -426,32 +447,27 @@ ma_eq_compute_group_fun <- function(data,
     grp.label <- as.character(data[["group"]][1])
   }
 
-  group.idx <- abs(data$group[1])
+  if (is.integer(data$group)) {
+    group.idx <- abs(data$group[1])
+  } else if (is.character(data$group) &&
+             grepl("^(-1|[0-9]+).*$", data$group[1])) {
+    # likely that 'gganimate' has set the groups for scenes
+    # we assume first characters give the original group
+    group.idx <- abs(as.numeric(gsub("^(-1|[0-9]+).*$", "\\1", data$group[1])))
+  } else {
+    group.idx <- NA_integer_
+  }
+
   if (length(label.x) >= group.idx) {
     label.x <- label.x[group.idx]
   } else if (length(label.x) > 0) {
     label.x <- label.x[1]
   }
+
   if (length(label.y) >= group.idx) {
     label.y <- label.y[group.idx]
   } else if (length(label.y) > 0) {
     label.y <- label.y[1]
-  }
-
-  if (orientation == "x") {
-    if (length(unique(data$x)) < 2) {
-      warning("Not enough data to perform fit for group ",
-              group.idx, "; computing mean instead.",
-              call. = FALSE)
-      formula = y ~ 1
-    }
-  } else if (orientation == "y") {
-    if (length(unique(data$y)) < 2) {
-      warning("Not enough data to perform fit for group ",
-              group.idx, "; computing mean instead.",
-              call. = FALSE)
-      formula = x ~ 1
-    }
   }
 
   # If method was specified as a character string, replace with
