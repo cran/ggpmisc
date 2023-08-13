@@ -139,6 +139,15 @@
 #'   \code{numeric} variables. In addition, the aesthetics understood by the
 #'   geom used (\code{"text"} by default) are understood and grouping respected.
 #'
+#'   \emph{If the model formula includes a transformation of \code{x}, a
+#'   matching argument should be passed to parameter \code{eq.x.rhs}
+#'   as its default value \code{"x"} will not reflect the applied
+#'   transformation. In plots, transformation should never be applied to the
+#'   left hand side of the model formula, but instead in the mapping of the
+#'   variable within \code{aes}, as otherwise plotted observations and fitted
+#'   curve will not match. In this case it may be necessary to also pass
+#'   a matching argument to parameter \code{eq.with.lhs}.}
+#'
 #' @return A data frame, with one row per quantile and columns as described
 #'   under \strong{Computed variables}. In cases when the number of observations
 #'   is less than \code{n.min} a data frame with no rows or columns is returned
@@ -258,15 +267,9 @@
 #' ggplot(my.data, aes(x, y)) +
 #'   geom_point() +
 #'   stat_quant_line(formula = formula, linewidth = 0.5) +
-#'   stat_quant_eq(formula = formula, angle = 90, hstep = 0.05, vstep = 0,
-#'                 label.y = 0.98, hjust = 1)
-#'
-#' ggplot(my.data, aes(x, y)) +
-#'   geom_point() +
-#'   stat_quant_line(formula = formula) +
-#'   stat_quant_eq(formula = formula, angle = 90,
-#'                 hstep = 0.05, vstep = 0, hjust = 0,
-#'                 label.y = 0.25)
+#'   stat_quant_eq(formula = formula, angle = 90, hstep = 0.04, vstep = 0,
+#'                 label.y = 0.02, hjust = 0) +
+#'   expand_limits(x = -15) # make space for equations
 #'
 #' # user set quantiles
 #' ggplot(my.data, aes(x, y)) +
@@ -302,6 +305,17 @@
 #'                 formula = formula) +
 #'   expand_limits(y = 3) +
 #'   theme_classic()
+#'
+#' # modifying the explanatory variable within the model formula
+#' # modifying the response variable within aes()
+#' formula.trans <- y ~ I(x^2)
+#' ggplot(my.data, aes(x, y + 1)) +
+#'   geom_point() +
+#'   stat_quant_line(formula = formula.trans) +
+#'   stat_quant_eq(use_label("eq"),
+#'                formula = formula.trans,
+#'                eq.x.rhs = "~x^2",
+#'                eq.with.lhs = "y + 1~~`=`~~")
 #'
 #' # using weights
 #' ggplot(my.data, aes(x, y, weight = w)) +
@@ -800,6 +814,8 @@ quant_eq_compute_group_fun <- function(data,
   z[["fm.formula.chr"]] <- format(formula.ls)
 
   # Compute label positions
+  # we need to use scale limits as observations are not necessarily plotted
+  x.range <- scales$x$range$range
   if (is.character(label.x)) {
     if (npc.used) {
       margin.npc <- 0.05
@@ -811,15 +827,12 @@ quant_eq_compute_group_fun <- function(data,
       ggpp::compute_npcx(x = label.x, group = group.idx, h.step = hstep,
                          margin.npc = margin.npc, each.len = num.quantiles)
     if (!npc.used) {
-      x.expanse <- abs(diff(range(data[["x"]])))
-      x.min <- min(data[["x"]])
-      label.x <- label.x * x.expanse + x.min
+      x.range <- scales$x$range$range
+      label.x <- label.x * diff(x.range) + x.range[1]
     }
   } else if (is.numeric(label.x) && length(label.x == 1L)) {
     if (!npc.used) {
-      x.expanse <- abs(diff(range(data[["x"]])))
-      x.min <- min(data[["x"]])
-      x <- (label.x - x.min) / x.expanse
+      x <- (label.x - x.range[1]) / diff(x.range)
     } else {
       x <- label.x
     }
@@ -836,12 +849,14 @@ quant_eq_compute_group_fun <- function(data,
     x <- ifelse(x > 1, 1, x)
     x <- ifelse(x < 0, 0, x)
     if (!npc.used) {
-      label.x <- x * x.expanse + x.min
+      label.x <- x * diff(x.range) + x.range[1]
     } else {
       label.x <- x
     }
   }
 
+  # we need to use scale limits as observations are not necessarily plotted
+  y.range <- scales$y$range$range
   if (is.character(label.y)) {
     rev.y.pos <- length(label.y) == 1L && label.y != "bottom"
     if (npc.used) {
@@ -854,16 +869,13 @@ quant_eq_compute_group_fun <- function(data,
       ggpp::compute_npcy(y = label.y, group = group.idx, v.step = vstep,
                          margin.npc = margin.npc, each.len = num.quantiles)
     if (!npc.used) {
-      y.expanse <- abs(diff(range(data[["y"]])))
-      y.min <- min(data[["y"]])
-      label.y <- label.y * y.expanse + y.min
+      label.y <- label.y * diff(y.range) + y.range[1]
     }
   } else if (is.numeric(label.y) && length(label.y == 1L)) {
     rev.y.pos <- length(label.y) == 1L && label.y >= 0.5
     if (!npc.used) {
-      y.expanse <- abs(diff(range(data[["y"]])))
-      y.min <- min(data[["y"]])
-      y <- (label.y - y.min) / y.expanse
+      y.range <- scales$y$range$range
+      y <- (label.y - y.range[1]) / diff(y.range)
     } else {
       y <- label.y
     }
@@ -880,7 +892,7 @@ quant_eq_compute_group_fun <- function(data,
     y <- ifelse(y > 1, 1, y)
     y <- ifelse(y < 0, 0, y)
     if (!npc.used) {
-      label.y <- y * y.expanse + y.min
+      label.y <- y * diff(y.range) + y.range[1]
     } else {
       label.y <- y
     }

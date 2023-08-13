@@ -120,6 +120,11 @@
 #'   variables. In addition, the aesthetics understood by the geom
 #'   (\code{"text"} is the default) are understood and grouping respected.
 #'
+#'   \emph{Transformation of \code{x} or \code{y} within the model formula
+#'   is not supported by \code{stat_ma_eq()}. In this case, transformations
+#'   should never be applied in the model formula, but instead in the mapping
+#'   of the variables within \code{aes}.}
+#'
 #' @return A data frame, with a single row and columns as described under
 #'   \strong{Computed variables}. In cases when the number of observations is
 #'   less than \code{n.min} a data frame with no rows or columns is returned
@@ -219,6 +224,14 @@
 #'   stat_ma_line(formula = x ~ y) +
 #'   stat_ma_eq(formula = x ~ y,
 #'              use_label(c("eq", "R2", "P")))
+#'
+#' # modifying both variables within aes()
+#' ggplot(my.data, aes(log(x + 10), log(y + 10))) +
+#'   geom_point() +
+#'   stat_poly_line() +
+#'   stat_poly_eq(use_label("eq"),
+#'                eq.x.rhs = "~~log(x+10)",
+#'                eq.with.lhs = "log(y+10)~~`=`~~")
 #'
 #' # grouping
 #' ggplot(my.data, aes(x, y, color = group)) +
@@ -720,9 +733,9 @@ ma_eq_compute_group_fun <- function(data,
     label.x <- ggpp::compute_npcx(x = label.x, group = group.idx, h.step = hstep,
                                   margin.npc = margin.npc)
     if (!npc.used) {
-      x.expanse <- abs(diff(range(data$x)))
-      x.min <- min(data$x)
-      label.x <- label.x * x.expanse + x.min
+      # we need to use scale limits as observations are not necessarily plotted
+      x.range <- scales$x$range$range
+      label.x <- label.x * diff(x.range) + x.range[1]
     }
   }
   if (is.character(label.y)) {
@@ -735,9 +748,9 @@ ma_eq_compute_group_fun <- function(data,
     label.y <- ggpp::compute_npcy(y = label.y, group = group.idx, v.step = vstep,
                                   margin.npc = margin.npc)
     if (!npc.used) {
-      y.expanse <- abs(diff(range(data$y)))
-      y.min <- min(data$y)
-      label.y <- label.y * y.expanse + y.min
+      # we need to use scale limits as observations are not necessarily plotted
+      y.range <- scales$y$range$range
+      label.y <- label.y * diff(y.range) + y.range[1]
     }
   }
 
