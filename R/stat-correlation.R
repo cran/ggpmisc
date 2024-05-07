@@ -43,7 +43,8 @@
 #'   the correlation coefficients and t-value, z-value or S-value (see note
 #'   below).
 #' @param r.digits,t.digits,p.digits integer Number of digits after the decimal
-#'   point to use for R, r.squared, tau or rho and P-value in labels.
+#'   point to use for R, r.squared, tau or rho and P-value in labels. If
+#'   \code{Inf}, use exponential notation with three decimal places.
 #' @param CI.brackets character vector of length 2. The opening and closing
 #'   brackets used for the CI label.
 #' @param label.x,label.y \code{numeric} with range 0..1 "normalized parent
@@ -489,22 +490,27 @@ cor_test_compute_fun <- function(data,
     z[["r.label"]] <- NA_character_
   } else {
     # warn if too narrow formats requested
-    stopifnot(r.digits > 0)
+    stopifnot("'r.digits' must be > 0" = r.digits > 0)
     if (r.digits < 2) {
       warning("'r.digits < 2' Likely information loss!")
     }
-    stopifnot(t.digits > 0)
+    stopifnot("'t.digits' must be > 0" = t.digits > 0)
     if (t.digits < 2) {
       warning("'t.digits < 2' Likely information loss!")
     }
-    stopifnot(p.digits > 0)
+    stopifnot("'p.digits' must be > 0" = p.digits > 0)
     if (p.digits < 2) {
       warning("'p.digits < 2' Likely information loss!")
     }
 
     # build the character strings
     if (output.type == "expression") {
-      p.value.char <- sprintf_dm("\"%#.*f\"", p.digits, z[["p.value"]], decimal.mark = decimal.mark)
+      if (p.digits == Inf) {
+          p.value.char <- sprintf_dm("%#.2e", z[["p.value"]], decimal.mark = decimal.mark)
+          p.value.char <- paste(gsub("e", " %*% 10^{", p.value.char), "}", sep = "")
+      } else {
+        p.value.char <- sprintf_dm("\"%#.*f\"", p.digits, z[["p.value"]], decimal.mark = decimal.mark)
+      }
       r <- z[[unname(c(pearson = "cor", kendall = "tau", spearman = "rho")[method])]]
       r.char <- sprintf_dm("\"%#.*f\"", r.digits, r, decimal.mark = decimal.mark)
       r.confint.chr <- paste(sprintf_dm("%#.*f",
@@ -521,14 +527,30 @@ cor_test_compute_fun <- function(data,
       if (method == "pearson") {
         rr.char <- sprintf_dm("\"%#.*f\"", r.digits, r^2, decimal.mark = decimal.mark)
         t.value.char <- sprintf_dm("\"%#.*g\"", t.digits, z[["t.value"]], decimal.mark = decimal.mark)
+        if (grepl("e", t.value.char)) {
+          t.value.char <- sprintf_dm("%#.*e", t.digits, z[["t.value"]], decimal.mark = decimal.mark)
+          t.value.char <- paste(gsub("e", " %*% 10^{", t.value.char), "}", sep = "")
+        }
         df.char <- as.character(z[["df"]])
       } else if (method == "kendall") {
         z.value.char <- sprintf_dm("\"%#.*g\"", t.digits, z[["z.value"]], decimal.mark = decimal.mark)
+        if (grepl("e", z.value.char)) {
+          z.value.char <- sprintf_dm("%#.*e", t.digits, z[["z.value"]], decimal.mark = decimal.mark)
+          z.value.char <- paste(gsub("e", " %*% 10^{", z.value.char), "}", sep = "")
+        }
       } else if (method == "spearman") {
         S.value.char <- sprintf_dm("\"%#.*g\"", t.digits, z[["S.value"]], decimal.mark = decimal.mark)
+        if (grepl("e", S.value.char)) {
+          S.value.char <- sprintf_dm("%#.*e", t.digits, z[["S.value"]], decimal.mark = decimal.mark)
+          S.value.char <- paste(gsub("e", " %*% 10^{", S.value.char), "}", sep = "")
+        }
       }
     } else {
-      p.value.char <- sprintf_dm("%#.*f", p.digits, z[["p.value"]], decimal.mark = decimal.mark)
+      if (p.digits == Inf) {
+        p.value.char <- sprintf_dm("%#.2e", z[["p.value"]], decimal.mark = decimal.mark)
+      } else {
+        p.value.char <- sprintf_dm("%#.*f", p.digits, z[["p.value"]], decimal.mark = decimal.mark)
+      }
       r <- z[[unname(c(pearson = "cor", kendall = "tau", spearman = "rho")[method])]]
       r.char <- sprintf_dm("%#.*f", r.digits, r, decimal.mark = decimal.mark)
       r.confint.chr <- paste(sprintf_dm("%#.*f",

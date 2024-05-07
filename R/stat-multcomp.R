@@ -1,9 +1,10 @@
-#' Labels for multiple comparisons
+#' Labels for pairwise multiple comparisons
 #'
 #' \code{stat_multcomp} fits a linear model by default with \code{stats::lm()}
 #' but alternatively using other model fit functions. The model is passed to
-#' function \code{glht()} from package 'multcomp' to fit Tukey or Dunnet
-#' contrasts and generates labels based on adjusted \emph{P}-values.
+#' function \code{glht()} from package 'multcomp' to fit Tukey, Dunnet or other
+#' \strong{pairwise} contrasts and generates labels based on adjusted
+#' \emph{P}-values.
 #'
 #' @param mapping The aesthetic mapping, usually constructed with
 #'   \code{\link[ggplot2]{aes}}. Only needs to be
@@ -33,41 +34,51 @@
 #'   formal parameters named \code{data}, \code{weights}, and \code{method}, and
 #'   return a model fit object accepted by function \code{glht()}.
 #' @param method.args named list with additional arguments.
-#' @param contrast.type character One of "Tukey" or "Dunnet".
-#' @param adjusted.type character As the argument for parameter \code{type} of
+#' @param contrasts character vector of length one or a numeric matrix. If
+#'    character, one of "Tukey" or "Dunnet". If a matrix, one column per level
+#'    of the factor mapped to \code{x} and one row per \strong{pairwise}
+#'    contrast.
+#' @param p.adjust.method character As the argument for parameter \code{type} of
 #'   function \code{adjusted()} passed as argument to parameter \code{test} of
 #'   \code{\link[multcomp]{summary.glht}}. Accepted values are "single-step",
 #'   "Shaffer", "Westfall", "free", "holm", "hochberg", "hommel", "bonferroni",
 #'   "BH", "BY", "fdr", "none".
 #' @param small.p logical If true, use of lower case \emph{p} instead of capital
 #'   \emph{P} as the symbol for \emph{P}-value in labels.
+#' @param adj.method.tag numeric, character or function If \code{numeric}, the
+#'   length in characters of the abbreviation of the method used to adjust
+#'   \emph{p}-values. A value of zero, adds no label and a negative value uses
+#'   as starting point for the abbreviation the word "adjusted". If
+#'   \code{character} its value is used as subscript. If a \code{function}, the
+#'   value used is the value returned by the function when passed
+#'   \code{p.adjust.method} as its only argument.
 #' @param p.digits integer Number of digits after the decimal point to
 #'   use for \eqn{R^2} and \emph{P}-value in labels.
 #' @param label.type character One of "bars", "letters" or "LETTERS", selects
 #'   how the results of the multiple comparisons are displayed. Only "bars" can
-#'   be used together with \code{contrast.type = "Dunnet"}.
-#' @param fm.cutoff.p.value numeric [0..1] The \emph{P}-value for the main effect of
-#'   factor \code{x} in the ANOVA test for the fitted model above which no
-#'   pairwise comparisons are computed or labels generated. Be aware that recent
-#'   literature tends to recommend to consider which testing approach is
-#'   relevant to the problem at hand instead of requiring the significance of
-#'   the main effect before applying multiple comparisons' tests. The default
-#'   value is 1, imposing no restrictions.
+#'   be used together with \code{contrasts = "Dunnet"}.
+#' @param fm.cutoff.p.value numeric [0..1] The \emph{P}-value for the main
+#'   effect of factor \code{x} in the ANOVA test for the fitted model above
+#'   which no pairwise comparisons are computed or labels generated. Be aware
+#'   that recent literature tends to recommend to consider which testing
+#'   approach is relevant to the problem at hand instead of requiring the
+#'   significance of the main effect before applying multiple comparisons'
+#'   tests. The default value is 1, imposing no restrictions.
 #' @param mc.cutoff.p.value numeric [0..1] The \emph{P}-value for the individual
 #'   contrasts above which no labelled bars are generated. Default is 1,
 #'   labelling all pairwise contrasts tested.
-#' @param mc.critical.p.value numeric The critical \emph{P}-value used for tests when
+#' @param mc.critical.p.value numeric The critical \emph{P}-value used for tests
 #'   when encoded as letters.
 #' @param label.y numeric vector Values in native data units or if
 #'   \code{character}, one of "top" or "bottom". Recycled if too short and
 #'   truncated if too long.
-#' @param vstep numeric in npc units, the horizontal displacement step-size
+#' @param vstep numeric in npc units, the vertical displacement step-size
 #'   used between labels for different contrasts when \code{label.type = "bars"}.
 #' @param output.type character One of "expression", "LaTeX", "text",
 #'   "markdown" or "numeric".
 #' @param orientation character Either "x" or "y" controlling the default for
-#'   \code{formula}. \strong{Support for \code{orientation} is not yet implemented but is
-#'   planned.}
+#'   \code{formula}. \strong{Support for \code{orientation} is not yet
+#'   implemented but is planned.}
 #' @param parse logical Passed to the geom. If \code{TRUE}, the labels will be
 #'   parsed into expressions and displayed as described in \code{?plotmath}.
 #'   Default is \code{TRUE} if \code{output.type = "expression"} and
@@ -78,23 +89,27 @@
 #'   for languages like Spanish or French.
 #'
 #' @details This statistic can be used to automatically annotate a plot with
-#'   \emph{P}-values for multiple comparison tests, based on Tukey contrasts
-#'   (all pairwise) or Dunnet contrasts (other levels against the first one).
-#'   See Meier (2022, Chapter 3) for an accessible explanation of multiple
-#'   comparisons and contrasts with package 'multcomp', of which
-#'   \code{stat_multcomp()} is mostly a wrapper.
+#'   \emph{P}-values for \strong{pairwise} multiple comparison tests, based on
+#'   Tukey contrasts (all pairwise), Dunnet contrasts (other levels against the
+#'   first one) or a subset of all possible pairwise contrasts. See Meier (2022,
+#'   Chapter 3) for an accessible explanation of multiple comparisons and
+#'   contrasts with package 'multcomp', of which \code{stat_multcomp()} is
+#'   mostly a wrapper.
 #'
 #'   The explanatory variable mapped to the \emph{x} aesthetic must be a factor
-#'   as this creates the required grouping. Currently, arbitrary contrasts are
-#'   not supported, mainly because they would be difficult to convert into plot
-#'   annotations.
+#'   as this creates the required grouping. Currently, contrasts that involve
+#'   more than two levels of a factor, such as the average of two treatment
+#'   levels against a control level are not supported, mainly because they
+#'   require a new geometry that I need to design, implement and add to package
+#'   'ggpp'.
 #'
 #'   Two ways of displaying the outcomes are implemented, and are selected by
 #'   `"bars"`, `"letters"` or `"LETTERS"` as argument to parameter
 #'   `label.type`. `"letters"` and `"LETTERS"` can be used only with Tukey
 #'   contrasts, as otherwise the encoding is ambiguous. As too many bars clutter
 #'   a plot, the maximum number of factor levels supported for `"bars"` together
-#'   with Tukey contrasts is five, and together with Dunnet contrasts, unlimited.
+#'   with Tukey contrasts is five, while together with Dunnet contrasts or
+#'   contrasts defined by a numeric matrix, no limit is imposed.
 #'
 #'   \code{stat_multcomp()} by default generates character labels ready to be
 #'   parsed as R expressions but LaTeX (use TikZ device), markdown (use package
@@ -204,20 +219,33 @@
 #' p1 +
 #'   stat_multcomp()
 #'
+#' p1 +
+#'   stat_multcomp(adj.method.tag = 0)
+#'
 #' # test against a control, with first level being the control
 #' # change order of factor levels in data to set the control group
 #' p1 +
-#'   stat_multcomp(contrast.type = "Dunnet")
+#'   stat_multcomp(contrasts = "Dunnet")
+#'
+#' # arbitrary pairwise contrasts, in arbitrary order
+#' p1 +
+#'   stat_multcomp(contrasts = rbind(c(0, 0, -1, 1),
+#'                                   c(0, -1, 1, 0),
+#'                                   c(-1, 1, 0, 0)))
 #'
 #' # different methods to adjust the contrasts
 #' p1 +
-#'   stat_multcomp(adjusted.type = "bonferroni")
+#'   stat_multcomp(p.adjust.method = "bonferroni")
 #'
 #' p1 +
-#'   stat_multcomp(adjusted.type = "holm")
+#'   stat_multcomp(p.adjust.method = "holm")
 #'
 #' p1 +
-#'   stat_multcomp(adjusted.type = "fdr")
+#'   stat_multcomp(p.adjust.method = "fdr")
+#'
+#' # no correction, useful only for comparison
+#' p1 +
+#'   stat_multcomp(p.adjust.method = "none")
 #'
 #' # sometimes we need to expand the plotting area
 #' p1 +
@@ -302,9 +330,10 @@ stat_multcomp <- function(mapping = NULL, data = NULL,
                           formula = NULL,
                           method = "lm",
                           method.args = list(),
-                          contrast.type = "Tukey",
-                          adjusted.type = "single-step",
+                          contrasts = "Tukey",
+                          p.adjust.method = NULL,
                           small.p = FALSE,
+                          adj.method.tag = 4,
                           p.digits = 3,
                           label.type = "bars",
                           fm.cutoff.p.value = 1,
@@ -314,11 +343,18 @@ stat_multcomp <- function(mapping = NULL, data = NULL,
                           vstep = NULL,
                           output.type = NULL,
                           na.rm = FALSE,
-                          orientation = NA,
+                          orientation = "x",
                           parse = NULL,
                           show.legend = FALSE,
                           inherit.aes = TRUE) {
-  stopifnot(contrast.type %in% c("Tukey", "Dunnet"))
+  stopifnot("Flipping with 'orientation = y' is not supported" = orientation == "x")
+  if (is.character(contrasts)) {
+    stopifnot("Character argument to 'contrasts' should be \"Tukey\" or \"Dunnet\"" =
+                all(contrasts %in% c("Tukey", "Dunnet")))
+  } else if (is.null(p.adjust.method)) {
+    # same default as p.adjust()
+    p.adjust.method <- "holm"
+  }
   force(geom)
   # dynamic defaults
   if (is.null(geom)) {
@@ -332,29 +368,13 @@ stat_multcomp <- function(mapping = NULL, data = NULL,
   }
 
   if (label.type %in% c("letters", "LETTERS") &&
-      contrast.type != "Tukey") {
+      any(contrasts != "Tukey")) {
     stop("'letters' labels are supported only with \"Tukey\" contrasts.")
   }
 
   if (grepl("_npc", geom)) {
     geom <- gsub("_npc", "", geom)
     warning("\"npc\"-based geometries not supported, using\"", geom, "\" instead.")
-  }
-
-  if (label.type == "bars") {
-    if (is.null(vstep)) {
-      vstep <- 0.12
-    }
-    if (is.null(label.y)) {
-      label.y <- "top"
-    }
-  } else if (label.type %in% c("letters", "LETTERS", "numeric")) {
-    if (is.null(vstep)) {
-      vstep <- 0
-    }
-    if (is.null(label.y)) {
-      label.y <- "bottom"
-    }
   }
 
   if (is.null(output.type)) {
@@ -381,9 +401,10 @@ stat_multcomp <- function(mapping = NULL, data = NULL,
       rlang::list2(formula = formula,
                    method = method,
                    method.args = method.args,
-                   contrast.type = contrast.type,
-                   adjusted.type = adjusted.type,
+                   contrasts = contrasts,
+                   p.adjust.method = p.adjust.method,
                    small.p = small.p,
+                   adj.method.tag = adj.method.tag,
                    p.digits = p.digits,
                    label.type = label.type,
                    label.y = label.y,
@@ -411,11 +432,12 @@ multcomp_compute_fun <-
            scales,
            method,
            method.args,
-           contrast.type,
-           adjusted.type,
+           contrasts,
+           p.adjust.method,
            formula,
            weight,
            small.p,
+           adj.method.tag,
            p.digits,
            label.type,
            fm.cutoff.p.value,
@@ -462,11 +484,30 @@ multcomp_compute_fun <-
     }
 
     num.levels <- length(unique(data[[orientation]]))
-    if ((contrast.type == "Tukey" && num.levels > 5 && label.type == "bars")) {
-      warning("Maximum number of factor levels supported with Tukey contrasts and bars is five. ",
-           "Resetting to 'label.type = \"letters\"'.")
-      label.type <- "letters"
+    if (length(contrasts) == 1 &&
+            (contrasts == "Tukey" && num.levels > 5 && label.type == "bars")) {
+      warning("Tukey contrasts with bars support at most five groups, not ",
+              num.levels, ". Skipping test")
+      return(data.frame())
     }
+
+    # default position of labels has to be set after label.type is known
+    if (label.type == "bars") {
+      if (is.null(vstep)) {
+        vstep <- 0.125
+      }
+      if (is.null(label.y)) {
+        label.y <- "top"
+      }
+    } else if (label.type %in% c("letters", "LETTERS", "numeric")) {
+      if (is.null(vstep)) {
+        vstep <- 0
+      }
+      if (is.null(label.y)) {
+        label.y <- "bottom"
+      }
+    }
+
     if (nrow(data) < 2 * num.levels) {
       stop("Too few observations per factor level. ",
            "Did you map to ", orientation, " a continuous variable instead of a factor?")
@@ -572,42 +613,101 @@ multcomp_compute_fun <-
       warning(sprintf("P-value for main effect = %.3f > cutoff = %.3f, skipping tests!",
                       p.value, fm.cutoff.p.value))
       return(data.frame())
+    } else if (any(is.na(fm[["coefficients"]][-1]))) {
+      warning("Problem with model fitting: NAs returned, skipping tests!")
+      return(data.frame())
     }
 
     n <- length(residuals(fm))
 
-    if (contrast.type == "Tukey") {
-      x.left.tip <- switch(num.levels,
-                           NA_real_,
-                           1,
-                           c(1, 1, 2),
-                           c(1, 1, 1, 2, 2, 3),
-                           c(1, 1, 1, 1, 2, 2, 2, 3, 3, 4)
-      )
-      x.right.tip <- switch(num.levels,
-                            NA_real_,
-                            2,
-                            c(2, 3, 3),
-                            c(2, 3, 4, 3, 4, 4),
-                            c(2, 3, 4, 5, 3, 4, 5, 4, 5, 5)
-      )
-    } else if (contrast.type == "Dunnet") {
-      x.left.tip <- rep(1, num.levels - 1)
-      x.right.tip <- 2:num.levels
+    if (is.numeric(contrasts)) {
+      if (is.vector(contrasts)) {
+        contrasts <- matrix(contrasts, nrow = 1)
+      }
+      x.left.tip <- x.right.tip <- numeric(nrow(contrasts))
+      for (i in 1:nrow(contrasts)) {
+        x.tips <- which(contrasts[i, ] != 0)
+        if (length(x.tips) != 2) {
+          stop("Only pairwise contrasts are currently supported.")
+        }
+        x.left.tip[i] <- x.tips[1]
+        x.right.tip[i] <- x.tips[2]
+      }
+    } else if (is.character(contrasts)) {
+      if (contrasts == "Tukey") {
+        x.left.tip <- switch(num.levels,
+                             NA_real_,
+                             1,
+                             c(1, 1, 2),
+                             c(1, 1, 1, 2, 2, 3),
+                             c(1, 1, 1, 1, 2, 2, 2, 3, 3, 4)
+        )
+        x.right.tip <- switch(num.levels,
+                              NA_real_,
+                              2,
+                              c(2, 3, 3),
+                              c(2, 3, 4, 3, 4, 4),
+                              c(2, 3, 4, 5, 3, 4, 5, 4, 5, 5)
+        )
+      } else if (contrasts == "Dunnet") {
+        x.left.tip <- rep(1, num.levels - 1)
+        x.right.tip <- 2:num.levels
+      }
     }
 
     # multiple comparisons test
+    if (inherits(contrasts, "mcp")) {
+      linfct.arg <- contrasts
+      contrasts <- "mcp object"
+    } else {
+      linfct.arg <- multcomp::mcp(`factor(x)` = contrasts)
+    }
     fm.glht <-
       multcomp::glht(model = fm,
-                     linfct = multcomp::mcp(`factor(x)` = contrast.type),
+                     linfct = linfct.arg,
                      rhs = 0)
-    summary.fm.glht <-
-      summary(fm.glht, test = multcomp::adjusted(type = adjusted.type))
+    if (is.null(p.adjust.method)) {
+      # we increase maxpts based on the number of levels to ensure convergence
+      # in mvtnorm::pmvnorm
+      summary.fm.glht <-
+        summary(fm.glht, test = multcomp::adjusted(maxpts = 4e4 * num.levels))
+      # needed for labels
+      if (contrasts == "Tukey") {
+        p.adjust.method <- "HSD"
+      } else if (contrasts == "Dunnet"){
+        p.adjust.method <- "Dunnet"
+      } else {
+        p.adjust.method <- "default"
+      }
+    } else {
+      summary.fm.glht <-
+        summary(fm.glht, test = multcomp::adjusted(type = p.adjust.method))
+    }
 
     pairwise.p.values <- summary.fm.glht[["test"]][["pvalues"]]
     pairwise.coefficients <- summary.fm.glht[["test"]][["coefficients"]]
     pairwise.tstat <- summary.fm.glht[["test"]][["tstat"]]
     pairwise.contrasts <- gsub(" ", "", names(pairwise.coefficients))
+
+    adj.method.legend <- TRUE
+    if (is.character(adj.method.tag)) {
+      adj.label <- adj.method.tag[1]
+    } else if (is.function(adj.method.tag)) {
+      adj.label <- adj.method.tag(p.adjust.method)
+    } else if (adj.method.tag < 0) {
+      adj.label <- abbreviate("adjusted", -adj.method.tag)
+    } else if (adj.method.tag > 0) {
+      if (p.adjust.method == "none") {
+        adj.label <- "t"
+      } else {
+        adj.label <- abbreviate(gsub("-", " ", p.adjust.method, fixed=TRUE),
+                                adj.method.tag)
+      }
+    } else {
+      adj.label <- character()
+      # only "LETTERS" and "letters" generate legends, not "bars"
+      adj.method.legend <- FALSE
+    }
 
     if (label.type %in% c("bars")) {
       # Labelled bar representation of multiple contrast results.
@@ -627,9 +727,10 @@ multcomp_compute_fun <-
                           fm.class = fm.class[1],
                           fm.formula = formula.ls,
                           fm.formula.chr = format(formula.ls),
-                          mc.adjusted = adjusted.type,
-                          mc.contrast = contrast.type,
-                          n = n)
+                          mc.adjusted = p.adjust.method,
+                          mc.contrast = contrasts,
+                          n = n,
+                          just = "center")
 
       # Drop unwanted labels
       z <- z[z[["p.value"]] <= mc.cutoff.p.value, ]
@@ -645,12 +746,21 @@ multcomp_compute_fun <-
       }
 
       if (output.type == "expression") {
-        p.value.char <- sprintf_dm("\"%#.*f\"", p.digits, z[["p.value"]], decimal.mark = decimal.mark)
+        if (p.digits == Inf) {
+          p.value.char <- sprintf_dm("%#.2e", z[["p.value"]], decimal.mark = decimal.mark)
+          p.value.char <- paste(gsub("e", " %*% 10^{", p.value.char), "}", sep = "")
+        } else {
+          p.value.char <- sprintf_dm("\"%#.*f\"", p.digits, z[["p.value"]], decimal.mark = decimal.mark)
+        }
         stars.char <- paste("\"", stars_pval(z[["p.value"]]), "\"", sep = "")
         coefficients.char <- sprintf_dm("\"%#.*g\"", 3L, z[["coefficients"]], decimal.mark = decimal.mark)
         tstat.char <- sprintf_dm("\"%#.*g\"", 3L, z[["tstat"]], decimal.mark = decimal.mark)
       } else {
-        p.value.char <- sprintf_dm("%#.*f", p.digits, z[["p.value"]], decimal.mark = decimal.mark)
+        if (p.digits == Inf) {
+          p.value.char <- sprintf_dm("%#.2e", z[["p.value"]], decimal.mark = decimal.mark)
+        } else {
+          p.value.char <- sprintf_dm("%#.*f", p.digits, z[["p.value"]], decimal.mark = decimal.mark)
+        }
         stars.char <- stars_pval(z[["p.value"]])
         coefficients.char <- sprintf_dm("%#.*g", 3L, z[["coefficients"]], decimal.mark = decimal.mark)
         tstat.char <- sprintf_dm("%#.*g", 3L, z[["tstat"]], decimal.mark = decimal.mark)
@@ -667,7 +777,8 @@ multcomp_compute_fun <-
         for (i in seq_along(z[["p.value"]])) {
           z[["p.value.label"]][i] <-
             ifelse(is.na(z[["p.value"]][i]) || is.nan(z[["p.value"]][i]), "",
-                   paste(ifelse(small.p, "italic(p)",  "italic(P)"),
+                   paste(paste(ifelse(small.p, "italic(p)[\"",  "italic(P)[\""),
+                               adj.label, "\"]", sep = ""),
                          ifelse(z[["p.value"]][i] < 10^(-p.digits),
                                 sprintf_dm("\"%.*f\"", p.digits, 10^(-p.digits), decimal.mark = decimal.mark),
                                 p.value.char[i]),
@@ -675,6 +786,8 @@ multcomp_compute_fun <-
                                       "~`<`~",
                                       "~`=`~")))
         }
+        # remove empty subscripts
+        z[["p.value.label"]] <- gsub("\\[\"\"\\]", "", z[["p.value.label"]])
         z[["delta.label"]] <- paste("Delta~`=`~", coefficients.char, sep = "")
         z[["t.value.label"]] <- paste("italic(t)~`=`~", tstat.char, sep = "")
       } else if (output.type %in% c("latex", "tex", "text", "tikz")) {
@@ -716,24 +829,43 @@ multcomp_compute_fun <-
       # or geom_label()
       #
       names(pairwise.p.values) <- pairwise.contrasts
-      letters <-
+      Letters <-
         multcompView::multcompLetters(x = pairwise.p.values,
                                       threshold = mc.critical.p.value,
                                       Letters = get(label.type),
                                       reversed = TRUE)[["Letters"]]
-
-      z <- tibble::tibble(x = 1:num.levels,
-                          x.left.tip = NA_real_,
-                          x.right.tip = NA_real_,
-                          critical.p.value = mc.critical.p.value,
-                          fm.method = method.name,
-                          fm.class = fm.class,
-                          fm.formula = formula.ls,
-                          fm.formula.chr = format(formula.ls),
-                          mc.adjusted = adjusted.type,
-                          mc.contrast = contrast.type,
-                          n = n,
-                          letters.label = letters[order(names(letters))])
+      if (adj.method.legend) {
+        p.crit.label <- paste("\"  \"*italic(P)[\"", adj.label, "\"]^{\"crit\"}~`=`~",
+                              mc.critical.p.value, sep = "")
+        z <- tibble::tibble(x = c(0.1, 1:num.levels),
+                            x.left.tip = NA_real_,
+                            x.right.tip = NA_real_,
+                            critical.p.value = mc.critical.p.value,
+                            fm.method = method.name,
+                            fm.class = fm.class,
+                            fm.formula = formula.ls,
+                            fm.formula.chr = format(formula.ls),
+                            mc.adjusted = p.adjust.method,
+                            mc.contrast = contrasts,
+                            n = n,
+                            letters.label = c(p.crit.label ,
+                                              Letters[order(as.numeric(names(Letters)))]),
+                            just = c("inward", rep("center", length(Letters))))
+      } else {
+        z <- tibble::tibble(x = 1:num.levels,
+                            x.left.tip = NA_real_,
+                            x.right.tip = NA_real_,
+                            critical.p.value = mc.critical.p.value,
+                            fm.method = method.name,
+                            fm.class = fm.class,
+                            fm.formula = formula.ls,
+                            fm.formula.chr = format(formula.ls),
+                            mc.adjusted = p.adjust.method,
+                            mc.contrast = contrasts,
+                            n = n,
+                            letters.label = Letters[order(as.numeric(names(Letters)))],
+                            just = rep("center", length(Letters)))
+      }
 
       if (output.type == "numeric") {
         z[["default.label"]] <- NA_character_
@@ -766,7 +898,8 @@ multcomp_compute_fun <-
     } else if (is.numeric(label.y)) {
       # manual locations
       if (label.type == "bars" && length(label.y) == 1) {
-        z[["y"]] <- label.y + (y.range[2] - y.range[1]) * vstep * (seq_along(z[["x"]]) - 1) * sign(label.y - 0.5 * (y.range[2] + y.range[1]))
+        z[["y"]] <- label.y + (y.range[2] - y.range[1]) * vstep *
+          (seq_along(z[["x"]]) - 1) * sign(label.y - 0.5 * (y.range[2] + y.range[1]))
       } else {
         z[["y"]] <- rep_len(label.y, nrow(z))
       }
@@ -786,7 +919,9 @@ StatMultcomp <-
                    default_aes = ggplot2::aes(xmin = after_stat(x.left.tip),
                                               xmax = after_stat(x.right.tip),
                                               label = after_stat(default.label),
-                                              weight = 1),
+                                              weight = 1,
+                                              size = 2.5,
+                                              hjust = after_stat(just)),
                    dropped_aes = "weight",
                    required_aes = c("x", "y"),
   )

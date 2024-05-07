@@ -1,8 +1,8 @@
 Package: ggpmisc
 Type: Package
 Title: Miscellaneous Extensions to 'ggplot2'
-Version: 0.5.5
-Date: 2023-11-14
+Version: 0.5.6
+Date: 2024-05-07
 Authors@R: 
     c(
     person("Pedro J.", "Aphalo", email = "pedro.aphalo@helsinki.fi", role = c("aut", "cre"), comment = c(ORCID = "0000-0003-3385-972X")),
@@ -22,26 +22,26 @@ Description: Extensions to 'ggplot2' respecting the grammar of graphics
 License: GPL (>= 2)
 LazyLoad: TRUE
 ByteCompile: TRUE
-Depends: R (>= 4.0.0), ggpp (>= 0.5.5)
-Imports: grid, stats, ggplot2 (>= 3.4.0), scales (>= 1.2.0), rlang (>=
-        1.0.0), generics (>= 0.1.2), MASS (>= 7.3-51.6), confintr (>=
-        0.1.2), polynom (>= 1.4-0), quantreg (>= 5.93), lmodel2 (>=
-        1.7-3), splus2R (>= 1.3-3), multcomp (>= 1.4-25), multcompView
-        (>= 0.1-9), tibble (>= 3.1.5), plyr (>= 1.8.6), dplyr (>=
-        1.0.6), lubridate (>= 1.7.10)
-Suggests: knitr (>= 1.39), rmarkdown (>= 2.14), ggrepel (>= 0.9.2),
-        broom (>= 0.8.0), broom.mixed (>= 0.2.9.4), nlme (>= 3.1-152),
+Depends: R (>= 4.0.0), ggpp (>= 0.5.7)
+Imports: grid, stats, ggplot2 (>= 3.5.0), scales (>= 1.3.0), rlang (>=
+        1.1.3), generics (>= 0.1.3), MASS (>= 7.3-60.0.1), confintr (>=
+        1.0.2), polynom (>= 1.4-1), quantreg (>= 5.97), lmodel2 (>=
+        1.7-3), splus2R (>= 1.3-5), multcomp (>= 1.4-25), multcompView
+        (>= 0.1-10), tibble (>= 3.2.1), plyr (>= 1.8.9), dplyr (>=
+        1.1.4), lubridate (>= 1.9.3)
+Suggests: knitr (>= 1.45), rmarkdown (>= 2.25), ggrepel (>= 0.9.5),
+        broom (>= 1.0.3), broom.mixed (>= 0.2.9.5), nlme (>= 3.1-160),
         gginnards (>= 0.1.0-1), testthat, vdiffr
 URL: https://docs.r4photobiology.info/ggpmisc/,
         https://github.com/aphalo/ggpmisc
 BugReports: https://github.com/aphalo/ggpmisc/issues
 Encoding: UTF-8
-RoxygenNote: 7.2.3
+RoxygenNote: 7.3.1
 VignetteBuilder: knitr
 NeedsCompilation: no
-Packaged: 2023-11-14 23:32:24 UTC; aphalo
+Packaged: 2024-05-07 17:32:30 UTC; aphalo
 Author: Pedro J. Aphalo [aut, cre] (<https://orcid.org/0000-0003-3385-972X>),
   Kamil Slowikowski [ctb] (<https://orcid.org/0000-0002-2843-6370>),
   Samer Mouksassi [ctb] (<https://orcid.org/0000-0002-7152-6654>)
 Repository: CRAN
-Date/Publication: 2023-11-15 09:30:02 UTC
+Date/Publication: 2024-05-07 19:20:02 UTC

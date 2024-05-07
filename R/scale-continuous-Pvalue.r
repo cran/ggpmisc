@@ -4,8 +4,8 @@
 #' transcriptomics and metabolomics data.
 #'
 #' @param name The name of the scale without units, used for the axis-label.
-#' @param trans Either the name of a transformation object, or the object itself. Use
-#'   NULL for the default.
+#' @param transform Either the name of a transformation object, or the object
+#'   itself. Use NULL for the default.
 #' @param breaks The positions of ticks or a function to generate them. Default
 #'   varies depending on argument passed to \code{log.base.labels}.
 #' @param labels The tick labels or a function to generate them from the tick
@@ -50,7 +50,7 @@
 #'
 scale_y_Pvalue <- function(...,
                            name = expression(italic(P)-plain(value)),
-                           trans = NULL,
+                           transform = NULL,
                            breaks = NULL,
                            labels = NULL,
                            limits = c(1, 1e-20),
@@ -63,7 +63,7 @@ scale_y_Pvalue <- function(...,
 
   ggplot2::scale_y_continuous(...,
                               name = name,
-                              trans = if (is.null(trans)) reverselog_trans(10) else trans,
+                              transform = if (is.null(transform)) reverselog_trans(10) else transform,
                               breaks = if (is.null(breaks)) default.breaks else breaks,
                               labels = if (is.null(labels)) default.labels else labels,
                               limits = if (is.null(limits)) c(1, 1e-10) else limits, # axis is reversed!
@@ -78,7 +78,7 @@ scale_y_Pvalue <- function(...,
 #'
 scale_y_FDR <- function(...,
                         name = "False discovery rate",
-                        trans = NULL,
+                        transform = NULL,
                         breaks = NULL,
                         labels = NULL,
                         limits = c(1, 1e-10),
@@ -86,7 +86,7 @@ scale_y_FDR <- function(...,
                         expand = NULL) {
   scale_y_Pvalue(...,
                  name = name,
-                 trans = trans,
+                 transform = transform,
                  breaks = breaks,
                  labels = labels,
                  limits = limits,
@@ -100,7 +100,7 @@ scale_y_FDR <- function(...,
 #'
 scale_x_Pvalue <- function(...,
                            name = expression(italic(P)-plain(value)),
-                           trans = NULL,
+                           transform = NULL,
                            breaks = NULL,
                            labels = NULL,
                            limits = c(1, 1e-20),
@@ -113,7 +113,7 @@ scale_x_Pvalue <- function(...,
 
   ggplot2::scale_x_continuous(...,
                               name = name,
-                              trans = if (is.null(trans)) reverselog_trans(10) else trans,
+                              transform = if (is.null(transform)) reverselog_trans(10) else transform,
                               breaks = if (is.null(breaks)) default.breaks else breaks,
                               labels = if (is.null(labels)) default.labels else labels,
                               limits = if (is.null(limits)) c(1, 1e-10) else limits, # axis is reversed!
@@ -128,7 +128,7 @@ scale_x_Pvalue <- function(...,
 #'
 scale_x_FDR <- function(...,
                         name = "False discovery rate",
-                        trans = NULL,
+                        transform = NULL,
                         breaks = NULL,
                         labels = NULL,
                         limits = c(1, 1e-10),
@@ -136,7 +136,7 @@ scale_x_FDR <- function(...,
                         expand = NULL) {
   scale_x_Pvalue(...,
                  name = name,
-                 trans = trans,
+                 transform = transform,
                  breaks = breaks,
                  labels = labels,
                  limits = limits,
@@ -153,9 +153,9 @@ scale_x_FDR <- function(...,
 #' define transformation needed for P-value tick labels
 #'
 reverselog_trans <- function(base = exp(1)) {
-  trans <- function(x) -log(x, base)
+  transform <- function(x) -log(x, base)
   inv <- function(x) base^(-x)
-  scales::trans_new(paste0("reverselog-", format(base)), trans, inv,
+  scales::trans_new(paste0("reverselog-", format(base)), transform, inv,
                     scales::log_breaks(base = base),
                     domain = c(1e-100, Inf))
 }

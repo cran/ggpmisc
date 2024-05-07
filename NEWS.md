@@ -4,13 +4,26 @@ editor_options:
     wrap: 72
 ---
 
+# ggpmisc 0.5.6
+
+-   Rename parameter `trans` of `scale_y_Pvalue()` into `transform` to track deprecation in 'ggplot2' 3.5.0.
+-   Revise `stat_multcomp()` to flexibly include in labels, both when using "bars" and "letters", the abbreviated name of the method used to adjust _P_-values (suggested by _markbneal_, Mark Neal).
+-   Revise `stat_multcomp()` to flexibly include only when using "letters" an additional label with the critical _P_-value and the method used to adjust the empirical _P_-values (suggested by _markbneal_, Mark Neal).
+-   Revise `stat_multcomp()` to support arbitrary sets of pairwise contrasts.
+-   Rename parameters  of `stat_multcomp()`: `adjusted.type` to `p.adjust.method`, and `constrast.type` to `contrasts`.
+-   Change defaults used for `p.adjust.method` so that they depend on the argument passed to `contrasts`.
+-   Accept in `stat_correlation()`, `stat_poly_eq()`, `stat_ma_eq()`, and `stat_multcomp()`, `p.digits = Inf` as a request to use scientific notation for `p.value.label` (suggested by _wbvguo_, Wenbin Guo).
+-   Fix bug in `stat_multcomp()`: **wrongly encoded letters** in Tukey contrasts in case of grouping factors with more than nine levels.
+-   Fix bug in `stat_multcomp()`: **warning** issued by `mvtnorm::pmvnorm()` because of convergence failure in Tukey contrasts in case of grouping factors with more than approximately 5 to 7 levels. Convergence failure also meant slightly different _P_-values returned in different runs in these cases.
+-   Fix bug in `stat_multcomp()`: off-plot letter labels with Tukey contrasts in some plots with more than five groups.
+
 # ggpmisc 0.5.5
 
 -   Fix decoding of `orientation` from formula to allow function calls on the
 rhs of formulas, e.g., `I(y - 10) ~ x` or `I(x - 10) ~ y`.
 -   Export function `find_peaks()` which was previously internal. 
 -   Move transcriptomics example data objects to package 'ggpp'.
--   Fix scrambled table in the vignette (reported by _markbneal_).
+-   Fix scrambled table in the vignette (reported by _markbneal_, Mark Neal).
 
 # ggpmisc 0.5.4
 

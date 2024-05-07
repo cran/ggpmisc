@@ -2,7 +2,7 @@
 % Please edit documentation in R/stat-multcomp.R
 \name{stat_multcomp}
 \alias{stat_multcomp}
-\title{Labels for multiple comparisons}
+\title{Labels for pairwise multiple comparisons}
 \usage{
 stat_multcomp(
   mapping = NULL,
@@ -13,9 +13,10 @@ stat_multcomp(
   formula = NULL,
   method = "lm",
   method.args = list(),
-  contrast.type = "Tukey",
-  adjusted.type = "single-step",
+  contrasts = "Tukey",
+  p.adjust.method = NULL,
   small.p = FALSE,
+  adj.method.tag = 4,
   p.digits = 3,
   label.type = "bars",
   fm.cutoff.p.value = 1,
@@ -25,7 +26,7 @@ stat_multcomp(
   vstep = NULL,
   output.type = NULL,
   na.rm = FALSE,
-  orientation = NA,
+  orientation = "x",
   parse = NULL,
   show.legend = FALSE,
   inherit.aes = TRUE
@@ -61,9 +62,12 @@ return a model fit object accepted by function \code{glht()}.}
 
 \item{method.args}{named list with additional arguments.}
 
-\item{contrast.type}{character One of "Tukey" or "Dunnet".}
+\item{contrasts}{character vector of length one or a numeric matrix. If
+character, one of "Tukey" or "Dunnet". If a matrix, one column per level
+of the factor mapped to \code{x} and one row per \strong{pairwise}
+contrast.}
 
-\item{adjusted.type}{character As the argument for parameter \code{type} of
+\item{p.adjust.method}{character As the argument for parameter \code{type} of
 function \code{adjusted()} passed as argument to parameter \code{test} of
 \code{\link[multcomp]{summary.glht}}. Accepted values are "single-step",
 "Shaffer", "Westfall", "free", "holm", "hochberg", "hommel", "bonferroni",
@@ -72,33 +76,41 @@ function \code{adjusted()} passed as argument to parameter \code{test} of
 \item{small.p}{logical If true, use of lower case \emph{p} instead of capital
 \emph{P} as the symbol for \emph{P}-value in labels.}
 
+\item{adj.method.tag}{numeric, character or function If \code{numeric}, the
+length in characters of the abbreviation of the method used to adjust
+\emph{p}-values. A value of zero, adds no label and a negative value uses
+as starting point for the abbreviation the word "adjusted". If
+\code{character} its value is used as subscript. If a \code{function}, the
+value used is the value returned by the function when passed
+\code{p.adjust.method} as its only argument.}
+
 \item{p.digits}{integer Number of digits after the decimal point to
 use for \eqn{R^2} and \emph{P}-value in labels.}
 
 \item{label.type}{character One of "bars", "letters" or "LETTERS", selects
 how the results of the multiple comparisons are displayed. Only "bars" can
-be used together with \code{contrast.type = "Dunnet"}.}
+be used together with \code{contrasts = "Dunnet"}.}
 
-\item{fm.cutoff.p.value}{numeric [0..1] The \emph{P}-value for the main effect of
-factor \code{x} in the ANOVA test for the fitted model above which no
-pairwise comparisons are computed or labels generated. Be aware that recent
-literature tends to recommend to consider which testing approach is
-relevant to the problem at hand instead of requiring the significance of
-the main effect before applying multiple comparisons' tests. The default
-value is 1, imposing no restrictions.}
+\item{fm.cutoff.p.value}{numeric [0..1] The \emph{P}-value for the main
+effect of factor \code{x} in the ANOVA test for the fitted model above
+which no pairwise comparisons are computed or labels generated. Be aware
+that recent literature tends to recommend to consider which testing
+approach is relevant to the problem at hand instead of requiring the
+significance of the main effect before applying multiple comparisons'
+tests. The default value is 1, imposing no restrictions.}
 
 \item{mc.cutoff.p.value}{numeric [0..1] The \emph{P}-value for the individual
 contrasts above which no labelled bars are generated. Default is 1,
 labelling all pairwise contrasts tested.}
 
-\item{mc.critical.p.value}{numeric The critical \emph{P}-value used for tests when
+\item{mc.critical.p.value}{numeric The critical \emph{P}-value used for tests
 when encoded as letters.}
 
 \item{label.y}{numeric vector Values in native data units or if
 \code{character}, one of "top" or "bottom". Recycled if too short and
 truncated if too long.}
 
-\item{vstep}{numeric in npc units, the horizontal displacement step-size
+\item{vstep}{numeric in npc units, the vertical displacement step-size
 used between labels for different contrasts when \code{label.type = "bars"}.}
 
 \item{output.type}{character One of "expression", "LaTeX", "text",
@@ -108,8 +120,8 @@ used between labels for different contrasts when \code{label.type = "bars"}.}
 the computation proceeds.}
 
 \item{orientation}{character Either "x" or "y" controlling the default for
-\code{formula}. \strong{Support for \code{orientation} is not yet implemented but is
-planned.}}
+\code{formula}. \strong{Support for \code{orientation} is not yet
+implemented but is planned.}}
 
 \item{parse}{logical Passed to the geom. If \code{TRUE}, the labels will be
 parsed into expressions and displayed as described in \code{?plotmath}.
@@ -132,28 +144,33 @@ A data frame with one row per comparison for \code{label.type =
 \description{
 \code{stat_multcomp} fits a linear model by default with \code{stats::lm()}
 but alternatively using other model fit functions. The model is passed to
-function \code{glht()} from package 'multcomp' to fit Tukey or Dunnet
-contrasts and generates labels based on adjusted \emph{P}-values.
+function \code{glht()} from package 'multcomp' to fit Tukey, Dunnet or other
+\strong{pairwise} contrasts and generates labels based on adjusted
+\emph{P}-values.
 }
 \details{
 This statistic can be used to automatically annotate a plot with
-  \emph{P}-values for multiple comparison tests, based on Tukey contrasts
-  (all pairwise) or Dunnet contrasts (other levels against the first one).
-  See Meier (2022, Chapter 3) for an accessible explanation of multiple
-  comparisons and contrasts with package 'multcomp', of which
-  \code{stat_multcomp()} is mostly a wrapper.
+  \emph{P}-values for \strong{pairwise} multiple comparison tests, based on
+  Tukey contrasts (all pairwise), Dunnet contrasts (other levels against the
+  first one) or a subset of all possible pairwise contrasts. See Meier (2022,
+  Chapter 3) for an accessible explanation of multiple comparisons and
+  contrasts with package 'multcomp', of which \code{stat_multcomp()} is
+  mostly a wrapper.
 
   The explanatory variable mapped to the \emph{x} aesthetic must be a factor
-  as this creates the required grouping. Currently, arbitrary contrasts are
-  not supported, mainly because they would be difficult to convert into plot
-  annotations.
+  as this creates the required grouping. Currently, contrasts that involve
+  more than two levels of a factor, such as the average of two treatment
+  levels against a control level are not supported, mainly because they
+  require a new geometry that I need to design, implement and add to package
+  'ggpp'.
 
   Two ways of displaying the outcomes are implemented, and are selected by
   `"bars"`, `"letters"` or `"LETTERS"` as argument to parameter
   `label.type`. `"letters"` and `"LETTERS"` can be used only with Tukey
   contrasts, as otherwise the encoding is ambiguous. As too many bars clutter
   a plot, the maximum number of factor levels supported for `"bars"` together
-  with Tukey contrasts is five, and together with Dunnet contrasts, unlimited.
+  with Tukey contrasts is five, while together with Dunnet contrasts or
+  contrasts defined by a numeric matrix, no limit is imposed.
 
   \code{stat_multcomp()} by default generates character labels ready to be
   parsed as R expressions but LaTeX (use TikZ device), markdown (use package
@@ -255,20 +272,33 @@ p1 <- ggplot(mpg, aes(factor(cyl), hwy)) +
 p1 +
   stat_multcomp()
 
+p1 +
+  stat_multcomp(adj.method.tag = 0)
+
 # test against a control, with first level being the control
 # change order of factor levels in data to set the control group
 p1 +
-  stat_multcomp(contrast.type = "Dunnet")
+  stat_multcomp(contrasts = "Dunnet")
+
+# arbitrary pairwise contrasts, in arbitrary order
+p1 +
+  stat_multcomp(contrasts = rbind(c(0, 0, -1, 1),
+                                  c(0, -1, 1, 0),
+                                  c(-1, 1, 0, 0)))
 
 # different methods to adjust the contrasts
 p1 +
-  stat_multcomp(adjusted.type = "bonferroni")
+  stat_multcomp(p.adjust.method = "bonferroni")
 
 p1 +
-  stat_multcomp(adjusted.type = "holm")
+  stat_multcomp(p.adjust.method = "holm")
 
 p1 +
-  stat_multcomp(adjusted.type = "fdr")
+  stat_multcomp(p.adjust.method = "fdr")
+
+# no correction, useful only for comparison
+p1 +
+  stat_multcomp(p.adjust.method = "none")
 
 # sometimes we need to expand the plotting area
 p1 +
