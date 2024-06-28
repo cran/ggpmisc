@@ -38,8 +38,8 @@ test_that("quant_eq_noload", {
                                 ggplot2::ggplot(my.data, ggplot2::aes(x, y)) +
                                   ggplot2::geom_point() +
                                   ggpmisc::stat_quant_eq(formula = y ~ x, parse = TRUE,
-                                                         mapping = ggpmisc::use_label(c("grp", "eq", "rho", "AIC", "method"),
-                                                                                      ggplot2::aes(colour = ggplot2::after_stat(grp.label)),
+                                                         mapping = ggpmisc::use_label(c("qtl", "eq", "rho", "AIC", "method"),
+                                                                                      ggplot2::aes(colour = ggplot2::after_stat(qtl.label)),
                                                                                       sep = "~~"))
     )
   }, warning=function(w) {
@@ -397,6 +397,44 @@ test_that("quant_formulas", {
 #
 # })
 
+test_that("quant_formulas", {
+  vdiffr::expect_doppelganger("stat_quant_eq_fm_NA",
+                              ggplot(my.data, aes(x, y)) +
+                                geom_point() +
+                                stat_quant_eq(formula = y ~ 1, parse = TRUE,
+                                              method = function(...) {NA},
+                                              mapping =
+                                                aes(label = paste(after_stat(eq.label),
+                                                                  after_stat(rho.label),
+                                                                  after_stat(AIC.label),
+                                                                  sep = "~~")))
+  )
+  vdiffr::expect_doppelganger("stat_quant_eq_fm_NULL",
+                              ggplot(my.data, aes(x, y)) +
+                                geom_point() +
+                                stat_quant_eq(formula = y ~ 1, parse = TRUE,
+                                              method = function(...) {NULL},
+                                              mapping =
+                                                aes(label = paste(after_stat(eq.label),
+                                                                  after_stat(rho.label),
+                                                                  after_stat(AIC.label),
+                                                                  sep = "~~")))
+  )
+  vdiffr::expect_doppelganger("stat_quant_eq_fm_missing",
+                              ggplot(my.data, aes(x, y)) +
+                                geom_point() +
+                                stat_quant_eq(formula = y ~ 1, parse = TRUE,
+                                              method = function(...) {list()},
+                                              mapping =
+                                                aes(label = paste(after_stat(eq.label),
+                                                                  after_stat(rho.label),
+                                                                  after_stat(AIC.label),
+                                                                  sep = "~~")))
+  )
+
+})
+
+
 formula_n <- y ~ x + I(x^2) + I(x^3)
 my.format <-
   "b[0]~`=`~%.3g*\", \"*b[1]~`=`~%.3g*\", \"*b[2]~`=`~%.3g*\", \"*b[3]~`=`~%.3g"
@@ -608,3 +646,51 @@ test_that("rounding_signif", {
 
 })
 
+# Markdown ----------------------------------------------------------------
+
+if (requireNamespace("ggtext", quietly = TRUE)) {
+  library(ggtext)
+
+  test_that("markdown_richtext", {
+    withCallingHandlers({
+      vdiffr::expect_doppelganger("stat_quant_eq_n1_markdown",
+                                  ggplot(my.data, aes(x, y)) +
+                                    geom_point() +
+                                    stat_quant_line(formula = formula) +
+                                    stat_quant_eq(mapping = use_label("eq", "n", "rho", sep = ", "),
+                                                  geom = "richtext",
+                                                  formula = formula,
+                                                  hjust = 0, vjust = 1,
+                                                  vstep = .1,
+                                                  label.x = 0, label.y = 115)
+      )
+    vdiffr::expect_doppelganger("stat_quant_eq_n2_markdown",
+                                ggplot(my.data, aes(x, y)) +
+                                  geom_point() +
+                                  stat_quant_line(formula = formula) +
+                                  stat_quant_eq(mapping = use_label("eq", "n", "rho", sep = ", "),
+                                                colour = "red",
+                                                geom = "richtext",
+                                                formula = formula,
+                                                hjust = 0, vjust = 1,
+                                                vstep = .1,
+                                                label.x = 0, label.y = 115)
+    )
+    vdiffr::expect_doppelganger("stat_quant_eq_n3_markdown",
+                                ggplot(my.data, aes(x, y)) +
+                                  geom_point() +
+                                  stat_quant_line(formula = formula) +
+                                  stat_quant_eq(use_label("AIC", "n", sep = ", "),
+                                                geom = "richtext",
+                                                formula = formula,
+                                                hjust = 0, vjust = 1,
+                                                vstep = .1,
+                                                label.x = 0, label.y = 115)
+    )
+    }, warning=function(w) {
+      if (startsWith(conditionMessage(w), "Solution may be nonunique"))
+        invokeRestart("muffleWarning")
+    })
+  })
+
+}

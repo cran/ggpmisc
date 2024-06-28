@@ -185,7 +185,7 @@ find_peaks <-
 #' @section Warning!: The current version of these statistics do not support
 #'   passing \code{nudge_x} or \code{nurge_y} named parameters to the geometry.
 #'   Use `position` and one of the position functions such as
-#'   \code{\link{position_nudge_keep}} instead.
+#'   \code{\link[ggpp]{position_nudge_keep}} instead.
 #'
 #' @examples
 #' # lynx is a time.series object
@@ -309,12 +309,12 @@ stat_peaks <- function(mapping = NULL,
 #'
 peaks_compute_group_fun <- function(data,
                                     scales,
-                                    span,
-                                    ignore_threshold,
-                                    strict,
-                                    label.fmt,
-                                    x.label.fmt,
-                                    y.label.fmt,
+                                    span = 5,
+                                    ignore_threshold = 0,
+                                    strict = FALSE,
+                                    label.fmt = NULL,
+                                    x.label.fmt = NULL,
+                                    y.label.fmt = NULL,
                                     flipped_aes = FALSE) {
   data <- ggplot2::flip_data(data, flipped_aes)
   if (!is.null(label.fmt)) {

@@ -68,7 +68,7 @@ library(ggpmisc)
 
 # testthat does not "see" the messages and warnings, so these tests play no role
 
-# test_that("number_of_rows_quantreg", {
+# test_that("number_of_rows_ma", {
 #   # message works but is not seen by the test
 #   expect_message(
 #     ggplot(my.data[1, ], aes(x, y)) +
@@ -287,6 +287,54 @@ test_that("ma_methods", {
                                                                sep = "~~")))
   )
 
+  vdiffr::expect_doppelganger("stat_ma_eq_fun_NA",
+                              ggplot(my.data, aes(x + 5, y + 20)) +
+                                geom_point() +
+                                stat_ma_eq(formula = y ~ x,
+                                           method = function(...) {NA},
+                                           range.y = "relative",
+                                           range.x = "relative",
+                                           parse = TRUE,
+                                           mapping =
+                                             aes(label = paste(after_stat(eq.label),
+                                                               after_stat(rr.label),
+                                                               after_stat(p.value.label),
+                                                               after_stat(n.label),
+                                                               sep = "~~")))
+  )
+
+  vdiffr::expect_doppelganger("stat_ma_eq_fun_NULL",
+                              ggplot(my.data, aes(x + 5, y + 20)) +
+                                geom_point() +
+                                stat_ma_eq(formula = y ~ x,
+                                           method = function(...) {NULL},
+                                           range.y = "relative",
+                                           range.x = "relative",
+                                           parse = TRUE,
+                                           mapping =
+                                             aes(label = paste(after_stat(eq.label),
+                                                               after_stat(rr.label),
+                                                               after_stat(p.value.label),
+                                                               after_stat(n.label),
+                                                               sep = "~~")))
+  )
+
+  vdiffr::expect_doppelganger("stat_ma_eq_fun_missing",
+                              ggplot(my.data, aes(x + 5, y + 20)) +
+                                geom_point() +
+                                stat_ma_eq(formula = y ~ x,
+                                           method = function(...) {list()},
+                                           range.y = "relative",
+                                           range.x = "relative",
+                                           parse = TRUE,
+                                           mapping =
+                                             aes(label = paste(after_stat(eq.label),
+                                                               after_stat(rr.label),
+                                                               after_stat(p.value.label),
+                                                               after_stat(n.label),
+                                                               sep = "~~")))
+  )
+
 })
 
 test_that("rounding_signif", {
@@ -340,3 +388,44 @@ test_that("rounding_signif", {
 
 })
 
+
+# Markdown ----------------------------------------------------------------
+
+if (requireNamespace("ggtext", quietly = TRUE)) {
+  library(ggtext)
+
+  test_that("markdown_richtext", {
+    vdiffr::expect_doppelganger("stat_ma_eq_n1_markdown",
+                                ggplot(my.data, aes(x, y)) +
+                                  geom_point() +
+                                  stat_ma_line() +
+                                  stat_ma_eq(mapping = use_label("eq", "n", "R2", "P", sep = ", "),
+                                             geom = "richtext",
+                                             hjust = 0, vjust = 1,
+                                             vstep = .1,
+                                             label.x = 0, label.y = 28)
+    )
+    vdiffr::expect_doppelganger("stat_ma_eq_n2_markdown",
+                                ggplot(my.data, aes(x, y)) +
+                                  geom_point() +
+                                  stat_ma_line() +
+                                  stat_ma_eq(mapping = use_label("eq", "n", "R2", "P", sep = ", "),
+                                             colour = "red",
+                                             geom = "richtext",
+                                             hjust = 0, vjust = 1,
+                                             vstep = .1,
+                                             label.x = 0, label.y = 28)
+    )
+    vdiffr::expect_doppelganger("stat_ma_eq_n3_markdown",
+                                ggplot(my.data, aes(x, y)) +
+                                  geom_point() +
+                                  stat_ma_line() +
+                                  stat_ma_eq(use_label("theta"),
+                                             geom = "richtext",
+                                             hjust = 0, vjust = 1,
+                                             vstep = .1,
+                                             label.x = 0, label.y = 28)
+    )
+  })
+
+}

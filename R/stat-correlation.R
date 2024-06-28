@@ -166,26 +166,26 @@
 #' # use_label() can assemble and map a combined label
 #' ggplot(my.data, aes(x, y)) +
 #'   geom_point() +
-#'   stat_correlation(use_label(c("R", "P", "n", "method")))
+#'   stat_correlation(use_label("R", "P", "n", "method"))
 #'
 #' ggplot(my.data, aes(x, y)) +
 #'   geom_point() +
-#'   stat_correlation(use_label(c("R", "R.CI")))
+#'   stat_correlation(use_label("R", "R.CI"))
 #'
 #' ggplot(my.data, aes(x, y)) +
 #'   geom_point() +
-#'   stat_correlation(use_label(c("R", "R.CI")),
+#'   stat_correlation(use_label("R", "R.CI"),
 #'                    r.conf.level = 0.95)
 #'
 #' ggplot(my.data, aes(x, y)) +
 #'   geom_point() +
-#'   stat_correlation(use_label(c("R", "R.CI")),
+#'   stat_correlation(use_label("R", "R.CI"),
 #'                    method = "kendall",
 #'                    r.conf.level = 0.95)
 #'
 #' ggplot(my.data, aes(x, y)) +
 #'   geom_point() +
-#'   stat_correlation(use_label(c("R", "R.CI")),
+#'   stat_correlation(use_label("R", "R.CI"),
 #'                    method = "spearman",
 #'                    r.conf.level = 0.95)
 #'
@@ -267,8 +267,8 @@ stat_correlation <-
            r.conf.level =
              ifelse(method == "pearson", 0.95, NA),
            continuity = FALSE,
-           small.r = FALSE,
-           small.p = FALSE,
+           small.r = getOption("ggpmisc.small.r", default = FALSE),
+           small.p = getOption("ggpmisc.small.p", default = FALSE),
            coef.keep.zeros = TRUE,
            r.digits = 2,
            t.digits = 3,
@@ -286,7 +286,7 @@ stat_correlation <-
            show.legend = FALSE,
            inherit.aes = TRUE) {
     if (is.null(output.type)) {
-      if (geom %in% c("richtext", "textbox")) {
+      if (geom %in% c("richtext", "textbox", "marquee")) {
         output.type <- "markdown"
       } else {
         output.type <- "expression"
@@ -347,27 +347,28 @@ stat_correlation <-
 #'
 cor_test_compute_fun <- function(data,
                                  scales,
-                                 method,
-                                 n.min,
-                                 alternative,
-                                 exact,
-                                 conf.level,
-                                 continuity,
-                                 small.r,
-                                 small.p,
+                                 method = "pearson",
+                                 n.min = 2L,
+                                 alternative = "two.sided",
+                                 exact = NULL,
+                                 conf.level = NA,
+                                 continuity = FALSE,
+                                 small.r = FALSE,
+                                 small.p = FALSE,
                                  coef.keep.zeros,
-                                 r.digits,
-                                 t.digits,
-                                 p.digits,
-                                 CI.brackets,
-                                 label.x,
-                                 label.y,
-                                 hstep,
-                                 vstep,
-                                 npc.used,
-                                 output.type,
-                                 boot.R,
-                                 na.rm) {
+                                 r.digits = 2,
+                                 t.digits = 3,
+                                 p.digits = 3,
+                                 CI.brackets = c("[", "]"),
+                                 label.x = "left",
+                                 label.y = "top",
+                                 hstep = 0,
+                                 vstep = 0.1,
+                                 npc.used = TRUE,
+                                 output.type = "expression",
+                                 boot.R = 0,
+                                 na.rm = FALSE) {
+
   # Much of the complexity of the label formatting is needed to
   # prevent the automatic dropping of trailing zeros in expressions.
   # The approach used is to include formatted numbers as character
@@ -454,6 +455,8 @@ cor_test_compute_fun <- function(data,
                                estimate = "rho",
                                alternative = "test"))
 
+  # assign values common to all output types
+
   z <- htest.ls[names(idx.map[[method]])]
   names(z) <- unname(idx.map[[method]])
 
@@ -462,6 +465,7 @@ cor_test_compute_fun <- function(data,
   z[["n"]] <- nrow(na.omit(data[ , c("x", "y")]))
   z[["method"]] <- method
   z[["r.conf.level"]] <- conf.level
+
   if (boot.R >= 50 && conf.level > 0) {
     confint.boot <-
       confintr::ci_cor(data[ , c("x", "y")],
@@ -476,10 +480,12 @@ cor_test_compute_fun <- function(data,
       z[["r.confint.low"]]  <-  htest.ls[["conf.int"]][1]
       z[["r.confint.high"]] <-  htest.ls[["conf.int"]][2]
     } else {
-      if (conf.level < 0) {
-        message("Skipping bootstrap estimation as 'conf.level' < 0")
+      if (conf.level <= 0) {
+        if (getOption("verbose", default = FALSE)) {
+          message("Skipping estimation of CI as 'conf.level' <= 0")
+        }
       } else if (boot.R > 0) {
-        warning("Skipping bootstrap estimation as 'boot.R' < 50")
+        warning("CI estimation skipped unless 'boot.R' >= 50")
       }
       z[["r.confint.low"]]  <- NA_real_
       z[["r.confint.high"]] <- NA_real_
@@ -489,297 +495,69 @@ cor_test_compute_fun <- function(data,
   if (output.type == "numeric") {
     z[["r.label"]] <- NA_character_
   } else {
-    # warn if too narrow formats requested
-    stopifnot("'r.digits' must be > 0" = r.digits > 0)
-    if (r.digits < 2) {
-      warning("'r.digits < 2' Likely information loss!")
-    }
-    stopifnot("'t.digits' must be > 0" = t.digits > 0)
-    if (t.digits < 2) {
-      warning("'t.digits < 2' Likely information loss!")
-    }
-    stopifnot("'p.digits' must be > 0" = p.digits > 0)
-    if (p.digits < 2) {
-      warning("'p.digits < 2' Likely information loss!")
-    }
-
     # build the character strings
-    if (output.type == "expression") {
-      if (p.digits == Inf) {
-          p.value.char <- sprintf_dm("%#.2e", z[["p.value"]], decimal.mark = decimal.mark)
-          p.value.char <- paste(gsub("e", " %*% 10^{", p.value.char), "}", sep = "")
-      } else {
-        p.value.char <- sprintf_dm("\"%#.*f\"", p.digits, z[["p.value"]], decimal.mark = decimal.mark)
-      }
-      r <- z[[unname(c(pearson = "cor", kendall = "tau", spearman = "rho")[method])]]
-      r.char <- sprintf_dm("\"%#.*f\"", r.digits, r, decimal.mark = decimal.mark)
-      r.confint.chr <- paste(sprintf_dm("%#.*f",
-                                        r.digits, z[["r.confint.low"]], decimal.mark = decimal.mark),
-                             sprintf_dm("%#.*f",
-                                        r.digits, z[["r.confint.high"]], decimal.mark = decimal.mark),
-                             sep = range.sep)
-      if (as.logical((z[["r.conf.level"]] * 100) %% 1)) {
-        conf.level.digits = 1L
-      } else {
-        conf.level.digits = 0L
-      }
-      conf.level.chr <- sprintf_dm("%.*f", conf.level.digits, z[["r.conf.level"]] * 100, decimal.mark = decimal.mark)
-      if (method == "pearson") {
-        rr.char <- sprintf_dm("\"%#.*f\"", r.digits, r^2, decimal.mark = decimal.mark)
-        t.value.char <- sprintf_dm("\"%#.*g\"", t.digits, z[["t.value"]], decimal.mark = decimal.mark)
-        if (grepl("e", t.value.char)) {
-          t.value.char <- sprintf_dm("%#.*e", t.digits, z[["t.value"]], decimal.mark = decimal.mark)
-          t.value.char <- paste(gsub("e", " %*% 10^{", t.value.char), "}", sep = "")
-        }
-        df.char <- as.character(z[["df"]])
-      } else if (method == "kendall") {
-        z.value.char <- sprintf_dm("\"%#.*g\"", t.digits, z[["z.value"]], decimal.mark = decimal.mark)
-        if (grepl("e", z.value.char)) {
-          z.value.char <- sprintf_dm("%#.*e", t.digits, z[["z.value"]], decimal.mark = decimal.mark)
-          z.value.char <- paste(gsub("e", " %*% 10^{", z.value.char), "}", sep = "")
-        }
-      } else if (method == "spearman") {
-        S.value.char <- sprintf_dm("\"%#.*g\"", t.digits, z[["S.value"]], decimal.mark = decimal.mark)
-        if (grepl("e", S.value.char)) {
-          S.value.char <- sprintf_dm("%#.*e", t.digits, z[["S.value"]], decimal.mark = decimal.mark)
-          S.value.char <- paste(gsub("e", " %*% 10^{", S.value.char), "}", sep = "")
-        }
-      }
-    } else {
-      if (p.digits == Inf) {
-        p.value.char <- sprintf_dm("%#.2e", z[["p.value"]], decimal.mark = decimal.mark)
-      } else {
-        p.value.char <- sprintf_dm("%#.*f", p.digits, z[["p.value"]], decimal.mark = decimal.mark)
-      }
-      r <- z[[unname(c(pearson = "cor", kendall = "tau", spearman = "rho")[method])]]
-      r.char <- sprintf_dm("%#.*f", r.digits, r, decimal.mark = decimal.mark)
-      r.confint.chr <- paste(sprintf_dm("%#.*f",
-                                        r.digits, z[["conf.int.low"]], decimal.mark = decimal.mark),
-                             sprintf_dm("%#.*f",
-                                        r.digits, z[["conf.int.high"]], decimal.mark = decimal.mark),
-                             sep = range.sep)
-      if (as.logical((z[["r.conf.level"]] * 100) %% 1)) {
-        conf.level.digits = 1L
-      } else {
-        conf.level.digits = 0L
-      }
-      conf.level.chr <- sprintf_dm("%.*f", conf.level.digits, z[["r.conf.level"]] * 100, decimal.mark = decimal.mark)
-      if (method == "pearson") {
-        rr.char <- sprintf_dm("\"%#.*f\"", r.digits, r^2, decimal.mark = decimal.mark)
-        t.value.char <- sprintf_dm("%#.*g", t.digits, z[["t.value"]], decimal.mark = decimal.mark)
-        df.char <- as.character(z[["df"]])
-      } else if (method == "kendall") {
-        z.value.char <- sprintf_dm("%#.*g", t.digits, z[["z.value"]], decimal.mark = decimal.mark)
-      } else if (method == "spearman") {
-        S.value.char <- sprintf_dm("%#.*g", t.digits, z[["S.value"]], decimal.mark = decimal.mark)
-      }
-    }
+    r <- z[[unname(c(pearson = "cor", kendall = "tau", spearman = "rho")[method])]]
 
-    # add labels to data.frame z.labels
-    if (output.type == "expression") {
-      # character(0) instead of "" avoids in paste() the insertion of sep for missing labels
-      z[["p.value.label"]] <-
-        ifelse(is.na(z[["p.value"]]), character(0L),
-               paste(ifelse(small.p, "italic(p)",  "italic(P)"),
-                     ifelse(z[["p.value"]] < 10^(-p.digits),
-                            sprintf_dm("\"%.*f\"", p.digits, 10^(-p.digits), decimal.mark = decimal.mark),
-                            p.value.char),
-                     sep = ifelse(z[["p.value"]] < 10^(-p.digits),
-                                  "~`<`~",
-                                  "~`=`~")))
-      z[["n.label"]] <-
-        paste("italic(n)~`=`~\"", z[["n"]], "\"", sep = "")
-      z[["grp.label"]] <- grp.label
-      if (method == "pearson") {
-        z[["cor.label"]] <- z[["r.label"]] <-
-          ifelse(is.na(z[["cor"]]), character(0L),
-                 paste(ifelse(small.r, "italic(r)", "italic(R)"),
-                       ifelse(abs(z[["cor"]]) < 10^(-r.digits),
-                              sprintf_dm("\"%.*f\"", r.digits, 10^(-r.digits) * sign(z[["cor"]]), decimal.mark = decimal.mark),
-                              r.char),
-                       sep = ifelse(abs(z[["cor"]]) < 10^(-r.digits),
-                                    c("~`>`~", "~`=`~", "~`<`~")[sign(z[["cor"]]) + 2],
-                                    "~`=`~")))
-        z[["rr.label"]] <-
-           paste(ifelse(small.r, "italic(r)^2", "italic(R)^2"),
-                ifelse(r^2 < 10^(-r.digits) & r^2 != 0,
-                       sprintf_dm("\"%.*f\"", r.digits, 10^(-r.digits), decimal.mark = decimal.mark),
-                       rr.char),
-                sep = ifelse(r^2 < 10^(-r.digits) & r^2 != 0,
-                             "~`<`~",
-                             "~`=`~"))
-        z[["t.value.label"]] <-
-          ifelse(is.na(z[["t.value"]]), character(0L),
-                 paste("italic(t)[", df.char, "]~`=`~", t.value.char, sep = ""))
-        z[["r.confint.label"]] <- z[["cor.confint.label"]] <-
-          paste("\"", conf.level.chr, "% CI ", CI.brackets[1], r.confint.chr, CI.brackets[2], "\"", sep = "")
-      } else if (method == "kendall") {
-        z[["tau.label"]] <- z[["r.label"]] <-
-          ifelse(is.na(z[["tau"]]), character(0L),
-                 paste("italic(tau)",
-                       ifelse(abs(z[["tau"]]) < 10^(-r.digits),
-                              sprintf_dm("\"%.*f\"", r.digits, 10^(-r.digits) * sign(z[["tau"]]), decimal.mark = decimal.mark),
-                              r.char),
-                       sep = ifelse(abs(z[["tau"]]) < 10^(-r.digits),
-                                    c("~`>`~", "~`=`~", "~`<`~")[sign(z[["tau"]]) + 2],
-                                    "~`=`~")))
-        z[["z.value.label"]] <-
-          ifelse(is.na(z[["z.value"]]), character(0L),
-                 paste("italic(z)~`=`~", z.value.char, sep = ""))
-        z[["r.confint.label"]] <- z[["tau.confint.label"]] <-
-          paste("\"", conf.level.chr, "% CI ", CI.brackets[1], r.confint.chr, CI.brackets[2], "\"", sep = "")
-      } else if (method == "spearman") {
-        z[["rho.label"]] <- z[["r.label"]] <-
-          ifelse(is.na(z[["rho"]]), character(0L),
-                 paste("italic(rho)",
-                       ifelse(abs(z[["rho"]]) < 10^(-r.digits),
-                              sprintf_dm("\"%.*f\"", r.digits, 10^(-r.digits) * sign(z[["rho"]]), decimal.mark = decimal.mark),
-                              r.char),
-                       sep = ifelse(abs(z[["rho"]]) < 10^(-r.digits),
-                                    c("~`>`~", "~`=`~", "~`<`~")[sign(z[["rho"]]) + 2],
-                                    "~`=`~")))
-        z[["S.value.label"]] <-
-          ifelse(is.na(z[["S.value"]]), character(0L),
-                 paste("italic(S)~`=`~", S.value.char, sep = ""))
-        z[["r.confint.label"]] <- z[["rho.confint.label"]] <-
-          paste("\"", conf.level.chr, "% CI ", CI.brackets[1], r.confint.chr, CI.brackets[2], "\"", sep = "")
-      }
-      z[["method.label"]] <-
-        paste("\"method: ", method, "\"", sep = "")
-    } else if (output.type %in% c("latex", "tex", "text", "tikz")) {
-      z[["p.value.label"]] <-
-        ifelse(is.na(z[["p.value"]]), character(0L),
-               paste(ifelse(small.p, "p",  "P"),
-                     ifelse(z[["p.value"]] < 10^(-p.digits),
-                            sprintf_dm("\"%.*f\"", p.digits, 10^(-p.digits), decimal.mark = decimal.mark),
-                            p.value.char),
-                     sep = ifelse(z[["p.value"]] < 10^(-p.digits),
-                                  " < ",
-                                  " = ")))
-      z[["n.label"]] <-
-        paste("n = ", z[["n"]], sep = "")
-      z[["grp.label"]] <- grp.label
-      if (method == "pearson") {
-        z[["cor.label"]] <- z[["r.label"]] <-
-          ifelse(is.na(z[["cor"]]), character(0L),
-                 paste(ifelse(small.r, "r", "R"),
-                       ifelse(abs(z[["cor"]]) < 10^(-r.digits),
-                              sprintf_dm("\"%.*f\"", r.digits, 10^(-r.digits) * sign(z[["cor"]]), decimal.mark = decimal.mark),
-                              r.char),
-                       sep = ifelse(abs(z[["cor"]]) < 10^(-r.digits),
-                                    c(" > ", " = ", " < ")[sign(z[["cor"]]) + 2],
-                                    " = ")))
-        z[["rr.label"]] <-
-          paste(ifelse(small.r, "italic(r)^2", "italic(R)^2"),
-                ifelse(r^2 < 10^(-r.digits) & r^2 != 0,
-                       sprintf_dm("\"%.*f\"", r.digits, 10^(-r.digits), decimal.mark = decimal.mark),
-                       rr.char),
-                sep = ifelse(r^2 < 10^(-r.digits) & r^2 != 0,
-                             "~`<`~",
-                             "~`=`~"))
-        z[["t.value.label"]] <- ifelse(is.na(z[["t.value"]]), character(0L),
-                                       paste("t_{", df.char, "} = ", t.value.char, sep = ""))
-        z[["r.confint.label"]] <- z[["cor.confint.label"]] <-
-          paste(conf.level.chr, "% CI ", CI.brackets[1], r.confint.chr, CI.brackets[2], sep = "")
-      } else if (method == "kendall") {
-        z[["tau.label"]] <- z[["r.label"]] <-
-          ifelse(is.na(z[["tau"]]), character(0L),
-                 paste(ifelse(output.type == "text",
-                              "tau", "\tau"),
-                       ifelse(abs(z[["tau"]]) < 10^(-r.digits),
-                              sprintf_dm("\"%.*f\"", r.digits, 10^(-r.digits) * sign(z[["tau"]]), decimal.mark = decimal.mark),
-                              r.char),
-                       sep = ifelse(abs(z[["tau"]]) < 10^(-r.digits),
-                                    c(" > ", " = ", " < ")[sign(z[["tau"]]) + 2],
-                                    " = ")))
-        z[["z.value.label"]] <- ifelse(is.na(z[["z.value"]]), character(0L),
-                                       paste("z = ", z.value.char, sep = ""))
-        z[["r.confint.label"]] <- z[["tau.confint.label"]] <-
-          paste(conf.level.chr, "% CI ", CI.brackets[1], r.confint.chr, CI.brackets[2], sep = "")
-      } else if (method == "spearman") {
-        z[["rho.label"]] <- z[["r.label"]] <-
-          ifelse(is.na(z[["rho"]]), character(0L),
-                 paste(ifelse(output.type == "text",
-                              "rho", "\rho"),
-                       ifelse(abs(z[["rho"]]) < 10^(-r.digits),
-                              sprintf_dm("\"%.*f\"", r.digits, 10^(-r.digits) * sign(z[["rho"]]), decimal.mark = decimal.mark),
-                              r.char),
-                       sep = ifelse(abs(z[["rho"]]) < 10^(-r.digits),
-                                    c(" > ", " = ", " < ")[sign(z[["rho"]]) + 2],
-                                    " = ")))
-        z[["S.value.label"]] <- ifelse(is.na(z[["S.value"]]), character(0L),
-                                       paste("S = ", S.value.char, sep = ""))
-        z[["r.confint.label"]] <- z[["rho.confint.label"]] <-
-          paste(conf.level.chr, "% CI ", CI.brackets[1], r.confint.chr, CI.brackets[2], sep = "")
-      }
-      z[["method.label"]] <- paste("method: ", method, sep = "")
-    } else if (output.type == "markdown") {
-      z[["p.value.label"]] <-
-        ifelse(is.na(z[["p.value"]]), character(0L),
-               paste(ifelse(small.p, "_p_",  "_P_"),
-                     ifelse(z[["p.value"]] < 10^(-p.digits),
-                            sprintf_dm("\"%.*f\"", p.digits, 10^(-p.digits), decimal.mark = decimal.mark),
-                            p.value.char),
-                     sep = ifelse(z[["p.value"]] < 10^(-p.digits),
-                                  " < ",
-                                  " = ")))
-      z[["n.label"]] <-
-        paste("_n_ = ", z[["n"]], sep = "")
-      z[["grp.label"]] <- grp.label
-      if (method == "pearson") {
-        z[["cor.label"]] <- z[["r.label"]] <-
-          ifelse(is.na(z[["cor"]]), character(0L),
-                 paste(ifelse(small.r, "_r_", "_R_"),
-                       ifelse(abs(z[["cor"]]) < 10^(-r.digits),
-                              sprintf_dm("\"%.*f\"", r.digits, 10^(-r.digits) * sign(z[["cor"]]), decimal.mark = decimal.mark),
-                              r.char),
-                       sep = ifelse(abs(z[["cor"]]) < 10^(-r.digits),
-                                    c(" > ", " = ", " < ")[sign(z[["cor"]]) + 2],
-                                    " = ")))
-        z[["rr.label"]] <-
-          paste(ifelse(small.r, "_r_<sup>2</sup>", "_R_<sup>2</sup>"),
-                ifelse(r^2 < 10^(-r.digits) & r^2 != 0,
-                       sprintf_dm("\"%.*f\"", r.digits, 10^(-r.digits), decimal.mark = decimal.mark),
-                       rr.char),
-                sep = ifelse(r^2 < 10^(-r.digits) & r^2 != 0,
-                             " < ",
-                             " = "))
-        z[["t.value.label"]] <- ifelse(is.na(z[["t.value"]]), character(0L),
-                                       paste("_t_<sub>", df.char, "</sub> = ", t.value.char, sep = ""))
-        z[["r.confint.label"]] <- z[["cor.confint.label"]] <-
-          paste(conf.level.chr, "% CI ", CI.brackets[1], r.confint.chr, CI.brackets[1], sep = "")
-      } else if (method == "kendall") {
-        z[["tau.label"]] <- z[["r.label"]] <-
-          ifelse(is.na(z[["tau"]]), character(0L),
-                 paste("_&tau;_",
-                       ifelse(abs(z[["tau"]]) < 10^(-r.digits),
-                              sprintf_dm("\"%.*f\"", r.digits, 10^(-r.digits) * sign(z[["tau"]]), decimal.mark = decimal.mark),
-                              r.char),
-                       sep = ifelse(abs(z[["tau"]]) < 10^(-r.digits),
-                                    c(" > ", " = ", " < ")[sign(z[["tau"]]) + 2],
-                                    " = ")))
-        z[["z.value.label"]] <- ifelse(is.na(z[["t.value"]]), character(0L),
-                                       paste("_z_ = ", z.value.char, sep = ""))
-        z[["r.confint.label"]] <- z[["tau.confint.label"]] <-
-          paste(conf.level.chr, "% CI ", CI.brackets[1], r.confint.chr, CI.brackets[2], sep = "")
-      } else if (method == "spearman") {
-        z[["rho.label"]] <- z[["r.label"]] <-
-          ifelse(is.na(z[["rho"]]), character(0L),
-                 paste("_&rho;_",
-                       ifelse(abs(z[["rho"]]) < 10^(-r.digits),
-                              sprintf_dm("\"%.*f\"", r.digits, 10^(-r.digits) * sign(z[["rho"]]), decimal.mark = decimal.mark),
-                              r.char),
-                       sep = ifelse(abs(z[["rho"]]) < 10^(-r.digits),
-                                    c(" > ", " = ", " < ")[sign(z[["rho"]]) + 2],
-                                    " = ")))
-        z[["S.value.label"]] <- ifelse(is.na(z[["S.value"]]), character(0L),
-                                       paste("_S_ = ", S.value.char, sep = ""))
-        z[["r.confint.label"]] <- z[["rho.confint.label"]] <-
-          paste(conf.level.chr, "% CI ", CI.brackets[1], r.confint.chr, CI.brackets[2], sep = "")
-      }
-      z[["method.label"]] <- paste("method: ", method, sep = "")
-    } else {
-      warning("Unknown 'output.type' argument: ", output.type)
+    z[["p.value.label"]] <- p_value_label(value = z[["p.value"]],
+                                          small.p = small.p,
+                                          digits = p.digits,
+                                          fixed = TRUE,
+                                          output.type = output.type,
+                                          decimal.mark = decimal.mark)
+    z[["n.label"]] <- italic_label(value =  z[["n"]],
+                                   value.name = "n",
+                                   digits = 0,
+                                   output.type = output.type,
+                                   decimal.mark = decimal.mark)
+    z[["grp.label"]] <- grp.label
+    z[["r.label"]] <- r_label(value = r,
+                              method = method,
+                              small.r = small.r,
+                              digits = r.digits,
+                              fixed = TRUE,
+                              output.type = output.type,
+                              decimal.mark = decimal.mark)
+    z[["r.confint.label"]] <- r_ci_label(value = c(z[["r.confint.low"]],
+                                                   z[["r.confint.high"]]),
+                                         conf.level = z[["r.conf.level"]],
+                                         range.brackets = CI.brackets,
+                                         range.sep = NULL,
+                                         digits = r.digits,
+                                         output.type = output.type,
+                                         decimal.mark = decimal.mark)
+    z[["method.label"]] <- paste("\"method: ", method, "\"", sep = "")
+    if (method == "pearson") {
+      z[["cor.label"]] <- z[["r.label"]]
+      z[["rr.label"]] <- rr_label(value = z[["cor"]]^2,
+                                  small.r = small.r,
+                                  digits = r.digits,
+                                  fixed = TRUE,
+                                  output.type = output.type,
+                                  decimal.mark = decimal.mark)
+      z[["t.value.label"]] <- t_value_label(value = z[["t.value"]],
+                                            df =  z[["df"]],
+                                            digits = t.digits,
+                                            fixed = FALSE,
+                                            output.type = output.type,
+                                            decimal.mark = decimal.mark)
+    } else if (method == "kendall") {
+      z[["tau.label"]] <- z[["r.label"]]
+      z[["tau.confint.label"]] <- z[["r.confint.label"]]
+      z[["z.value.label"]] <- italic_label(value = z[["z.value"]],
+                                           value.name = "z",
+                                           digits = t.digits,
+                                           fixed = FALSE,
+                                           output.type = output.type,
+                                           decimal.mark = decimal.mark)
+    } else if (method == "spearman") {
+      z[["rho.label"]] <- z[["r.label"]]
+      z[["rho.confint.label"]] <- z[["r.confint.label"]]
+      z[["S.value.label"]] <-  italic_label(value = z[["S.value"]],
+                                            value.name = "S",
+                                            digits = t.digits,
+                                            fixed = FALSE,
+                                            output.type = output.type,
+                                            decimal.mark = decimal.mark)
     }
   }
 

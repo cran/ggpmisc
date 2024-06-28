@@ -417,7 +417,7 @@ test_that("poly_formulas", {
   vdiffr::expect_doppelganger("stat_poly_eq_formula_poly1",
                               ggplot(my.data, aes(x, y)) +
                                 geom_point() +
-                                stat_poly_eq(formula = y ~ poly(x, 1), parse = TRUE,
+                                stat_poly_eq(formula = y ~ poly(x, 1, raw = TRUE), parse = TRUE,
                                              mapping =
                                                aes(label = paste(after_stat(eq.label),
                                                                  after_stat(adj.rr.label),
@@ -429,7 +429,7 @@ test_that("poly_formulas", {
   vdiffr::expect_doppelganger("stat_poly_eq_formula_poly3",
                               ggplot(my.data, aes(x, y)) +
                                 geom_point() +
-                                stat_poly_eq(formula = y ~ poly(x, 3), parse = TRUE,
+                                stat_poly_eq(formula = y ~ poly(x, 3, raw = TRUE), parse = TRUE,
                                              mapping =
                                                aes(label = paste(after_stat(eq.label),
                                                                  after_stat(adj.rr.label),
@@ -489,7 +489,7 @@ test_that("poly_formulas", {
   vdiffr::expect_doppelganger("stat_poly_eq_formula_ypoly1",
                               ggplot(my.data, aes(x, y)) +
                                 geom_point() +
-                                stat_poly_eq(formula = x ~ poly(y, 1), parse = TRUE,
+                                stat_poly_eq(formula = x ~ poly(y, 1, raw = TRUE), parse = TRUE,
                                              mapping =
                                                aes(label = paste(after_stat(eq.label),
                                                                  after_stat(adj.rr.label),
@@ -502,7 +502,7 @@ test_that("poly_formulas", {
   vdiffr::expect_doppelganger("stat_poly_eq_formula_poly3_comma",
                               ggplot(my.data, aes(x, y)) +
                                 geom_point() +
-                                stat_poly_eq(formula = y ~ poly(x, 3), parse = TRUE,
+                                stat_poly_eq(formula = y ~ poly(x, 3, raw = TRUE), parse = TRUE,
                                              mapping =
                                                aes(label = paste(after_stat(eq.label),
                                                                  after_stat(adj.rr.label),
@@ -593,6 +593,27 @@ test_that("poly_methods", {
                                                                  after_stat(AIC.label),
                                                                  after_stat(BIC.label),
                                                                  sep = "~~")))
+  )
+
+  vdiffr::expect_doppelganger("stat_poly_eq_missing_fm",
+                              ggplot(my.data, aes(x, y)) +
+                                geom_point() +
+                                stat_poly_eq(formula = y ~ x, parse = TRUE,
+                                             method = function(...) {list()})
+  )
+
+  vdiffr::expect_doppelganger("stat_poly_eq_NULL_fm",
+                              ggplot(my.data, aes(x, y)) +
+                                geom_point() +
+                                stat_poly_eq(formula = y ~ x, parse = TRUE,
+                                             method = function(...) {NULL})
+  )
+
+  vdiffr::expect_doppelganger("stat_poly_eq_NA_fm",
+                              ggplot(my.data, aes(x, y)) +
+                                geom_point() +
+                                stat_poly_eq(formula = y ~ x, parse = TRUE,
+                                             method = function(...) {NA})
   )
 
 })
@@ -786,4 +807,53 @@ test_that("rounding_signif", {
   )
 
 })
+
+# Markdown ----------------------------------------------------------------
+
+if (requireNamespace("ggtext", quietly = TRUE)) {
+  library(ggtext)
+
+  test_that("markdown_richtext", {
+    vdiffr::expect_doppelganger("stat_poly_eq_n1_markdown",
+                                ggplot(my.data, aes(x, y)) +
+                                  geom_point() +
+                                  stat_smooth(method = "lm", formula = formula) +
+                                  stat_poly_eq(geom = "richtext",
+                                               formula = formula,
+                                               hjust = 0, vjust = 1,
+                                               label.x = 0, label.y = 10e5)
+    )
+    vdiffr::expect_doppelganger("stat_poly_eq_n2_markdown",
+                                ggplot(my.data, aes(x, y)) +
+                                  geom_point() +
+                                  stat_smooth(method = "lm", formula = formula) +
+                                  stat_poly_eq(use_label("eq", "n", "P", "R2", sep = ", "),
+                                               geom = "richtext",
+                                               formula = formula,
+                                               hjust = 0, vjust = 1,
+                                               label.x = 0, label.y = 10e5)
+    )
+    vdiffr::expect_doppelganger("stat_poly_eq_n3_markdown",
+                                ggplot(my.data, aes(x, y)) +
+                                  geom_point() +
+                                  stat_smooth(method = "lm", formula = formula) +
+                                  stat_poly_eq(use_label("eq", "n", "P", "R2", sep = ", "),
+                                               colour = "red",
+                                               geom = "richtext",
+                                               formula = formula,
+                                               hjust = 0, vjust = 1,
+                                               label.x = 0, label.y = 10e5)
+    )
+    vdiffr::expect_doppelganger("stat_poly_eq_n4_markdown",
+                                ggplot(my.data, aes(x, y)) +
+                                  geom_point() +
+                                  stat_smooth(method = "lm", formula = formula) +
+                                  stat_poly_eq(use_label("AIC", "BIC", "R2.CI", sep = ", "),
+                                               geom = "richtext",
+                                               formula = formula,
+                                               hjust = 0, vjust = 1,
+                                               label.x = 0, label.y = 10e5)
+    )
+  })
+}
 

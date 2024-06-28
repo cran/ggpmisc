@@ -1,9 +1,10 @@
 #' Equation, p-value, \eqn{R^2}, AIC and BIC of fitted polynomial
 #'
-#' \code{stat_poly_eq} fits a polynomial by default with \code{stats::lm()} but
-#' alternatively using robust regression. From the fitted model it
-#' generates several labels including the equation, p-value, F-value,
-#' coefficient of determination (R^2), 'AIC', 'BIC', and number of observations.
+#' \code{stat_poly_eq} fits a polynomial, by default with \code{stats::lm()},
+#' but alternatively using robust regression. Using the fitted model it
+#' generates several labels including the fitted model equation, p-value,
+#' F-value, coefficient of determination (R^2), 'AIC', 'BIC', and number of
+#' observations.
 #'
 #' @param mapping The aesthetic mapping, usually constructed with
 #'   \code{\link[ggplot2]{aes}}. Only needs to be
@@ -52,6 +53,8 @@
 #'   the fitted coefficients and F-value.
 #' @param coef.keep.zeros logical Keep or drop trailing zeros when formatting
 #'   the fitted coefficients and F-value.
+#' @param decreasing logical It specifies the order of the terms in the
+#'   returned character string; in increasing (default) or decreasing powers.
 #' @param rr.digits,p.digits integer Number of digits after the decimal point to
 #'   use for \eqn{R^2} and P-value in labels. If \code{Inf}, use exponential
 #'   notation with three decimal places.
@@ -59,9 +62,6 @@
 #'   coordinates" (npc units) or character if using \code{geom_text_npc()} or
 #'   \code{geom_label_npc()}. If using \code{geom_text()} or \code{geom_label()}
 #'   numeric in native data units. If too short they will be recycled.
-#' @param label.x.npc,label.y.npc \code{numeric} with range 0..1 (npc units)
-#'   DEPRECATED, use label.x and label.y instead; together with a geom
-#'   using npcx and npcy aesthetics.
 #' @param hstep,vstep numeric in npc units, the horizontal and vertical step
 #'   used between labels for different groups.
 #' @param output.type character One of "expression", "LaTeX", "text",
@@ -88,44 +88,58 @@
 #'
 #' @details This statistic can be used to automatically annotate a plot with
 #'   \eqn{R^2}, adjusted \eqn{R^2} or the fitted model equation. It supports
-#'   linear regression, robust linear regression and median regression fitted
-#'   with functions \code{\link{lm}}, or \code{\link[MASS]{rlm}}. The \eqn{R^2}
-#'   and adjusted \eqn{R^2} annotations can be used with any linear model
-#'   formula. The confidence interval for \eqn{R^2} is computed with function
-#'   \code{\link[confintr]{ci_rsquared}} from package 'confintr'. The fitted
-#'   equation label is correctly generated for polynomials or quasi-polynomials
-#'   through the origin. Model formulas can use \code{poly()} or be defined
-#'   algebraically with terms of powers of increasing magnitude with no missing
-#'   intermediate terms, except possibly for the intercept indicated by "- 1" or
-#'   "-1" or \code{"+ 0"} in the formula. The validity of the \code{formula} is
-#'   not checked in the current implementation, and for this reason the default
-#'   aesthetics sets \eqn{R^2} as label for the annotation. This statistic
-#'   generates labels as R expressions by default but LaTeX (use TikZ device),
-#'   markdown (use package 'ggtext') and plain text are also supported, as well
-#'   as numeric values for user-generated text labels. The value of \code{parse}
-#'   is set automatically based on \code{output-type}, but if you assemble
-#'   labels that need parsing from \code{numeric} output, the default needs to
-#'   be overridden. This stat only generates annotation labels, the predicted
-#'   values/line need to be added to the plot as a separate layer using
-#'   \code{\link{stat_poly_line}} (or \code{\link[ggplot2]{stat_smooth}}), if
-#'   the default formula is overriden with an argument, it is crucial to make
-#'   sure that the same model formula is used in all layers. In this case it is
-#'   best to save the formula as an object and supply this object as argument to
-#'   the different statistics.
+#'   linear regression and polynomial fits, and robust regression fitted
+#'   with functions \code{\link{lm}}, or \code{\link[MASS]{rlm}}, respectively.
+#'
+#'   While strings for \eqn{R^2}, adjusted \eqn{R^2}, \eqn{F}, and \eqn{P}
+#'   annotations are returned for all valid linear models, A character string
+#'   for the fitted model is returned only for polynomials (see below), in which
+#'   case the equation can still be assembled by the user. In addition, a label
+#'   for the confidence interval of \eqn{R^2}, based on values computed with
+#'   function \code{\link[confintr]{ci_rsquared}} from package 'confintr' is
+#'   also returned.
+#'
+#'   The model formula should be defined based on the names of aesthetics \code{x}
+#'   and \code{y}, not the names of the variables in the data. Before fitting
+#'   the model, data are split based on groupings created by any other mappings
+#'   present in a plot panel: \emph{fitting is done separately for each group
+#'   in each plot panel}.
+#'
+#'   Model formulas can use \code{poly()} or be defined algebraically including
+#'   the intercept indicated by \code{+1}, \code{-1}, \code{+0} or implicit. If
+#'   defined using \code{poly()} the argument \code{raw = TRUE} must be passed.
+#'   The \code{model formula} is checked, and if not recognized as a polynomial
+#'   with no missing terms and terms ordered by increasing powers, no equation
+#'   label is generated. Thus, as the value returned for \code{eq.label} can be
+#'   \code{NA}, the default aesthetic mapping to \emph{label} is \eqn{R^2}.
+#'
+#'   By default, the character strings are generated as suitable for parsing into R's
+#'   plotmath expressions. However, LaTeX (use TikZ device), markdown (use package
+#'   'ggtext') and plain text are also supported, as well as returning numeric values for
+#'   user-generated text labels. The argument of \code{parse} is set automatically
+#'   based on \code{output-type}, but if you assemble labels that need parsing
+#'   from \code{numeric} output, the default needs to be overridden.
+#'
+#'   This statistic only generates annotation labels, the predicted values/line
+#'   need to be added to the plot as a separate layer using
+#'   \code{\link{stat_poly_line}} (or \code{\link[ggplot2]{stat_smooth}}). Using
+#'   the same formula in \code{stat_poly_line()} and in \code{stat_poly_eq()} in
+#'   most cases ensures that the plotted curve and equation are consistent.
+#'   Thus, unless the default formula is not overriden, it is best to save the
+#'   model formula as an object and supply this named object as argument to the
+#'   two statistics.
 #'
 #'   A ggplot statistic receives as \code{data} a data frame that is not the one
 #'   passed as argument by the user, but instead a data frame with the variables
 #'   mapped to aesthetics. \code{stat_poly_eq()} mimics how \code{stat_smooth()}
-#'   works, except that only polynomials can be fitted. Similarly to these
-#'   statistics the model fits respect grouping, so the scales used for \code{x}
-#'   and \code{y} should both be continuous scales rather than discrete.
+#'   works.
 #'
 #'   With method \code{"lm"}, singularity results in terms being dropped with a
 #'   message if more numerous than can be fitted with a singular (exact) fit.
 #'   In this case or if the model results in a perfect fit due to a low
 #'   number of observations, estimates for various parameters are \code{NaN} or
 #'   \code{NA}. When this is the case the corresponding labels are set to
-#'   \code{character(0L)} and thus not visble in the plot.
+#'   \code{character(0L)} and thus not visible in the plot.
 #'
 #'   With methods other than \code{"lm"}, the model fit functions simply fail
 #'   in case of singularity, e.g., singular fits are not implemented in
@@ -139,6 +153,19 @@
 #'   interest and using larger values of \code{n.min} than the default is
 #'   usually wise.
 #'
+#' @section User-defined methods: User-defined functions can be passed as
+#'   argument to \code{method}. The requirements are 1) that the signature is
+#'   similar to that of function \code{lm()} (with parameters \code{formula},
+#'   \code{data}, \code{weights} and any other arguments passed by name through
+#'   \code{method.args}) and 2) that the value returned by the function is an
+#'   object of class \code{"lm"} or an atomic \code{NA} value.
+#'
+#'   The \code{formula} used to build the equation label is extracted from the
+#'   returned \code{"lm"} object and can safely differ from the argument passed to
+#'   parameter \code{formula} in the call to \code{stat_poly_eq()}. Thus,
+#'   user-defined methods can implement both model selection or conditional
+#'   skipping of labelling.
+#'
 #' @references Originally written as an answer to question 7549694 at
 #'   Stackoverflow but enhanced based on suggestions from users and my own
 #'   needs.
@@ -149,19 +176,19 @@
 #'   variables. In addition, the aesthetics understood by the geom
 #'   (\code{"text"} is the default) are understood and grouping respected.
 #'
-#'   \emph{If the model formula includes a transformation of \code{x}, a
+#'   If the model formula includes a transformation of \code{x}, a
 #'   matching argument should be passed to parameter \code{eq.x.rhs}
 #'   as its default value \code{"x"} will not reflect the applied
 #'   transformation. In plots, transformation should never be applied to the
 #'   left hand side of the model formula, but instead in the mapping of the
 #'   variable within \code{aes}, as otherwise plotted observations and fitted
 #'   curve will not match. In this case it may be necessary to also pass
-#'   a matching argument to parameter \code{eq.with.lhs}.}
+#'   a matching argument to parameter \code{eq.with.lhs}.
 #'
 #' @return A data frame, with a single row and columns as described under
 #'   \strong{Computed variables}. In cases when the number of observations is
-#'   less than \code{n.min} a data frame with no rows or columns is returned
-#'   rendered as an empty/invisible plot layer.
+#'   less than \code{n.min} a data frame with no rows or columns is returned,
+#'   and rendered as an empty/invisible plot layer.
 #'
 #' @section Computed variables:
 #' If output.type different from \code{"numeric"} the returned tibble contains
@@ -170,7 +197,7 @@
 #' \describe{
 #'   \item{x,npcx}{x position}
 #'   \item{y,npcy}{y position}
-#'   \item{eq.label}{equation for the fitted polynomial as a character string to be parsed}
+#'   \item{eq.label}{equation for the fitted polynomial as a character string to be parsed or \code{NA}}
 #'   \item{rr.label}{\eqn{R^2} of the fitted model as a character string to be parsed}
 #'   \item{adj.rr.label}{Adjusted \eqn{R^2} of the fitted model as a character string to be parsed}
 #'   \item{rr.confint.label}{Confidence interval for \eqn{R^2} of the fitted model as a character string to be parsed}
@@ -210,11 +237,8 @@
 #'   for the details and additional arguments that can be passed to them by name
 #'   through parameter \code{method.args}.
 #'
-#'   This \code{stat_poly_eq} statistic can return ready formatted labels
-#'   depending on the argument passed to \code{output.type}. This is possible
-#'   because only polynomial and quasy-polynomial models are supported. For
-#'   quantile regression \code{\link{stat_quant_eq}} should be used instead of
-#'   \code{stat_poly_eq} while for model II or major axis regression
+#'   For quantile regression \code{\link{stat_quant_eq}} should be used instead
+#'   of \code{stat_poly_eq} while for model II or major axis regression
 #'   \code{\link{stat_ma_eq}} should be used. For other types of models such as
 #'   non-linear models, statistics \code{\link{stat_fit_glance}} and
 #'   \code{\link{stat_fit_tidy}} should be used and the code for construction of
@@ -255,20 +279,26 @@
 #'   stat_poly_line(formula = formula) +
 #'   stat_poly_eq(use_label("eq"), formula = formula)
 #'
+#' # other labels
 #' ggplot(my.data, aes(x, y)) +
 #'   geom_point() +
 #'   stat_poly_line(formula = formula) +
-#'   stat_poly_eq(use_label(c("eq", "R2")), formula = formula)
+#'   stat_poly_eq(use_label("eq"), formula = formula, decreasing = TRUE)
 #'
 #' ggplot(my.data, aes(x, y)) +
 #'   geom_point() +
 #'   stat_poly_line(formula = formula) +
-#'   stat_poly_eq(use_label(c("R2", "R2.CI", "P", "method")), formula = formula)
+#'   stat_poly_eq(use_label("eq", "R2"), formula = formula)
 #'
 #' ggplot(my.data, aes(x, y)) +
 #'   geom_point() +
 #'   stat_poly_line(formula = formula) +
-#'   stat_poly_eq(use_label(c("R2", "F", "P", "n"), sep = "*\"; \"*"),
+#'   stat_poly_eq(use_label("R2", "R2.CI", "P", "method"), formula = formula)
+#'
+#' ggplot(my.data, aes(x, y)) +
+#'   geom_point() +
+#'   stat_poly_line(formula = formula) +
+#'   stat_poly_eq(use_label("R2", "F", "P", "n", sep = "*\"; \"*"),
 #'                formula = formula)
 #'
 #' # grouping
@@ -339,7 +369,7 @@
 #' ggplot(my.data, aes(x, y)) +
 #'   geom_point() +
 #'   stat_poly_line(formula = formula, orientation = "y") +
-#'   stat_poly_eq(use_label(c("eq", "adj.R2")),
+#'   stat_poly_eq(use_label("eq", "adj.R2"),
 #'                formula = x ~ poly(y, 3, raw = TRUE))
 #'
 #' # conditional user specified label
@@ -462,19 +492,18 @@ stat_poly_eq <- function(mapping = NULL, data = NULL,
                          n.min = 2L,
                          eq.with.lhs = TRUE,
                          eq.x.rhs = NULL,
-                         small.r = FALSE,
-                         small.p = FALSE,
+                         small.r = getOption("ggpmisc.small.r", default = FALSE),
+                         small.p = getOption("ggpmisc.small.p", default = FALSE),
                          CI.brackets = c("[", "]"),
                          rsquared.conf.level = 0.95,
                          coef.digits = 3,
                          coef.keep.zeros = TRUE,
+                         decreasing = getOption("ggpmisc.decreasing.poly.eq", FALSE),
                          rr.digits = 2,
                          f.digits = 3,
                          p.digits = 3,
                          label.x = "left",
                          label.y = "top",
-                         label.x.npc = NULL,
-                         label.y.npc = NULL,
                          hstep = 0,
                          vstep = NULL,
                          output.type = NULL,
@@ -505,18 +534,8 @@ stat_poly_eq <- function(mapping = NULL, data = NULL,
     }
   }
 
-  # backwards compatibility
-  if (!is.null(label.x.npc)) {
-    stopifnot(grepl("_npc", geom))
-    label.x <- label.x.npc
-  }
-  if (!is.null(label.y.npc)) {
-    stopifnot(grepl("_npc", geom))
-    label.y <- label.y.npc
-  }
-
   if (is.null(output.type)) {
-    if (geom %in% c("richtext", "textbox")) {
+    if (geom %in% c("richtext", "textbox", "marquee")) {
       output.type <- "markdown"
     } else {
       output.type <- "expression"
@@ -526,6 +545,9 @@ stat_poly_eq <- function(mapping = NULL, data = NULL,
   if (is.null(parse)) {
     parse <- output.type == "expression"
   }
+
+  # is the model formula that of complete and increasing polynomial?
+  mk.eq.label <- output.type != "numeric" && check_poly_formula(formula, orientation)
 
   if (is.character(method)) {
     if (method == "auto") {
@@ -557,12 +579,14 @@ stat_poly_eq <- function(mapping = NULL, data = NULL,
                    n.min = n.min,
                    eq.with.lhs = eq.with.lhs,
                    eq.x.rhs = eq.x.rhs,
+                   mk.eq.label = mk.eq.label,
                    small.r = small.r,
                    small.p = small.p,
                    CI.brackets = CI.brackets,
                    rsquared.conf.level = rsquared.conf.level,
                    coef.digits = coef.digits,
                    coef.keep.zeros = coef.keep.zeros,
+                   decreasing = decreasing,
                    rr.digits = rr.digits,
                    f.digits = f.digits,
                    p.digits = p.digits,
@@ -592,30 +616,32 @@ stat_poly_eq <- function(mapping = NULL, data = NULL,
 #'
 poly_eq_compute_group_fun <- function(data,
                                       scales,
-                                      method,
-                                      method.args,
-                                      formula,
-                                      n.min,
-                                      weight,
+                                      method = "lm",
+                                      method.args = list(),
+                                      formula = y ~ x,
+                                      n.min =2L,
+                                      weight = 1,
                                       eq.with.lhs,
-                                      eq.x.rhs,
-                                      small.r,
-                                      small.p,
-                                      CI.brackets,
-                                      rsquared.conf.level,
-                                      coef.digits,
-                                      coef.keep.zeros,
-                                      rr.digits,
-                                      f.digits,
-                                      p.digits,
-                                      label.x,
-                                      label.y,
-                                      hstep,
-                                      vstep,
-                                      npc.used,
-                                      output.type,
-                                      na.rm,
-                                      orientation) {
+                                      eq.x.rhs = TRUE,
+                                      mk.eq.label = TRUE,
+                                      small.r = FALSE,
+                                      small.p  = FALSE,
+                                      CI.brackets = c("[", "]"),
+                                      rsquared.conf.level  = 0.95,
+                                      coef.digits = 3L,
+                                      coef.keep.zeros = TRUE,
+                                      decreasing = FALSE,
+                                      rr.digits = 2,
+                                      f.digits = 3,
+                                      p.digits = 3,
+                                      label.x = "left",
+                                      label.y = "top",
+                                      hstep = 0,
+                                      vstep = 0.1,
+                                      npc.used = TRUE,
+                                      output.type = "expression",
+                                      na.rm = FALSE,
+                                      orientation = "x") {
   force(data)
 
   # parse obeys this option, but as for some labels or output types we do not
@@ -626,7 +652,6 @@ poly_eq_compute_group_fun <- function(data,
     warning("Decimal mark must be one of '.' or ',', not: '", decimal.mark, "'")
     decimal.mark <- "."
   }
-  range.sep <- c("." = ", ", "," = "; ")[decimal.mark]
 
   if (orientation == "x") {
     if (length(unique(data$x)) < n.min) {
@@ -722,16 +747,15 @@ poly_eq_compute_group_fun <- function(data,
     fun.args[["method"]] <- fun.method
   }
 
-  # some model fit functions contain code with partial matching of names!
-  # so we silence selectively only these warnings
-  withCallingHandlers({
-    fm <- do.call(method, args = fun.args)
-    fm.summary <- summary(fm)
-  }, warning = function(w) {
-    if (startsWith(conditionMessage(w), "partial match of 'coef'") ||
-        startsWith(conditionMessage(w), "partial argument match of 'contrasts'"))
-      invokeRestart("muffleWarning")
-  })
+  fm <- do.call(method, args = fun.args)
+  # allow skipping of output if returned value from model fit function is missing
+  if (!length(fm) || (is.atomic(fm) && is.na(fm))) {
+    return(data.frame())
+  } else if (!inherits(fm, "lm")) {
+    stop("Method \"", method.name, "\" did not return a \"lm\" object")
+  }
+
+  fm.summary <- summary(fm)
   fm.class <- class(fm)
 
   # allow model formula selection by the model fit method
@@ -746,21 +770,28 @@ poly_eq_compute_group_fun <- function(data,
   } else {
     f.value <- f.df1 <- f.df2 <- p.value <- NA_real_
   }
-  if ("r.squared" %in% names(fm.summary)
-  ) {
+  if ("r.squared" %in% names(fm.summary)) {
     rr <- fm.summary[["r.squared"]]
     if (!all(is.finite(c(f.value, f.df1, f.df2))) ||
         rsquared.conf.level <= 0
         ) {
       rr.confint.low <- rr.confint.high <- NA_real_
     } else {
+      # error handler needs to be added as ci_rsquared() will call stop on non-convergence
+      # or alternatively implement a non-stop version of ci_rsquared()
       rr.confint <-
-        confintr::ci_rsquared(x = f.value,
+        try(confintr::ci_rsquared(x = f.value,
                               df1 = f.df1,
                               df2 = f.df2,
-                              probs = ((1 - rsquared.conf.level) / 2) * c(1, -1) + c(0, 1) )
-      rr.confint.low  <- rr.confint[["interval"]][1]
-      rr.confint.high <- rr.confint[["interval"]][2]
+                              probs = ((1 - rsquared.conf.level) / 2) * c(1, -1) + c(0, 1) ),
+            silent = TRUE)
+      if (inherits(rr.confint, what = "try-error")) {
+        warning("CI computation error: ", attr(rr.confint, "condition"))
+        rr.confint.low <- rr.confint.high <- NA_real_
+      } else {
+        rr.confint.low  <- rr.confint[["interval"]][1]
+        rr.confint.high <- rr.confint[["interval"]][2]
+      }
     }
   } else {
     rr <- rr.confint.low <- rr.confint.high <- NA_real_
@@ -808,230 +839,91 @@ poly_eq_compute_group_fun <- function(data,
                         b_0.constant = forced.origin)
     z <- cbind(z, tibble::as_tibble_row(coefs))
   } else {
-    # set defaults needed to assemble the equation as a character string
-    if (is.null(eq.x.rhs)) {
-      eq.x.rhs <- build_eq.x.rhs(output.type = output.type,
-                                 orientation = orientation)
-    }
+    if (mk.eq.label) {
+      # assemble the fitted polynomial equation as a character string
+      if (is.null(eq.x.rhs)) {
+        eq.x.rhs <- build_eq.x.rhs(output.type = output.type,
+                                   orientation = orientation)
+      }
 
-    if (is.character(eq.with.lhs)) {
-      lhs <- eq.with.lhs
-      eq.with.lhs <- TRUE
-    } else if (eq.with.lhs) {
-      lhs <- build_lhs(output.type = output.type,
-                       orientation = orientation)
+      if (is.character(eq.with.lhs)) {
+        lhs <- eq.with.lhs
+        eq.with.lhs <- TRUE
+      } else if (eq.with.lhs) {
+        lhs <- build_lhs(output.type = output.type,
+                         orientation = orientation)
+      } else {
+        lhs <- character(0)
+      }
+
+      eq.char <- coefs2poly_eq(coefs = coefs,
+                               coef.digits = coef.digits,
+                               coef.keep.zeros = coef.keep.zeros,
+                               decreasing = decreasing,
+                               eq.x.rhs = eq.x.rhs,
+                               lhs = lhs,
+                               output.type = output.type,
+                               decimal.mark = decimal.mark)
     } else {
-      lhs <- character(0)
+      # model formula is not a polynomial or no eq requested
+      eq.char <- NA_character_
     }
 
-    # build equation as a character string from the coefficient estimates
-    eq.char <- coefs2poly_eq(coefs = coefs,
-                             coef.digits = coef.digits,
-                             coef.keep.zeros = coef.keep.zeros,
-                             eq.x.rhs = eq.x.rhs,
-                             lhs = lhs,
-                             output.type = output.type,
-                             decimal.mark = decimal.mark)
-
-    # build the other character strings
-    stopifnot(rr.digits > 0)
-    if (rr.digits < 2) {
-      warning("'rr.digits < 2' Likely information loss!")
-    }
-    stopifnot(f.digits > 0)
-    if (f.digits < 2) {
-      warning("'f.digits < 2' Likely information loss!")
-    }
-    stopifnot(p.digits > 0)
-    if (p.digits < 2) {
-      warning("'p.digits < 2' Likely information loss!")
-    }
-
-    if (output.type == "expression") {
-      rr.char <- sprintf_dm("\"%#.*f\"", rr.digits, rr, decimal.mark = decimal.mark)
-      adj.rr.char <- sprintf_dm("\"%#.*f\"", rr.digits, adj.rr, decimal.mark = decimal.mark)
-      rr.confint.chr <- paste(sprintf_dm("%#.*f",
-                                rr.digits, rr.confint.low, decimal.mark = decimal.mark),
-                              sprintf_dm("%#.*f",
-                                         rr.digits, rr.confint.high, decimal.mark = decimal.mark),
-                              sep = range.sep)
-      if (as.logical((rsquared.conf.level * 100) %% 1)) {
-        conf.level.digits = 1L
-      } else {
-        conf.level.digits = 0L
-      }
-      conf.level.chr <- sprintf_dm("%.*f", conf.level.digits, rsquared.conf.level * 100, decimal.mark = decimal.mark)
-      AIC.char <- sprintf_dm("\"%.4g\"", AIC, decimal.mark = decimal.mark)
-      BIC.char <- sprintf_dm("\"%.4g\"", BIC, decimal.mark = decimal.mark)
-      f.value.char <- sprintf_dm("\"%#.*g\"", f.digits, f.value, decimal.mark = decimal.mark)
-      if (grepl("e", f.value.char)) {
-        f.value.char <- sprintf_dm("%#.*e", f.digits, f.value, decimal.mark = decimal.mark)
-        f.value.char <- paste(gsub("e", " %*% 10^{", f.value.char), "}", sep = "")
-      }
-      f.df1.char <- as.character(f.df1)
-      f.df2.char <- as.character(f.df2)
-      if (p.digits == Inf) {
-        p.value.char <- sprintf_dm("%#.2e", p.value, decimal.mark = decimal.mark)
-        p.value.char <- paste(gsub("e", " %*% 10^{", p.value.char), "}", sep = "")
-      } else {
-        p.value.char <- sprintf_dm("\"%#.*f\"", p.digits, p.value, decimal.mark = decimal.mark)
-      }
-    } else {
-      rr.char <- sprintf_dm("%#.*f", rr.digits, rr, decimal.mark = decimal.mark)
-      adj.rr.char <- sprintf_dm("%#.*f", rr.digits, adj.rr, decimal.mark = decimal.mark)
-      rr.confint.chr <- paste(sprintf_dm("%#.*f",
-                                         rr.digits, rr.confint.low, decimal.mark = decimal.mark),
-                              sprintf_dm("%#.*f",
-                                         rr.digits, rr.confint.high, decimal.mark = decimal.mark),
-                              sep = range.sep)
-      if (as.logical((rsquared.conf.level * 100) %% 1)) {
-        conf.level.digits = 1L
-      } else {
-        conf.level.digits = 0L
-      }
-      conf.level.chr <- sprintf_dm("%.*f", conf.level.digits, rsquared.conf.level * 100, decimal.mark = decimal.mark)
-      AIC.char <- sprintf_dm("%.4g", AIC, decimal.mark = decimal.mark)
-      BIC.char <- sprintf_dm("%.4g", BIC, decimal.mark = decimal.mark)
-      f.value.char <- sprintf_dm("%#.*g", f.digits, f.value, decimal.mark = decimal.mark)
-      f.df1.char <- as.character(f.df1)
-      f.df2.char <- as.character(f.df2)
-      if (p.digits == Inf) {
-        p.value.char <- sprintf_dm("%#.2e", p.value, decimal.mark = decimal.mark)
-      } else {
-        p.value.char <- sprintf_dm("%#.*f", p.digits, p.value, decimal.mark = decimal.mark)
-      }
-    }
-
-    # build the data frames to return
-    if (output.type == "expression") {
-      z <- tibble::tibble(eq.label = eq.char,
-                          rr.label =
-                            # character(0) instead of "" avoids in paste() the insertion of sep for missing labels
-                            ifelse(is.na(rr) || is.nan(rr), character(0L),
-                                   paste(ifelse(small.r, "italic(r)^2", "italic(R)^2"),
-                                         ifelse(rr < 10^(-rr.digits) & rr != 0,
-                                                sprintf_dm("\"%.*f\"", rr.digits, 10^(-rr.digits), decimal.mark = decimal.mark),
-                                                rr.char),
-                                         sep = ifelse(rr < 10^(-rr.digits) & rr != 0,
-                                                      "~`<`~",
-                                                      "~`=`~"))),
-                          adj.rr.label =
-                            ifelse(is.na(adj.rr) || is.nan(adj.rr), character(0L),
-                                   paste(ifelse(small.r, "italic(r)[adj]^2", "italic(R)[adj]^2"),
-                                         ifelse(adj.rr < 10^(-rr.digits) & adj.rr != 0,
-                                                sprintf_dm("\"%.*f\"", rr.digits, 10^(-rr.digits), decimal.mark = decimal.mark),
-                                                adj.rr.char),
-                                         sep = ifelse(adj.rr < 10^(-rr.digits) & adj.rr != 0,
-                                                      "~`<`~",
-                                                      "~`=`~"))),
-                          rr.confint.label =
-                            paste("\"", conf.level.chr, "% CI ", CI.brackets[1], rr.confint.chr, CI.brackets[2], "\"", sep = ""),
-                          AIC.label =
-                            ifelse(is.na(AIC) || is.nan(AIC), character(0L),
-                                   paste("AIC", AIC.char, sep = "~`=`~")),
-                          BIC.label =
-                            ifelse(is.na(BIC) || is.nan(BIC), character(0L),
-                                   paste("BIC", BIC.char, sep = "~`=`~")),
-                          f.value.label =
-                            ifelse(is.na(f.value) || is.nan(f.value), character(0L),
-                                   paste("italic(F)[", f.df1.char,
-                                         "*\",\"*", f.df2.char,
-                                         "]~`=`~", f.value.char, sep = "")),
-                          p.value.label =
-                            ifelse(is.na(p.value) || is.nan(p.value), character(0L),
-                                   paste(ifelse(small.p, "italic(p)",  "italic(P)"),
-                                         ifelse(p.value < 10^(-p.digits),
-                                                sprintf_dm("\"%.*f\"", p.digits, 10^(-p.digits), decimal.mark = decimal.mark),
-                                                p.value.char),
-                                         sep = ifelse(p.value < 10^(-p.digits),
-                                                      "~`<`~",
-                                                      "~`=`~"))),
-                          n.label = paste("italic(n)~`=`~\"", n, "\"", sep = ""),
-                          grp.label = grp.label,
-                          method.label = paste("\"method: ", method.name, "\"", sep = ""),
-                          r.squared = rr,
-                          adj.r.squared = adj.rr,
-                          p.value = p.value,
-                          n = n)
-    } else if (output.type %in% c("latex", "tex", "text", "tikz")) {
-      z <- tibble::tibble(eq.label = eq.char,
-                          rr.label =
-                            # character(0) instead of "" avoids in paste() the insertion of sep for missing labels
-                            ifelse(is.na(rr) || is.nan(rr), character(0L),
-                                   paste(ifelse(small.r, "r^2", "R^2"),
-                                         ifelse(rr < 10^(-rr.digits), as.character(10^(-rr.digits)), rr.char),
-                                         sep = ifelse(rr < 10^(-rr.digits), " < ", " = "))),
-                          adj.rr.label =
-                            ifelse(is.na(adj.rr) || is.nan(adj.rr), character(0L),
-                                   paste(ifelse(small.r, "r_{adj}^2", "R_{adj}^2"),
-                                         ifelse(adj.rr < 10^(-rr.digits), as.character(10^(-rr.digits)), adj.rr.char),
-                                         sep = ifelse(adj.rr < 10^(-rr.digits), " < ", " = "))),
-                          rr.confint.label =
-                            paste(conf.level.chr, "% CI ", CI.brackets[1], rr.confint.chr, CI.brackets[2], sep = ""),
-                          AIC.label =
-                            ifelse(is.na(AIC) || is.nan(AIC), character(0L),
-                                   paste("AIC", AIC.char, sep = " = ")),
-                          BIC.label =
-                            ifelse(is.na(BIC) || is.nan(BIC), character(0L),
-                                   paste("BIC", BIC.char, sep = " = ")),
-                          f.value.label =
-                            ifelse(is.na(f.value) || is.nan(f.value), character(0L),
-                                   paste("F_{", f.df1.char, ",", f.df2.char,
-                                         "} = ", f.value.char, sep = "")),
-                          p.value.label =
-                            ifelse(is.na(p.value), character(0L),
-                                   paste(ifelse(small.p, "p",  "P"),
-                                         ifelse(p.value < 10^(-p.digits), as.character(10^(-p.digits)), p.value.char),
-                                         sep = ifelse(p.value < 10^(-p.digits), " < ", " = "))),
-                          n.label = paste("n = ", n, sep = ""),
-                          grp.label = grp.label,
-                          method.label = paste("method: ", method.name, sep = ""),
-                          r.squared = rr,
-                          adj.r.squared = adj.rr,
-                          p.value = p.value,
-                          n = n)
-    } else if (output.type == "markdown") {
-      z <- tibble::tibble(eq.label = eq.char,
-                          rr.label =
-                            # character(0) instead of "" avoids in paste() the insertion of sep for missing labels
-                            ifelse(is.na(rr) || is.nan(rr), character(0L),
-                                   paste(ifelse(small.r, "_r_<sup>2</sup>", "_R_<sup>2</sup>"),
-                                         ifelse(rr < 10^(-rr.digits), as.character(10^(-rr.digits)), rr.char),
-                                         sep = ifelse(rr < 10^(-rr.digits), " < ", " = "))),
-                          adj.rr.label =
-                            ifelse(is.na(adj.rr) || is.nan(adj.rr), character(0L),
-                                   paste(ifelse(small.r, "_r_<sup>2</sup><sub>adj</sub>", "_R_<sup>2</sup><sub>adj</sub>"),
-                                         ifelse(adj.rr < 10^(-rr.digits), as.character(10^(-rr.digits)), adj.rr.char),
-                                         sep = ifelse(adj.rr < 10^(-rr.digits), " < ", " = "))),
-                          rr.confint.label =
-                            paste(conf.level.chr, "% CI ", CI.brackets[1], rr.confint.chr, CI.brackets[2], sep = ""),
-                          AIC.label =
-                            ifelse(is.na(AIC) || is.nan(AIC), character(0L),
-                                   paste("AIC", AIC.char, sep = " = ")),
-                          BIC.label =
-                            ifelse(is.na(BIC) || is.nan(BIC), character(0L),
-                                   paste("BIC", BIC.char, sep = " = ")),
-                          f.value.label =
-                            ifelse(is.na(f.value) || is.nan(f.value), character(0L),
-                                   paste("_F_<sub>", f.df1.char, ",", f.df2.char,
-                                         "</sub> = ", f.value.char, sep = "")),
-                          p.value.label =
-                            ifelse(is.na(p.value) || is.nan(p.value), character(0L),
-                                   paste(ifelse(small.p, "_p_", "_P_"),
-                                         ifelse(p.value < 10^(-p.digits), as.character(10^(-p.digits)), p.value.char),
-                                         sep = ifelse(p.value < 10^(-p.digits), " < ", " = "))),
-                          n.label = paste("_n_ = ", n, sep = ""),
-                          grp.label = grp.label,
-                          method.label = paste("method: ", method.name, sep = ""),
-                          r.squared = rr,
-                          adj.r.squared = adj.rr,
-                          p.value = p.value,
-                          n = n)
-    } else {
-      warning("Unknown 'output.type' argument: ", output.type)
-    }
+    # assemble the data frame to return
+    z <- data.frame(eq.label = eq.char,
+                    rr.label = rr_label(value = rr,
+                                        small.r = small.r,
+                                        digits = rr.digits,
+                                        output.type = output.type,
+                                        decimal.mark = decimal.mark),
+                    adj.rr.label = adj_rr_label(value = adj.rr,
+                                                small.r = small.r,
+                                                digits = rr.digits,
+                                                output.type = output.type,
+                                                decimal.mark = decimal.mark),
+                    rr.confint.label = rr_ci_label(value = c(rr.confint.low, rr.confint.high),
+                                                   conf.level = rsquared.conf.level,
+                                                   range.brackets = CI.brackets,
+                                                   range.sep = NULL,
+                                                   digits = rr.digits,
+                                                   output.type = output.type,
+                                                   decimal.mark = decimal.mark),
+                    AIC.label = plain_label(value = AIC,
+                                            value.name = "AIC",
+                                            digits = 4,
+                                            output.type = output.type,
+                                            decimal.mark = decimal.mark),
+                    BIC.label = plain_label(value = BIC,
+                                            value.name = "BIC",
+                                            digits = 4,
+                                            output.type = output.type,
+                                            decimal.mark = decimal.mark),
+                    f.value.label = f_value_label(value = f.value,
+                                                  df1 = f.df1,
+                                                  df2 = f.df2,
+                                                  digits = f.digits,
+                                                  output.type = output.type,
+                                                  decimal.mark = decimal.mark),
+                    p.value.label = p_value_label(value = p.value,
+                                                  small.p = small.p,
+                                                  digits = p.digits,
+                                                  output.type = output.type,
+                                                  decimal.mark = decimal.mark),
+                    n.label = italic_label(value = n,
+                                           value.name = "n",
+                                           digits = 0,
+                                           fixed = TRUE,
+                                           output.type = output.type,
+                                           decimal.mark = decimal.mark),
+                    grp.label = grp.label,
+                    method.label = paste("\"method: ", method.name, "\"", sep = ""),
+                    r.squared = rr,
+                    adj.r.squared = adj.rr,
+                    p.value = p.value,
+                    n = n)
   }
 
+  # add members common to numeric and other output types
   z[["fm.method"]] <- method.name
   z[["fm.class"]] <- fm.class[1]
   z[["fm.formula"]] <- formula.ls
@@ -1103,158 +995,3 @@ StatPolyEq <-
                    optional_aes = "grp.label"
   )
 
-### Utility functions shared between stat_poly_eq() and stat_quant_eq()
-# when stable will be exported
-#
-build_eq.x.rhs <- function(output.type = "expression",
-                           orientation = "x") {
-  if (orientation == "x") {
-    if (output.type == "expression") {
-      "~italic(x)"
-    } else if (output.type == "markdown") {
-      "_x_"
-    } else{
-      " x"
-    }
-  } else if (orientation == "y") {
-    if (output.type == "expression") {
-      "~italic(y)"
-    } else if (output.type == "markdown") {
-      "_y_"
-    } else{
-      " y"
-    }
-  }
-}
-
-build_lhs <- function(output.type = "expression",
-                      orientation = "x") {
-  if (orientation == "x") {
-    if (output.type == "expression") {
-      "italic(y)~`=`~"
-    } else if (output.type %in% c("latex", "tex", "tikz", "text")) {
-       "y = "
-    } else if (output.type == "markdown") {
-      "_y_ = "
-    }
-  } else if (orientation == "y") {
-    if (output.type == "expression") {
-      "italic(x)~`=`~"
-    } else if (output.type %in% c("latex", "tex", "tikz", "text")) {
-      "x = "
-    } else if (output.type == "markdown") {
-      "_x_ = "
-    }
-  }
-}
-
-coefs2poly_eq <- function(coefs,
-                          coef.digits = 3L,
-                          coef.keep.zeros = TRUE,
-                          eq.x.rhs = "x",
-                          lhs = "y~`=`~",
-                          output.type = "expression",
-                          decimal.mark = ".") {
-  # build equation as a character string from the coefficient estimates
-  stopifnot(coef.digits > 0)
-  if (coef.digits < 3) {
-    warning("'coef.digits < 3' Likely information loss!")
-  }
-  eq.char <- as.character(polynom::as.polynomial(coefs),
-                          digits = coef.digits,
-                          keep.zeros = coef.keep.zeros)
-  eq.char <- typeset_numbers(eq.char, output.type)
-  if (output.type != "expression") { # parse() does the conversion
-    if (decimal.mark == ".") {
-      eq.char <- gsub(",", decimal.mark, eq.char, fixed = TRUE)
-    } else {
-      eq.char <- gsub(".", decimal.mark, eq.char, fixed = TRUE)
-    }
-  }
-
-  if (eq.x.rhs != "x") {
-    eq.char <- gsub("x", eq.x.rhs, eq.char, fixed = TRUE)
-  }
-  if (length(lhs)) {
-    eq.char <- paste(lhs, eq.char, sep = "")
-  }
-
-  eq.char
-}
-
-# based on idea in answer by slamballais to Stackoverflow question
-# at https://stackoverflow.com/questions/67942485/
-#
-# This is an edit of the code in package 'polynom' so that trailing zeros are
-# retained during the conversion
-#' @noRd
-#' @noMd
-#' @export
-#' @method as.character polynomial
-#'
-as.character.polynomial <- function (x,
-                                     decreasing = FALSE,
-                                     digits = 3,
-                                     keep.zeros = TRUE,
-                                     ...) {
-  if (keep.zeros) {
-    p <- sprintf("%#.*g", digits, x)
-  } else {
-    p <- sprintf("%.*g", digits, x)
-  }
-  lp <- length(p) - 1
-  names(p) <- 0:lp
-  p <- p[as.numeric(p) != 0]
-  if (length(p) == 0)
-    return("0")
-  if (decreasing)
-    p <- rev(p)
-  signs <- ifelse(as.numeric(p) < 0, "- ", "+ ")
-  signs[1] <- if (signs[1] == "- ") "-" else ""
-  np <- names(p)
-  pow <- paste("x^", np, sep = "")
-  pow[np == "0"] <- ""
-  pow[np == "1"] <- "x"
-  stars <- rep.int("*", length(p))
-  stars[p == "" | pow == ""] <- ""
-  p <- gsub("^-", "", p)
-  paste0(signs, p, stars, pow, collapse = " ")
-}
-
-# exponential number notation to typeset equivalent: Protecting trailing zeros
-# in negative numbers is more involved than I would like. Not only we need to
-# enclose numbers in quotations marks but we also need to replace dashes with
-# the minus character. I am not sure we can do the replacement portably, but
-# that recent R supports UTF gives some hope.
-#
-typeset_numbers <- function(eq.char, output.type) {
-  if (output.type == "markdown") {
-    eq.char <- gsub("e([+-]?)[0]([1-9]*)", "&times;10<sup>\\1\\2</sup>", eq.char)
-    eq.char <- gsub("[:^]([0-9]*)", "<sup>\\1</sup>", eq.char)
-    eq.char <- gsub("*", "&nbsp;", eq.char, fixed = TRUE)
-    eq.char <- gsub(" ", "", eq.char, fixed = TRUE)
-  } else {
-    eq.char <- gsub("e([+-]?[0-9]*)", "%*% 10^{\\1}", eq.char)
-    # muliplication symbol
-    if (output.type %in% c("latex", "tikz")) {
-      eq.char <- gsub("%*%", "\\times{}", eq.char, fixed = TRUE)
-      eq.char <- gsub("*", "", eq.char, fixed = TRUE)
-    } else if (output.type == "text") {
-      eq.char <- gsub("[{]|[}]", "", eq.char, fixed = FALSE)
-      eq.char <- gsub("%*%", "", eq.char, fixed = TRUE)
-      eq.char <- gsub("*", " ", eq.char, fixed = TRUE)
-      eq.char <- gsub("  ", " ", eq.char, fixed = TRUE)
-    }
-  }
-  eq.char
-}
-
-# replace decimal mark used by sprintf() if needed
-sprintf_dm <- function(fmt, ..., decimal.mark = ".") {
-  if (decimal.mark != ".") {
-    gsub(".", decimal.mark, sprintf(fmt, ...), fixed = TRUE)
-  } else {
-    # in case OS locale uses ","
-    gsub(",", ".", sprintf(fmt, ...), fixed = TRUE)
-  }
-}

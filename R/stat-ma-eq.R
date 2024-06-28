@@ -25,7 +25,7 @@
 #' @param na.rm a logical indicating whether NA values should be stripped before
 #'   the computation proceeds.
 #' @param formula a formula object. Using aesthetic names \code{x} and \code{y}
-#'   instead of original variable names.
+#'   instead of original variable names. Either \code{y ~ x} or \code{x ~ y}.
 #' @param range.y,range.x character Pass "relative" or "interval" if method
 #'   "RMA" is to be computed.
 #' @param method function or character If character, "MA", "SMA" , "RMA" or
@@ -50,6 +50,8 @@
 #'   the fitted coefficients.
 #' @param coef.keep.zeros logical Keep or drop trailing zeros when formatting
 #'   the fitted coefficients and F-value.
+#' @param decreasing logical It specifies the order of the terms in the
+#'   returned character string; in increasing (default) or decreasing powers.
 #' @param rr.digits,theta.digits,p.digits integer Number of digits after the
 #'   decimal point to use for R^2, theta and P-value in labels. If \code{Inf},
 #'   use exponential notation with three decimal places.
@@ -90,13 +92,14 @@
 #'   is rendered, i.e., displayed or printed. Set \code{options(OutDec = ",")}
 #'   for languages like Spanish or French.
 #'
-#' @details This stat can be used to automatically annotate a plot with \eqn{R^2},
-#'   \eqn{P}-value, \eqn{n} and/or the fitted model equation. It supports linear major axis
-#'   (MA), standard major axis (SMA) and ranged major axis (RMA) regression by
-#'   means of function \code{\link[lmodel2]{lmodel2}}. Please see the
-#'   documentation, including the vignette of package 'lmodel2' for details.
-#'   The parameters in \code{stat_ma_eq()} follow the same naming as in function
-#'   \code{lmodel2()}.
+#' @details This stat can be used to automatically annotate a plot with
+#'   \eqn{R^2}, \eqn{P}-value, \eqn{n} and/or the fitted model equation. It
+#'   supports linear major axis (MA), standard major axis (SMA) and ranged major
+#'   axis (RMA) regression by means of function \code{\link[lmodel2]{lmodel2}}.
+#'   Formulas describing a straight line and including an intercept are the
+#'   only ones currently supported. Please see the documentation, including the
+#'   vignette of package 'lmodel2' for details. The parameters in
+#'   \code{stat_ma_eq()} follow the same naming as in function \code{lmodel2()}.
 #'
 #'   It is important to keep in mind that although the fitted line does not
 #'   depend on whether the \eqn{x} or \eqn{y} appears on the rhs of the model
@@ -105,15 +108,23 @@
 #'   A ggplot statistic receives as \code{data} a data frame that is not the one
 #'   passed as argument by the user, but instead a data frame with the variables
 #'   mapped to aesthetics. \code{stat_ma_eq()} mimics how \code{stat_smooth()}
-#'   works, except that only linear regression can be fitted. Similarly to these
-#'   statistics the model fits respect grouping, so the scales used for \code{x}
-#'   and \code{y} should both be continuous scales rather than discrete.
+#'   works, except that Model II regressions can be fitted. Similarly to
+#'   \code{stat_smooth()} the model is fitted separately to data from each
+#'   group, so the variables mapped to \code{x} and \code{y} should both be
+#'   continuous rather than discrete as well as the corresponding scales.
 #'
 #'   The minimum number of observations with distinct values can be set through
 #'   parameter \code{n.min}. The default \code{n.min = 2L} is the smallest
 #'   possible value. However, model fits with very few observations are of
 #'   little interest and using a larger number for \code{n.min} than the default
 #'   is usually wise.
+#'
+#' @section User-defined methods: User-defined functions can be passed as
+#'   argument to \code{method}. The requirements are 1) that the signature is
+#'   similar to that of function \code{lmodel2()} and 2) that the value returned
+#'   by the function is an object as returned by \code{lmodel2()} or an atomic
+#'   \code{NA} value. Thus, user-defined methods can implement conditional
+#'   skipping of labelling.
 #'
 #' @section Aesthetics: \code{stat_ma_eq} understands \code{x} and \code{y}, to
 #'   be referenced in the \code{formula} while the \code{weight} aesthetic is
@@ -123,8 +134,8 @@
 #'
 #'   \emph{Transformation of \code{x} or \code{y} within the model formula
 #'   is not supported by \code{stat_ma_eq()}. In this case, transformations
-#'   should never be applied in the model formula, but instead in the mapping
-#'   of the variables within \code{aes}.}
+#'   should not be applied in the model formula, but instead in the mapping
+#'   of the variables within \code{aes} or in the scales.}
 #'
 #' @return A data frame, with a single row and columns as described under
 #'   \strong{Computed variables}. In cases when the number of observations is
@@ -132,9 +143,9 @@
 #'   rendered as an empty/invisible plot layer.
 #'
 #' @section Computed variables:
-#' If output.type different from \code{"numeric"} the returned tibble contains
-#' columns listed below. If the fitted model does not contain a given value,
-#' the label is set to \code{character(0L)}.
+#' If \code{output.type} is different from \code{"numeric"} the returned tibble
+#' contains columns listed below. If the fitted model does not contain a given
+#' value, the label is set to \code{character(0L)}.
 #' \describe{
 #'   \item{x,npcx}{x position}
 #'   \item{y,npcy}{y position}
@@ -189,16 +200,26 @@
 #'   stat_ma_line() +
 #'   stat_ma_eq()
 #'
+#' ggplot(my.data, aes(x, y)) +
+#'   geom_point() +
+#'   stat_ma_line() +
+#'   stat_ma_eq(mapping = use_label("eq"))
+#'
+#' ggplot(my.data, aes(x, y)) +
+#'   geom_point() +
+#'   stat_ma_line() +
+#'   stat_ma_eq(mapping = use_label("eq"), decreasing = TRUE)
+#'
 #' # use_label() can assemble and map a combined label
 #' ggplot(my.data, aes(x, y)) +
 #'   geom_point() +
 #'   stat_ma_line(method = "MA") +
-#'   stat_ma_eq(use_label(c("eq", "R2", "P")))
+#'   stat_ma_eq(mapping = use_label("eq", "R2", "P"))
 #'
 #' ggplot(my.data, aes(x, y)) +
 #'   geom_point() +
 #'   stat_ma_line(method = "MA") +
-#'   stat_ma_eq(use_label(c("R2", "P", "theta", "method")))
+#'   stat_ma_eq(mapping = use_label("R2", "P", "theta", "method"))
 #'
 #' # using ranged major axis regression
 #' ggplot(my.data, aes(x, y)) +
@@ -206,7 +227,7 @@
 #'   stat_ma_line(method = "RMA",
 #'                range.y = "interval",
 #'                range.x = "interval") +
-#'   stat_ma_eq(use_label(c("eq", "R2", "P")),
+#'   stat_ma_eq(mapping = use_label("eq", "R2", "P"),
 #'              method = "RMA",
 #'              range.y = "interval",
 #'              range.x = "interval")
@@ -215,7 +236,7 @@
 #' ggplot(my.data, aes(x, y)) +
 #'   geom_point() +
 #'   stat_ma_line(method = "MA") +
-#'   stat_ma_eq(use_label(c("eq", "R2")),
+#'   stat_ma_eq(mapping = use_label("eq", "R2"),
 #'              method = "MA",
 #'              nperm = 0)
 #'
@@ -224,13 +245,13 @@
 #'   geom_point() +
 #'   stat_ma_line(formula = x ~ y) +
 #'   stat_ma_eq(formula = x ~ y,
-#'              use_label(c("eq", "R2", "P")))
+#'              mapping = use_label("eq", "R2", "P"))
 #'
 #' # modifying both variables within aes()
 #' ggplot(my.data, aes(log(x + 10), log(y + 10))) +
 #'   geom_point() +
 #'   stat_poly_line() +
-#'   stat_poly_eq(use_label("eq"),
+#'   stat_poly_eq(mapping = use_label("eq"),
 #'                eq.x.rhs = "~~log(x+10)",
 #'                eq.with.lhs = "log(y+10)~~`=`~~")
 #'
@@ -245,7 +266,7 @@
 #'        aes(x, y,  shape = group, linetype = group, grp.label = group)) +
 #'   geom_point() +
 #'   stat_ma_line(color = "black") +
-#'   stat_ma_eq(use_label(c("grp", "eq", "R2"))) +
+#'   stat_ma_eq(mapping = use_label("grp", "eq", "R2")) +
 #'   theme_classic()
 #'
 #' # Inspecting the returned data using geom_debug()
@@ -267,7 +288,7 @@
 #' if (gginnards.installed)
 #'   ggplot(my.data, aes(x, y)) +
 #'     geom_point() +
-#'     stat_ma_eq(aes(label = after_stat(eq.label)),
+#'     stat_ma_eq(mapping = aes(label = after_stat(eq.label)),
 #'                geom = "debug",
 #'                output.type = "markdown")
 #'
@@ -297,10 +318,11 @@ stat_ma_eq <- function(mapping = NULL, data = NULL,
                        nperm = 99,
                        eq.with.lhs = TRUE,
                        eq.x.rhs = NULL,
-                       small.r = FALSE,
-                       small.p = FALSE,
+                       small.r = getOption("ggpmisc.small.r", default = FALSE),
+                       small.p = getOption("ggpmisc.small.p", default = FALSE),
                        coef.digits = 3,
                        coef.keep.zeros = TRUE,
+                       decreasing = getOption("ggpmisc.decreasing.poly.eq", FALSE),
                        rr.digits = 2,
                        theta.digits = 2,
                        p.digits = max(1, ceiling(log10(nperm))),
@@ -334,7 +356,7 @@ stat_ma_eq <- function(mapping = NULL, data = NULL,
   }
 
   if (is.null(output.type)) {
-    if (geom %in% c("richtext", "textbox")) {
+    if (geom %in% c("richtext", "textbox", "marquee")) {
       output.type <- "markdown"
     } else {
       output.type <- "expression"
@@ -349,10 +371,9 @@ stat_ma_eq <- function(mapping = NULL, data = NULL,
     } else if (grepl("^lm$|^lm[:]|^rlm$|^rlm[:]", method)) {
       stop("Methods 'lm' and 'rlm' not supported, please use 'stat_poly_eq()'.")
     }
-  }
-
-  if (grepl("RMA$", method) && (is.null(range.y) || is.null(range.x))) {
-    stop("Method \"RMA\" is computed only if both 'range.x' and 'range.y' are set.")
+    if (grepl("RMA$", method) && (is.null(range.y) || is.null(range.x))) {
+      stop("Method \"RMA\" is computed only if both 'range.x' and 'range.y' are set.")
+    }
   }
 
   ggplot2::layer(
@@ -377,6 +398,7 @@ stat_ma_eq <- function(mapping = NULL, data = NULL,
                    small.p = small.p,
                    coef.digits = coef.digits,
                    coef.keep.zeros = coef.keep.zeros,
+                   decreasing = decreasing,
                    rr.digits = rr.digits,
                    theta.digits = theta.digits,
                    p.digits = p.digits,
@@ -407,29 +429,30 @@ stat_ma_eq <- function(mapping = NULL, data = NULL,
 ma_eq_compute_group_fun <- function(data,
                                     scales,
                                     method,
-                                    method.args,
-                                    formula,
-                                    n.min,
-                                    range.y,
-                                    range.x,
-                                    nperm,
-                                    eq.with.lhs,
-                                    eq.x.rhs,
-                                    small.r,
-                                    small.p,
-                                    coef.digits,
-                                    coef.keep.zeros,
-                                    rr.digits,
-                                    theta.digits,
-                                    p.digits,
-                                    label.x,
-                                    label.y,
-                                    hstep,
-                                    vstep,
-                                    npc.used,
-                                    output.type,
-                                    na.rm,
-                                    orientation) {
+                                    method.args = list(),
+                                    formula = y ~ x,
+                                    n.min = 2L,
+                                    range.y = NULL,
+                                    range.x = NULL,
+                                    nperm = 99,
+                                    eq.with.lhs = TRUE,
+                                    eq.x.rhs = NULL,
+                                    small.r = FALSE,
+                                    small.p = FALSE,
+                                    coef.digits = 3L,
+                                    coef.keep.zeros = TRUE,
+                                    decreasing = FALSE,
+                                    rr.digits = 2L,
+                                    theta.digits = 2L,
+                                    p.digits = max(1, ceiling(log10(nperm))),
+                                    label.x = "left",
+                                    label.y = "top",
+                                    hstep = 0,
+                                    vstep = 0.1,
+                                    npc.used = TRUE,
+                                    output.type = "expression",
+                                    na.rm = FALSE,
+                                    orientation = "x") {
   force(data)
 
   if (length(unique(data$x)) < n.min ||
@@ -445,7 +468,6 @@ ma_eq_compute_group_fun <- function(data,
     warning("Decimal mark must be one of '.' or ',', not: '", decimal.mark, "'")
     decimal.mark <- "."
   }
-#  range.sep <- c("." = ", ", "," = "; ")[decimal.mark]
 
   output.type <- if (!length(output.type)) {
     "expression"
@@ -564,7 +586,9 @@ ma_eq_compute_group_fun <- function(data,
     }
   })
 
-  if (!inherits(fm, "lmodel2")) {
+  if (!length(fm) || (is.atomic(fm) && is.na(fm))) {
+    return(data.frame())
+  } else if (!inherits(fm, "lmodel2")) {
     stop("Method \"", method.name, "\" did not return a \"lmodel2\" object")
   }
   fm.class <- class(fm)
@@ -598,7 +622,7 @@ ma_eq_compute_group_fun <- function(data,
                         b_0.constant = forced.origin)
     z <- cbind(z, tibble::as_tibble_row(coefs))
   } else {
-    # set defaults needed to assemble the equation as a character string
+    # assemble the equation as a character string
     if (is.null(eq.x.rhs)) {
       eq.x.rhs <- build_eq.x.rhs(output.type = output.type,
                                  orientation = orientation)
@@ -614,125 +638,53 @@ ma_eq_compute_group_fun <- function(data,
       lhs <- character(0)
     }
 
-    # build equation as a character string from the coefficient estimates
     eq.char <- coefs2poly_eq(coefs = coefs,
                              coef.digits = coef.digits,
                              coef.keep.zeros = coef.keep.zeros,
+                             decreasing = decreasing,
                              eq.x.rhs = eq.x.rhs,
                              lhs = lhs,
                              output.type = output.type,
                              decimal.mark = decimal.mark)
 
     # build the other character strings
-    stopifnot(rr.digits > 0)
-    if (rr.digits < 2) {
-      warning("'rr.digits < 2' Likely information loss!")
-    }
-    stopifnot(theta.digits > 0)
-    if (theta.digits < 2) {
-      warning("'theta.digits < 2' Likely information loss!")
-    }
-    stopifnot(p.digits > 0)
-    if (p.digits < 2) {
-      warning("'p.digits < 2' Likely information loss!")
-    }
-
-    if (output.type == "expression") {
-      rr.char <- sprintf_dm("\"%#.*f\"", rr.digits, rr, decimal.mark = decimal.mark)
-      theta.char <- sprintf_dm("\"%#.*f\"", theta.digits, theta, decimal.mark = decimal.mark)
-      if (p.digits == Inf) {
-        p.value.char <- sprintf_dm("%#.2e", p.value, decimal.mark = decimal.mark)
-        p.value.char <- paste(gsub("e", " %*% 10^{", p.value.char), "}", sep = "")
-      } else {
-        p.value.char <- sprintf_dm("\"%#.*f\"", p.digits, p.value, decimal.mark = decimal.mark)
-      }
-    } else {
-      rr.char <- sprintf_dm("%#.*f", rr.digits, rr, decimal.mark = decimal.mark)
-      theta.char <- sprintf_dm("%#.*f", theta.digits, theta, decimal.mark = decimal.mark)
-      if (p.digits == Inf) {
-        p.value.char <- sprintf_dm("%#.2e", p.value, decimal.mark = decimal.mark)
-      } else {
-        p.value.char <- sprintf_dm("%#.*f", p.digits, p.value, decimal.mark = decimal.mark)
-      }
-     }
-
-    # build the data frames to return
-    if (output.type == "expression") {
-      z <- tibble::tibble(eq.label = eq.char,
-                          rr.label =
-                            # character(0) instead of "" avoids in paste() the insertion of sep for missing labels
-                            ifelse(is.na(rr), character(0L),
-                                   paste(ifelse(small.r, "italic(r)^2", "italic(R)^2"),
-                                         ifelse(rr < 10^(-rr.digits) & rr != 0,
-                                                sprintf_dm("\"%.*f\"", rr.digits, 10^(-rr.digits), decimal.mark = decimal.mark),
-                                                rr.char),
-                                         sep = ifelse(rr < 10^(-rr.digits) & rr != 0,
-                                                      "~`<`~",
-                                                      "~`=`~"))),
-                          p.value.label =
-                            ifelse(is.na(p.value), character(0L),
-                                   paste(ifelse(small.p, "italic(p)[perm]",  "italic(P)[perm]"),
-                                         ifelse(p.value < 10^(-p.digits),
-                                                sprintf_dm("\"%.*f\"", p.digits, 10^(-p.digits), decimal.mark = decimal.mark),
-                                                p.value.char),
-                                         sep = ifelse(p.value < 10^(-p.digits),
-                                                      "~`<`~",
-                                                      "~`=`~"))),
-                          theta.label = paste("italic(theta)~`=`~", theta.char, sep = ""),
-                          n.label = paste("italic(n)~`=`~\"", n, "\"", sep = ""),
-                          grp.label = grp.label,
-                          method.label = paste("\"method: ", method.name, "\"", sep = ""),
-                          r.squared = rr,
-                          theta = theta,
-                          p.value = p.value,
-                          n = n)
-    } else if (output.type %in% c("latex", "tex", "text", "tikz")) {
-      z <- tibble::tibble(eq.label = eq.char,
-                          rr.label =
-                            # character(0) instead of "" avoids in paste() the insertion of sep for missing labels
-                            ifelse(is.na(rr), character(0L),
-                                   paste(ifelse(small.r, "r^2", "R^2"),
-                                         ifelse(rr < 10^(-rr.digits), as.character(10^(-rr.digits)), rr.char),
-                                         sep = ifelse(rr < 10^(-rr.digits), " < ", " = "))),
-                          p.value.label =
-                            ifelse(is.na(p.value), character(0L),
-                                   paste(ifelse(small.p, "p_{perm}",  "P_{perm}"),
-                                         ifelse(p.value < 10^(-p.digits), as.character(10^(-p.digits)), p.value.char),
-                                         sep = ifelse(p.value < 10^(-p.digits), " < ", " = "))),
-                          theta.label = paste("theta", theta.char, sep = " = "),
-                          n.label = paste("n", n, sep = " = "),
-                          grp.label = grp.label,
-                          method.label = paste("method: ", method.name, sep = ""),
-                          r.squared = rr,
-                          theta = theta,
-                          p.value = p.value,
-                          n = n)
-    } else if (output.type == "markdown") {
-      z <- tibble::tibble(eq.label = eq.char,
-                          rr.label =
-                            # character(0) instead of "" avoids in paste() the insertion of sep for missing labels
-                            ifelse(is.na(rr), character(0L),
-                                   paste(ifelse(small.r, "_r_<sup>2</sup>", "_R_<sup>2</sup>"),
-                                         ifelse(rr < 10^(-rr.digits), as.character(10^(-rr.digits)), rr.char),
-                                         sep = ifelse(rr < 10^(-rr.digits), " < ", " = "))),
-                          p.value.label =
-                            ifelse(is.na(p.value), character(0L),
-                                   paste(ifelse(small.p, "_p_<sub>perm</sub>", "_P_<sub>perm</sub>"),
-                                         ifelse(p.value < 10^(-p.digits), as.character(10^(-p.digits)), p.value.char),
-                                         sep = ifelse(p.value < 10^(-p.digits), " < ", " = "))),
-                          theta.label = paste("_&theta;_", theta.char, sep = " = "),
-                          n.label = paste("_n_ = ", n, sep = ""),
-                          grp.label = grp.label,
-                          method.label = paste("method: ", method.name, sep = ""),
-                          r.squared = rr,
-                          theta = theta,
-                          p.value = p.value,
-                          n = n)
-    } else {
-      warning("Unknown 'output.type' argument: ", output.type)
-    }
+    z <- data.frame(eq.label = eq.char,
+                    rr.label = rr_label(value = rr,
+                                        small.r = small.r,
+                                        digits = rr.digits,
+                                        output.type = output.type,
+                                        decimal.mark = decimal.mark),
+                    p.value.label = p_value_label(value = p.value,
+                                                  subscript = "perm",
+                                                  small.p = small.p,
+                                                  digits = p.digits,
+                                                  output.type = output.type,
+                                                  decimal.mark = decimal.mark),
+                    theta.label = italic_label(value = theta,
+                                               value.name = ifelse(output.type %in% c("latex", "text", "tikz"),
+                                                                   "\theta{}",
+                                                                   ifelse(output.type == "markdown",
+                                                                          "&theta;",
+                                                                          "theta")),
+                                               digits = theta.digits,
+                                               fixed = TRUE,
+                                               output.type = output.type,
+                                               decimal.mark = decimal.mark),
+                    n.label = italic_label(value = n,
+                                           value.name = "n",
+                                           digits = 0,
+                                           fixed = TRUE,
+                                           output.type = output.type,
+                                           decimal.mark = decimal.mark),
+                    grp.label = grp.label,
+                    method.label = paste("\"method: ", method.name, "\"", sep = ""),
+                    r.squared = rr,
+                    theta = theta,
+                    p.value = p.value,
+                    n = n)
   }
 
+  # add members common to numeric and other output types
   z[["fm.method"]] <- method.name
   z[["fm.class"]] <- fm.class[1]
   z[["fm.formula"]] <- formula.ls

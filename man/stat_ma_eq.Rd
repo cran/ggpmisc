@@ -19,10 +19,11 @@ stat_ma_eq(
   nperm = 99,
   eq.with.lhs = TRUE,
   eq.x.rhs = NULL,
-  small.r = FALSE,
-  small.p = FALSE,
+  small.r = getOption("ggpmisc.small.r", default = FALSE),
+  small.p = getOption("ggpmisc.small.p", default = FALSE),
   coef.digits = 3,
   coef.keep.zeros = TRUE,
+  decreasing = getOption("ggpmisc.decreasing.poly.eq", FALSE),
   rr.digits = 2,
   theta.digits = 2,
   p.digits = max(1, ceiling(log10(nperm))),
@@ -56,7 +57,7 @@ can include aesthetics whose values you want to set, not map. See
 \code{\link[ggplot2]{layer}} for more details.}
 
 \item{formula}{a formula object. Using aesthetic names \code{x} and \code{y}
-instead of original variable names.}
+instead of original variable names. Either \code{y ~ x} or \code{x ~ y}.}
 
 \item{method}{function or character If character, "MA", "SMA" , "RMA" or
 "OLS", alternatively "lmodel2" or the name of a model fit function are
@@ -91,6 +92,9 @@ the fitted coefficients.}
 
 \item{coef.keep.zeros}{logical Keep or drop trailing zeros when formatting
 the fitted coefficients and F-value.}
+
+\item{decreasing}{logical It specifies the order of the terms in the
+returned character string; in increasing (default) or decreasing powers.}
 
 \item{rr.digits, theta.digits, p.digits}{integer Number of digits after the
 decimal point to use for R^2, theta and P-value in labels. If \code{Inf},
@@ -139,13 +143,14 @@ generates several labels including the equation, p-value,
 coefficient of determination (R^2), and number of observations.
 }
 \details{
-This stat can be used to automatically annotate a plot with \eqn{R^2},
-  \eqn{P}-value, \eqn{n} and/or the fitted model equation. It supports linear major axis
-  (MA), standard major axis (SMA) and ranged major axis (RMA) regression by
-  means of function \code{\link[lmodel2]{lmodel2}}. Please see the
-  documentation, including the vignette of package 'lmodel2' for details.
-  The parameters in \code{stat_ma_eq()} follow the same naming as in function
-  \code{lmodel2()}.
+This stat can be used to automatically annotate a plot with
+  \eqn{R^2}, \eqn{P}-value, \eqn{n} and/or the fitted model equation. It
+  supports linear major axis (MA), standard major axis (SMA) and ranged major
+  axis (RMA) regression by means of function \code{\link[lmodel2]{lmodel2}}.
+  Formulas describing a straight line and including an intercept are the
+  only ones currently supported. Please see the documentation, including the
+  vignette of package 'lmodel2' for details. The parameters in
+  \code{stat_ma_eq()} follow the same naming as in function \code{lmodel2()}.
 
   It is important to keep in mind that although the fitted line does not
   depend on whether the \eqn{x} or \eqn{y} appears on the rhs of the model
@@ -154,9 +159,10 @@ This stat can be used to automatically annotate a plot with \eqn{R^2},
   A ggplot statistic receives as \code{data} a data frame that is not the one
   passed as argument by the user, but instead a data frame with the variables
   mapped to aesthetics. \code{stat_ma_eq()} mimics how \code{stat_smooth()}
-  works, except that only linear regression can be fitted. Similarly to these
-  statistics the model fits respect grouping, so the scales used for \code{x}
-  and \code{y} should both be continuous scales rather than discrete.
+  works, except that Model II regressions can be fitted. Similarly to
+  \code{stat_smooth()} the model is fitted separately to data from each
+  group, so the variables mapped to \code{x} and \code{y} should both be
+  continuous rather than discrete as well as the corresponding scales.
 
   The minimum number of observations with distinct values can be set through
   parameter \code{n.min}. The default \code{n.min = 2L} is the smallest
@@ -187,6 +193,15 @@ For backward compatibility a logical is accepted as argument for
   is rendered, i.e., displayed or printed. Set \code{options(OutDec = ",")}
   for languages like Spanish or French.
 }
+\section{User-defined methods}{
+ User-defined functions can be passed as
+  argument to \code{method}. The requirements are 1) that the signature is
+  similar to that of function \code{lmodel2()} and 2) that the value returned
+  by the function is an object as returned by \code{lmodel2()} or an atomic
+  \code{NA} value. Thus, user-defined methods can implement conditional
+  skipping of labelling.
+}
+
 \section{Aesthetics}{
  \code{stat_ma_eq} understands \code{x} and \code{y}, to
   be referenced in the \code{formula} while the \code{weight} aesthetic is
@@ -196,15 +211,15 @@ For backward compatibility a logical is accepted as argument for
 
   \emph{Transformation of \code{x} or \code{y} within the model formula
   is not supported by \code{stat_ma_eq()}. In this case, transformations
-  should never be applied in the model formula, but instead in the mapping
-  of the variables within \code{aes}.}
+  should not be applied in the model formula, but instead in the mapping
+  of the variables within \code{aes} or in the scales.}
 }
 
 \section{Computed variables}{
 
-If output.type different from \code{"numeric"} the returned tibble contains
-columns listed below. If the fitted model does not contain a given value,
-the label is set to \code{character(0L)}.
+If \code{output.type} is different from \code{"numeric"} the returned tibble
+contains columns listed below. If the fitted model does not contain a given
+value, the label is set to \code{character(0L)}.
 \describe{
   \item{x,npcx}{x position}
   \item{y,npcy}{y position}
@@ -246,16 +261,26 @@ ggplot(my.data, aes(x, y)) +
   stat_ma_line() +
   stat_ma_eq()
 
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  stat_ma_line() +
+  stat_ma_eq(mapping = use_label("eq"))
+
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  stat_ma_line() +
+  stat_ma_eq(mapping = use_label("eq"), decreasing = TRUE)
+
 # use_label() can assemble and map a combined label
 ggplot(my.data, aes(x, y)) +
   geom_point() +
   stat_ma_line(method = "MA") +
-  stat_ma_eq(use_label(c("eq", "R2", "P")))
+  stat_ma_eq(mapping = use_label("eq", "R2", "P"))
 
 ggplot(my.data, aes(x, y)) +
   geom_point() +
   stat_ma_line(method = "MA") +
-  stat_ma_eq(use_label(c("R2", "P", "theta", "method")))
+  stat_ma_eq(mapping = use_label("R2", "P", "theta", "method"))
 
 # using ranged major axis regression
 ggplot(my.data, aes(x, y)) +
@@ -263,7 +288,7 @@ ggplot(my.data, aes(x, y)) +
   stat_ma_line(method = "RMA",
                range.y = "interval",
                range.x = "interval") +
-  stat_ma_eq(use_label(c("eq", "R2", "P")),
+  stat_ma_eq(mapping = use_label("eq", "R2", "P"),
              method = "RMA",
              range.y = "interval",
              range.x = "interval")
@@ -272,7 +297,7 @@ ggplot(my.data, aes(x, y)) +
 ggplot(my.data, aes(x, y)) +
   geom_point() +
   stat_ma_line(method = "MA") +
-  stat_ma_eq(use_label(c("eq", "R2")),
+  stat_ma_eq(mapping = use_label("eq", "R2"),
              method = "MA",
              nperm = 0)
 
@@ -281,13 +306,13 @@ ggplot(my.data, aes(x, y)) +
   geom_point() +
   stat_ma_line(formula = x ~ y) +
   stat_ma_eq(formula = x ~ y,
-             use_label(c("eq", "R2", "P")))
+             mapping = use_label("eq", "R2", "P"))
 
 # modifying both variables within aes()
 ggplot(my.data, aes(log(x + 10), log(y + 10))) +
   geom_point() +
   stat_poly_line() +
-  stat_poly_eq(use_label("eq"),
+  stat_poly_eq(mapping = use_label("eq"),
                eq.x.rhs = "~~log(x+10)",
                eq.with.lhs = "log(y+10)~~`=`~~")
 
@@ -302,7 +327,7 @@ ggplot(my.data,
        aes(x, y,  shape = group, linetype = group, grp.label = group)) +
   geom_point() +
   stat_ma_line(color = "black") +
-  stat_ma_eq(use_label(c("grp", "eq", "R2"))) +
+  stat_ma_eq(mapping = use_label("grp", "eq", "R2")) +
   theme_classic()
 
 # Inspecting the returned data using geom_debug()
@@ -324,7 +349,7 @@ if (gginnards.installed)
 if (gginnards.installed)
   ggplot(my.data, aes(x, y)) +
     geom_point() +
-    stat_ma_eq(aes(label = after_stat(eq.label)),
+    stat_ma_eq(mapping = aes(label = after_stat(eq.label)),
                geom = "debug",
                output.type = "markdown")
 

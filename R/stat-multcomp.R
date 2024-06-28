@@ -261,7 +261,7 @@
 #'
 #' # use different labels: difference and P-value from hypothesis tests
 #' p1 +
-#'   stat_multcomp(use_label(c("Delta", "P")),
+#'   stat_multcomp(use_label("Delta", "P"),
 #'                 size = 2.75)
 #'
 #' # control smallest P-value displayed and number of digits
@@ -332,7 +332,7 @@ stat_multcomp <- function(mapping = NULL, data = NULL,
                           method.args = list(),
                           contrasts = "Tukey",
                           p.adjust.method = NULL,
-                          small.p = FALSE,
+                          small.p = getOption("ggpmisc.small.p", default = FALSE),
                           adj.method.tag = 4,
                           p.digits = 3,
                           label.type = "bars",
@@ -378,7 +378,7 @@ stat_multcomp <- function(mapping = NULL, data = NULL,
   }
 
   if (is.null(output.type)) {
-    if (geom %in% c("richtext", "textbox")) {
+    if (geom %in% c("richtext", "textbox", "marquee")) {
       output.type <- "markdown"
     } else {
       output.type <- "expression"
@@ -430,24 +430,24 @@ stat_multcomp <- function(mapping = NULL, data = NULL,
 multcomp_compute_fun <-
   function(data,
            scales,
-           method,
-           method.args,
-           contrasts,
-           p.adjust.method,
-           formula,
-           weight,
-           small.p,
-           adj.method.tag,
-           p.digits,
-           label.type,
-           fm.cutoff.p.value,
-           mc.cutoff.p.value,
-           mc.critical.p.value,
-           label.y,
-           vstep,
-           output.type,
-           na.rm,
-           orientation) {
+           method = "lm",
+           method.args = list(),
+           contrasts = "Tukey",
+           p.adjust.method = "holm",
+           formula = y ~ x,
+           weight = 1,
+           small.p = FALSE,
+           adj.method.tag = 4,
+           p.digits = 3,
+           label.type = "bars",
+           fm.cutoff.p.value = 1,
+           mc.cutoff.p.value = 1,
+           mc.critical.p.value = 0.05,
+           label.y = NULL,
+           vstep = NULL,
+           output.type = expression(),
+           na.rm = FALSE,
+           orientation = "x") {
     force(data)
 
     # parse obeys this option, but as for some labels or output types we do not
@@ -740,30 +740,15 @@ multcomp_compute_fun <-
       }
 
       # build character strings
-      stopifnot(p.digits > 0)
+      stopifnot("'p.digits' must be a positive integer > 0" = p.digits > 0)
       if (p.digits < 2) {
         warning("'p.digits < 2' Likely information loss!")
       }
 
       if (output.type == "expression") {
-        if (p.digits == Inf) {
-          p.value.char <- sprintf_dm("%#.2e", z[["p.value"]], decimal.mark = decimal.mark)
-          p.value.char <- paste(gsub("e", " %*% 10^{", p.value.char), "}", sep = "")
-        } else {
-          p.value.char <- sprintf_dm("\"%#.*f\"", p.digits, z[["p.value"]], decimal.mark = decimal.mark)
-        }
         stars.char <- paste("\"", stars_pval(z[["p.value"]]), "\"", sep = "")
-        coefficients.char <- sprintf_dm("\"%#.*g\"", 3L, z[["coefficients"]], decimal.mark = decimal.mark)
-        tstat.char <- sprintf_dm("\"%#.*g\"", 3L, z[["tstat"]], decimal.mark = decimal.mark)
       } else {
-        if (p.digits == Inf) {
-          p.value.char <- sprintf_dm("%#.2e", z[["p.value"]], decimal.mark = decimal.mark)
-        } else {
-          p.value.char <- sprintf_dm("%#.*f", p.digits, z[["p.value"]], decimal.mark = decimal.mark)
-        }
         stars.char <- stars_pval(z[["p.value"]])
-        coefficients.char <- sprintf_dm("%#.*g", 3L, z[["coefficients"]], decimal.mark = decimal.mark)
-        tstat.char <- sprintf_dm("%#.*g", 3L, z[["tstat"]], decimal.mark = decimal.mark)
       }
 
       # Build the labels
@@ -772,47 +757,24 @@ multcomp_compute_fun <-
       if (output.type != "numeric") {
         z[["stars.label"]] <- stars.char
         z[["p.value.label"]] <- NA_character_
-      }
-      if (output.type == "expression") {
+
         for (i in seq_along(z[["p.value"]])) {
-          z[["p.value.label"]][i] <-
-            ifelse(is.na(z[["p.value"]][i]) || is.nan(z[["p.value"]][i]), "",
-                   paste(paste(ifelse(small.p, "italic(p)[\"",  "italic(P)[\""),
-                               adj.label, "\"]", sep = ""),
-                         ifelse(z[["p.value"]][i] < 10^(-p.digits),
-                                sprintf_dm("\"%.*f\"", p.digits, 10^(-p.digits), decimal.mark = decimal.mark),
-                                p.value.char[i]),
-                         sep = ifelse(z[["p.value"]][i] < 10^(-p.digits),
-                                      "~`<`~",
-                                      "~`=`~")))
-        }
-        # remove empty subscripts
-        z[["p.value.label"]] <- gsub("\\[\"\"\\]", "", z[["p.value.label"]])
-        z[["delta.label"]] <- paste("Delta~`=`~", coefficients.char, sep = "")
-        z[["t.value.label"]] <- paste("italic(t)~`=`~", tstat.char, sep = "")
-      } else if (output.type %in% c("latex", "tex", "text", "tikz")) {
-        for (i in seq_along(z[["p.value"]])) {
-          z[["p.value.label"]][i] <-
-            ifelse(is.na(z[["p.value"]][i]) || is.nan(z[["p.value"]][i]), "",
-                   paste(ifelse(small.p, "p",  "P"),
-                         ifelse(z[["p.value"]][i] < 10^(-p.digits), as.character(10^(-p.digits)), p.value.char[i]),
-                         sep = ifelse(z[["p.value"]][i] < 10^(-p.digits), " < ", " = ")))
-        }
-        z[["delta.label"]] <- paste("\\Delta = ", coefficients.char, sep = "")
-        z[["t.value.label"]] <- paste("t = ", tstat.char, sep = "")
-      } else if (output.type == "markdown") {
-        for (i in seq_along(z[["p.value"]])) {
-          z[["p.value.label"]][i] <-
-            ifelse(is.na(z[["p.value"]][i]) | is.nan(z[["p.value"]][i]), "",
-                   paste(ifelse(small.p, "_p_", "_P_"),
-                         ifelse(z[["p.value"]][i] < 10^(-p.digits), as.character(10^(-p.digits)), p.value.char[i]),
-                         sep = ifelse(z[["p.value"]][i] < 10^(-p.digits), " < ", " = ")))
-        }
-        z[["delta.label"]] <- paste("&Delta; = ", coefficients.char, sep = "")
-        z[["t.value.label"]] <- paste("_t_ = ", tstat.char, sep = "")
-      } else {
-        if (output.type != "numeric") {
-          stop("Unknown 'output.type' argument: ", output.type)
+          z[["p.value.label"]][i] <- p_value_label(value = z[["p.value"]][i],
+                                                   subscript = adj.label,
+                                                   small.p = small.p,
+                                                   digits = p.digits,
+                                                   output.type = output.type,
+                                                   decimal.mark = decimal.mark)
+          z[["delta.label"]][i] <- italic_label(value = z[["coefficients"]][i],
+                                                value.name = "Delta",
+                                                digits = 3,
+                                                fixed = FALSE,
+                                                output.type = output.type,
+                                                decimal.mark = decimal.mark)
+          z[["t.value.label"]][i] <- t_value_label(value = z[["tstat"]][i],
+                                                   digits = p.digits,
+                                                   output.type = output.type,
+                                                   decimal.mark = decimal.mark)
         }
       }
 
@@ -835,8 +797,13 @@ multcomp_compute_fun <-
                                       Letters = get(label.type),
                                       reversed = TRUE)[["Letters"]]
       if (adj.method.legend) {
-        p.crit.label <- paste("\"  \"*italic(P)[\"", adj.label, "\"]^{\"crit\"}~`=`~",
-                              mc.critical.p.value, sep = "")
+        p.crit.label <- p_value_label(value = mc.critical.p.value,
+                                      subscript = adj.label,
+                                      superscript = "crit",
+                                      small.p = small.p,
+                                      digits = p.digits,
+                                      output.type = output.type,
+                                      decimal.mark = decimal.mark)
         z <- tibble::tibble(x = c(0.1, 1:num.levels),
                             x.left.tip = NA_real_,
                             x.right.tip = NA_real_,

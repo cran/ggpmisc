@@ -16,19 +16,18 @@ stat_poly_eq(
   n.min = 2L,
   eq.with.lhs = TRUE,
   eq.x.rhs = NULL,
-  small.r = FALSE,
-  small.p = FALSE,
+  small.r = getOption("ggpmisc.small.r", default = FALSE),
+  small.p = getOption("ggpmisc.small.p", default = FALSE),
   CI.brackets = c("[", "]"),
   rsquared.conf.level = 0.95,
   coef.digits = 3,
   coef.keep.zeros = TRUE,
+  decreasing = getOption("ggpmisc.decreasing.poly.eq", FALSE),
   rr.digits = 2,
   f.digits = 3,
   p.digits = 3,
   label.x = "left",
   label.y = "top",
-  label.x.npc = NULL,
-  label.y.npc = NULL,
   hstep = 0,
   vstep = NULL,
   output.type = NULL,
@@ -94,6 +93,9 @@ the fitted coefficients and F-value.}
 \item{coef.keep.zeros}{logical Keep or drop trailing zeros when formatting
 the fitted coefficients and F-value.}
 
+\item{decreasing}{logical It specifies the order of the terms in the
+returned character string; in increasing (default) or decreasing powers.}
+
 \item{rr.digits, p.digits}{integer Number of digits after the decimal point to
 use for \eqn{R^2} and P-value in labels. If \code{Inf}, use exponential
 notation with three decimal places.}
@@ -102,10 +104,6 @@ notation with three decimal places.}
 coordinates" (npc units) or character if using \code{geom_text_npc()} or
 \code{geom_label_npc()}. If using \code{geom_text()} or \code{geom_label()}
 numeric in native data units. If too short they will be recycled.}
-
-\item{label.x.npc, label.y.npc}{\code{numeric} with range 0..1 (npc units)
-DEPRECATED, use label.x and label.y instead; together with a geom
-using npcx and npcy aesthetics.}
 
 \item{hstep, vstep}{numeric in npc units, the horizontal and vertical step
 used between labels for different groups.}
@@ -136,56 +134,71 @@ default plot specification, e.g. \code{\link[ggplot2]{borders}}.}
 \value{
 A data frame, with a single row and columns as described under
   \strong{Computed variables}. In cases when the number of observations is
-  less than \code{n.min} a data frame with no rows or columns is returned
-  rendered as an empty/invisible plot layer.
+  less than \code{n.min} a data frame with no rows or columns is returned,
+  and rendered as an empty/invisible plot layer.
 }
 \description{
-\code{stat_poly_eq} fits a polynomial by default with \code{stats::lm()} but
-alternatively using robust regression. From the fitted model it
-generates several labels including the equation, p-value, F-value,
-coefficient of determination (R^2), 'AIC', 'BIC', and number of observations.
+\code{stat_poly_eq} fits a polynomial, by default with \code{stats::lm()},
+but alternatively using robust regression. Using the fitted model it
+generates several labels including the fitted model equation, p-value,
+F-value, coefficient of determination (R^2), 'AIC', 'BIC', and number of
+observations.
 }
 \details{
 This statistic can be used to automatically annotate a plot with
   \eqn{R^2}, adjusted \eqn{R^2} or the fitted model equation. It supports
-  linear regression, robust linear regression and median regression fitted
-  with functions \code{\link{lm}}, or \code{\link[MASS]{rlm}}. The \eqn{R^2}
-  and adjusted \eqn{R^2} annotations can be used with any linear model
-  formula. The confidence interval for \eqn{R^2} is computed with function
-  \code{\link[confintr]{ci_rsquared}} from package 'confintr'. The fitted
-  equation label is correctly generated for polynomials or quasi-polynomials
-  through the origin. Model formulas can use \code{poly()} or be defined
-  algebraically with terms of powers of increasing magnitude with no missing
-  intermediate terms, except possibly for the intercept indicated by "- 1" or
-  "-1" or \code{"+ 0"} in the formula. The validity of the \code{formula} is
-  not checked in the current implementation, and for this reason the default
-  aesthetics sets \eqn{R^2} as label for the annotation. This statistic
-  generates labels as R expressions by default but LaTeX (use TikZ device),
-  markdown (use package 'ggtext') and plain text are also supported, as well
-  as numeric values for user-generated text labels. The value of \code{parse}
-  is set automatically based on \code{output-type}, but if you assemble
-  labels that need parsing from \code{numeric} output, the default needs to
-  be overridden. This stat only generates annotation labels, the predicted
-  values/line need to be added to the plot as a separate layer using
-  \code{\link{stat_poly_line}} (or \code{\link[ggplot2]{stat_smooth}}), if
-  the default formula is overriden with an argument, it is crucial to make
-  sure that the same model formula is used in all layers. In this case it is
-  best to save the formula as an object and supply this object as argument to
-  the different statistics.
+  linear regression and polynomial fits, and robust regression fitted
+  with functions \code{\link{lm}}, or \code{\link[MASS]{rlm}}, respectively.
+
+  While strings for \eqn{R^2}, adjusted \eqn{R^2}, \eqn{F}, and \eqn{P}
+  annotations are returned for all valid linear models, A character string
+  for the fitted model is returned only for polynomials (see below), in which
+  case the equation can still be assembled by the user. In addition, a label
+  for the confidence interval of \eqn{R^2}, based on values computed with
+  function \code{\link[confintr]{ci_rsquared}} from package 'confintr' is
+  also returned.
+
+  The model formula should be defined based on the names of aesthetics \code{x}
+  and \code{y}, not the names of the variables in the data. Before fitting
+  the model, data are split based on groupings created by any other mappings
+  present in a plot panel: \emph{fitting is done separately for each group
+  in each plot panel}.
+
+  Model formulas can use \code{poly()} or be defined algebraically including
+  the intercept indicated by \code{+1}, \code{-1}, \code{+0} or implicit. If
+  defined using \code{poly()} the argument \code{raw = TRUE} must be passed.
+  The \code{model formula} is checked, and if not recognized as a polynomial
+  with no missing terms and terms ordered by increasing powers, no equation
+  label is generated. Thus, as the value returned for \code{eq.label} can be
+  \code{NA}, the default aesthetic mapping to \emph{label} is \eqn{R^2}.
+
+  By default, the character strings are generated as suitable for parsing into R's
+  plotmath expressions. However, LaTeX (use TikZ device), markdown (use package
+  'ggtext') and plain text are also supported, as well as returning numeric values for
+  user-generated text labels. The argument of \code{parse} is set automatically
+  based on \code{output-type}, but if you assemble labels that need parsing
+  from \code{numeric} output, the default needs to be overridden.
+
+  This statistic only generates annotation labels, the predicted values/line
+  need to be added to the plot as a separate layer using
+  \code{\link{stat_poly_line}} (or \code{\link[ggplot2]{stat_smooth}}). Using
+  the same formula in \code{stat_poly_line()} and in \code{stat_poly_eq()} in
+  most cases ensures that the plotted curve and equation are consistent.
+  Thus, unless the default formula is not overriden, it is best to save the
+  model formula as an object and supply this named object as argument to the
+  two statistics.
 
   A ggplot statistic receives as \code{data} a data frame that is not the one
   passed as argument by the user, but instead a data frame with the variables
   mapped to aesthetics. \code{stat_poly_eq()} mimics how \code{stat_smooth()}
-  works, except that only polynomials can be fitted. Similarly to these
-  statistics the model fits respect grouping, so the scales used for \code{x}
-  and \code{y} should both be continuous scales rather than discrete.
+  works.
 
   With method \code{"lm"}, singularity results in terms being dropped with a
   message if more numerous than can be fitted with a singular (exact) fit.
   In this case or if the model results in a perfect fit due to a low
   number of observations, estimates for various parameters are \code{NaN} or
   \code{NA}. When this is the case the corresponding labels are set to
-  \code{character(0L)} and thus not visble in the plot.
+  \code{character(0L)} and thus not visible in the plot.
 
   With methods other than \code{"lm"}, the model fit functions simply fail
   in case of singularity, e.g., singular fits are not implemented in
@@ -213,6 +226,21 @@ For backward compatibility a logical is accepted as argument for
   is rendered, i.e., displayed or printed. Set \code{options(OutDec = ",")}
   for languages like Spanish or French.
 }
+\section{User-defined methods}{
+ User-defined functions can be passed as
+  argument to \code{method}. The requirements are 1) that the signature is
+  similar to that of function \code{lm()} (with parameters \code{formula},
+  \code{data}, \code{weights} and any other arguments passed by name through
+  \code{method.args}) and 2) that the value returned by the function is an
+  object of class \code{"lm"} or an atomic \code{NA} value.
+
+  The \code{formula} used to build the equation label is extracted from the
+  returned \code{"lm"} object and can safely differ from the argument passed to
+  parameter \code{formula} in the call to \code{stat_poly_eq()}. Thus,
+  user-defined methods can implement both model selection or conditional
+  skipping of labelling.
+}
+
 \section{Aesthetics}{
  \code{stat_poly_eq()} understands \code{x} and \code{y},
   to be referenced in the \code{formula} and \code{weight} passed as argument
@@ -220,14 +248,14 @@ For backward compatibility a logical is accepted as argument for
   variables. In addition, the aesthetics understood by the geom
   (\code{"text"} is the default) are understood and grouping respected.
 
-  \emph{If the model formula includes a transformation of \code{x}, a
+  If the model formula includes a transformation of \code{x}, a
   matching argument should be passed to parameter \code{eq.x.rhs}
   as its default value \code{"x"} will not reflect the applied
   transformation. In plots, transformation should never be applied to the
   left hand side of the model formula, but instead in the mapping of the
   variable within \code{aes}, as otherwise plotted observations and fitted
   curve will not match. In this case it may be necessary to also pass
-  a matching argument to parameter \code{eq.with.lhs}.}
+  a matching argument to parameter \code{eq.with.lhs}.
 }
 
 \section{Computed variables}{
@@ -238,7 +266,7 @@ the label is set to \code{character(0L)}.
 \describe{
   \item{x,npcx}{x position}
   \item{y,npcy}{y position}
-  \item{eq.label}{equation for the fitted polynomial as a character string to be parsed}
+  \item{eq.label}{equation for the fitted polynomial as a character string to be parsed or \code{NA}}
   \item{rr.label}{\eqn{R^2} of the fitted model as a character string to be parsed}
   \item{adj.rr.label}{Adjusted \eqn{R^2} of the fitted model as a character string to be parsed}
   \item{rr.confint.label}{Confidence interval for \eqn{R^2} of the fitted model as a character string to be parsed}
@@ -307,20 +335,26 @@ ggplot(my.data, aes(x, y)) +
   stat_poly_line(formula = formula) +
   stat_poly_eq(use_label("eq"), formula = formula)
 
+# other labels
 ggplot(my.data, aes(x, y)) +
   geom_point() +
   stat_poly_line(formula = formula) +
-  stat_poly_eq(use_label(c("eq", "R2")), formula = formula)
+  stat_poly_eq(use_label("eq"), formula = formula, decreasing = TRUE)
 
 ggplot(my.data, aes(x, y)) +
   geom_point() +
   stat_poly_line(formula = formula) +
-  stat_poly_eq(use_label(c("R2", "R2.CI", "P", "method")), formula = formula)
+  stat_poly_eq(use_label("eq", "R2"), formula = formula)
 
 ggplot(my.data, aes(x, y)) +
   geom_point() +
   stat_poly_line(formula = formula) +
-  stat_poly_eq(use_label(c("R2", "F", "P", "n"), sep = "*\"; \"*"),
+  stat_poly_eq(use_label("R2", "R2.CI", "P", "method"), formula = formula)
+
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  stat_poly_line(formula = formula) +
+  stat_poly_eq(use_label("R2", "F", "P", "n", sep = "*\"; \"*"),
                formula = formula)
 
 # grouping
@@ -391,7 +425,7 @@ ggplot(my.data, aes(x, y)) +
 ggplot(my.data, aes(x, y)) +
   geom_point() +
   stat_poly_line(formula = formula, orientation = "y") +
-  stat_poly_eq(use_label(c("eq", "adj.R2")),
+  stat_poly_eq(use_label("eq", "adj.R2"),
                formula = x ~ poly(y, 3, raw = TRUE))
 
 # conditional user specified label
@@ -515,11 +549,8 @@ This statistics fits a model with function \code{\link[stats]{lm}},
   for the details and additional arguments that can be passed to them by name
   through parameter \code{method.args}.
 
-  This \code{stat_poly_eq} statistic can return ready formatted labels
-  depending on the argument passed to \code{output.type}. This is possible
-  because only polynomial and quasy-polynomial models are supported. For
-  quantile regression \code{\link{stat_quant_eq}} should be used instead of
-  \code{stat_poly_eq} while for model II or major axis regression
+  For quantile regression \code{\link{stat_quant_eq}} should be used instead
+  of \code{stat_poly_eq} while for model II or major axis regression
   \code{\link{stat_ma_eq}} should be used. For other types of models such as
   non-linear models, statistics \code{\link{stat_fit_glance}} and
   \code{\link{stat_fit_tidy}} should be used and the code for construction of
