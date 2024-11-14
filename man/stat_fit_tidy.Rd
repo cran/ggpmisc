@@ -8,6 +8,8 @@ stat_fit_tidy(
   mapping = NULL,
   data = NULL,
   geom = "text_npc",
+  position = "identity",
+  ...,
   method = "lm",
   method.args = list(formula = y ~ x),
   n.min = 2L,
@@ -17,11 +19,9 @@ stat_fit_tidy(
   hstep = 0,
   vstep = NULL,
   sanitize.names = FALSE,
-  position = "identity",
   na.rm = FALSE,
   show.legend = FALSE,
-  inherit.aes = TRUE,
-  ...
+  inherit.aes = TRUE
 )
 }
 \arguments{
@@ -33,6 +33,13 @@ to be set at the layer level if you are overriding the plot defaults.}
 the plot defaults.}
 
 \item{geom}{The geometric object to use display the data}
+
+\item{position}{The position adjustment to use for overlapping points on this
+layer}
+
+\item{...}{other arguments passed on to \code{\link[ggplot2]{layer}}. This
+can include aesthetics whose values you want to set, not map. See
+\code{\link[ggplot2]{layer}} for more details.}
 
 \item{method}{character or function.}
 
@@ -53,9 +60,6 @@ used between labels for different groups.}
 \item{sanitize.names}{logical If true sanitize column names in the returned
 \code{data} with R's \code{make.names()} function.}
 
-\item{position}{The position adjustment to use for overlapping points on this
-layer}
-
 \item{na.rm}{a logical indicating whether NA values should be stripped
 before the computation proceeds.}
 
@@ -67,10 +71,6 @@ never includes, and \code{TRUE} always includes.}
 than combining with them. This is most useful for helper functions that
 define both data and aesthetics and shouldn't inherit behaviour from the
 default plot specification, e.g. \code{\link[ggplot2]{borders}}.}
-
-\item{...}{other arguments passed on to \code{\link[ggplot2]{layer}}. This
-can include aesthetics whose values you want to set, not map. See
-\code{\link[ggplot2]{layer}} for more details.}
 }
 \value{
 The output of \code{tidy()} is returned after reshaping it into a
@@ -152,19 +152,21 @@ Although arguments passed to parameter \code{tidy.args} will be
 # Package 'broom' needs to be installed to run these examples.
 # We check availability before running them to avoid errors.
 
-if (requireNamespace("broom", quietly = TRUE)) {
-  broom.installed <- TRUE
+broom.installed <- requireNamespace("broom", quietly = TRUE)
+gginnards.installed <- requireNamespace("gginnards", quietly = TRUE)
+
+if (broom.installed) {
   library(broom)
   library(quantreg)
+}
 
 # Inspecting the returned data using geom_debug()
-  if (requireNamespace("gginnards", quietly = TRUE)) {
+  if (gginnards.installed) {
     library(gginnards)
+}
 
-# This provides a quick way of finding out the names of the variables that
-# are available for mapping to aesthetics. This is specially important for
-# this stat as these names depend on the specific tidy() method used, which
-# depends on the method used, such as lm(), used to fit the model.
+# Regression by panel, inspecting data
+if (broom.installed && gginnards.installed) {
 
 # Regression by panel, default column names
   ggplot(mtcars, aes(x = disp, y = mpg)) +
@@ -181,7 +183,6 @@ if (requireNamespace("broom", quietly = TRUE)) {
     stat_fit_tidy(method = "lm",
                   method.args = list(formula = y ~ x + I(x^2)),
                   geom = "debug", sanitize.names = TRUE)
-  }
 }
 
 # Regression by panel example
