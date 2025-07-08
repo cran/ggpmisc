@@ -61,17 +61,24 @@
 #'   squares of the residuals, so the weighted residuals are obtained by
 #'   multiplying the "deviance" residuals by the square root of the weights.
 #'   When residuals are penalized differently to fit a model, the weighted
-#'   residuals need to be computed accordingly. Say if we use the absolute value
-#'   of the residuals instead of the squared values, weighted residuals are
-#'   obtained by multiplying the residuals by the weights.
+#'   residuals need to be computed accordingly. Two types of weights are
+#'   possible: prior ones supplied in the call, and "robustness weights"
+#'   implicitly or explicitly used by robust regression methods. Not all the
+#'   supported methods return prior weights and \code{gls()} does not return
+#'   weights of any type. When not available weights are set to NA unless when
+#'   known to be equal to 1.
 #'
 #' @section Computed variables: Data frame with same value of \code{nrow} as
-#'   \code{data} as subset for each group containing five numeric variables.
+#'   \code{data} as subset for each group containing six numeric variables.
 #'   \describe{ \item{x}{x coordinates of observations or x residuals from
 #'   fitted values}, \item{y}{y coordinates of observations or y residuals from
 #'   fitted values}, \item{x.resid}{residuals from fitted values},
 #'   \item{y.resid}{residuals from fitted values}, \item{weights}{the weights
-#'   passed as input to lm or those computed by rlm}}.
+#'   passed as input to \code{lm()}, \code{rlm()}, or \code{lmrob()},
+#'   using aesthetic weight. More generally the value returned by
+#'   \code{weights()} }, \item{robustness.weights}{the "weights"
+#'   of the applied minimization criterion relative to those of OLS in
+#'   \code{rlm()}, or \code{lmrob()}} }.
 #'
 #'   For \code{orientation = "x"}, the default, \code{stat(y.resid)} is copied
 #'   to variable \code{y}, while for \code{orientation = "y"}
@@ -183,11 +190,25 @@ stat_fit_residuals <- function(mapping = NULL,
                                orientation = NA,
                                show.legend = FALSE,
                                inherit.aes = TRUE) {
+
+  if (is.character(method)) {
+    method <- trimws(method, which = "both")
+    method.name <- method
+  } else if (is.function(method)) {
+    method.name <- deparse(substitute(method))
+    if (grepl("^function[ ]*[(]", method.name[1])) {
+      method.name <- "function"
+    }
+  } else {
+    method.name <- "missing"
+  }
+
   ggplot2::layer(
     stat = StatFitResiduals, data = data, mapping = mapping, geom = geom,
     position = position, show.legend = show.legend, inherit.aes = inherit.aes,
     params =
       rlang::list2(method = method,
+                   method.name = method.name,
                    method.args = method.args,
                    n.min = n.min,
                    formula = formula,
@@ -206,7 +227,8 @@ stat_fit_residuals <- function(mapping = NULL,
 #'
 residuals_compute_group_fun <- function(data,
                                         scales,
-                                        method = "lm",
+                                        method,
+                                        method.name,
                                         method.args = list(),
                                         n.min = 2L,
                                         formula = y ~ x,
@@ -250,6 +272,8 @@ residuals_compute_group_fun <- function(data,
                      lm = "lm:qr",
                      rlm = "rlm:M",
                      rq = "rq:br",
+                     lqs = "lqs:lqs",
+                     gls = "gls:REML",
                      method)
     method.name <- method
     method <- strsplit(x = method, split = ":", fixed = TRUE)[[1]]
@@ -264,22 +288,31 @@ residuals_compute_group_fun <- function(data,
                      lm = stats::lm,
                      rlm = MASS::rlm,
                      rq = quantreg::rq,
+                     lqs = MASS::lqs,
+                     gls = nlme::gls,
                      match.fun(method))
   } else if (is.function(method)) {
     fun.method <- character()
-    if (is.name(quote(method))) {
-      method.name <- as.character(quote(method))
-    } else {
-      method.name <- "function"
-    }
   }
 
-  fun.args <- list(quote(formula),
-                   data = quote(data),
-                   weights = data[["weight"]])
+  if (exists("weight", data) && !all(data[["weight"]] == 1)) {
+    stopifnot("A mapping to 'weight' and a named argument 'weights' cannot co-exist" =
+                !"weights" %in% method.args)
+    fun.args <- list(formula = quote(formula),
+                     data = quote(data),
+                     weights = data[["weight"]])
+  } else {
+    fun.args <- list(formula = quote(formula),
+                     data = quote(data))
+  }
   fun.args <- c(fun.args, method.args)
   if (length(fun.method)) {
     fun.args[["method"]] <- fun.method
+  }
+
+  # gls() parameter for formula is called model
+  if (grepl("gls", method.name)) {
+    names(fun.args)[1] <- "model"
   }
 
   # quantreg contains code with partial matching of names!
@@ -315,13 +348,35 @@ residuals_compute_group_fun <- function(data,
     fit.residuals <- do.call(stats::residuals, args = resid.args)
   }
 
-  if (exists("w", fm)) {
-    weight.vals <- fm[["w"]]
-  } else {
+  if (inherits(fm, "lmrob")) {
+    rob.weight.vals <- stats::weights(fm, type = "robustness")
+    weight.vals <- stats::weights(fm, type = "prior")
+    if (!length(weight.vals)) {
+      weight.vals <- rep_len(1, nrow(data))
+    }
+  } else if (inherits(fm, "lts")) {
+    rob.weight.vals <- fm[["lts.wt"]]
+    weight.vals <- rep_len(1, nrow(data))
+  } else if (inherits(fm, "rlm")) {
+    rob.weight.vals <- fm[["w"]]
     weight.vals <- stats::weights(fm)
-    weight.vals <- ifelse(length(weight.vals) == length(fit.residuals),
-                          weight.vals,
-                          rep_len(NA_real_, length(fit.residuals)))
+  } else if (inherits(fm, "lqs")) {
+    ## what does fm$bestone contain?
+    warning("Returned \"robustness weights\" are likely incorrect")
+    rob.weight.vals <- rep_len(0, nrow(data))
+    rob.weight.vals[fm[["bestone"]]] <- 1
+    weight.vals <- rep_len(1, nrow(data))
+  } else {
+    rob.weight.vals <- rep(NA_real_, nrow(data))
+    try(prior.weight.vals <- stats::weights(fm))
+    if (inherits(weight.vals, "try-error")) {
+      if (exists("weights", fm) &&  # defensive
+          length(fm[["weights"]]) == nrow(data)) {
+        weight.vals <- fm[["weights"]]
+      } else {
+        weight.vals <- rep_len(NA_real_, nrow(data))
+      }
+    }
   }
 
   if (orientation == "y") {
@@ -329,13 +384,15 @@ residuals_compute_group_fun <- function(data,
                x = fit.residuals,
                x.resid = fit.residuals,
                y.resid = NA_real_,
-               weights = weight.vals)
+               weights = weight.vals,
+               robustness.weights = rob.weight.vals)
   } else {
     data.frame(x = data$x,
                y = fit.residuals,
                y.resid = fit.residuals,
                x.resid = NA_real_,
-               weights = weight.vals)
+               weights = weight.vals,
+               robustness.weights = rob.weight.vals)
   }
 }
 

@@ -29,10 +29,10 @@ FC_format <- function(log.base.data = 2,
                       log.base.labels = 10,
                       digits = 3,
                       ...) {
-  function(x) FC_plain(x,
+  function(x) {FC_plain(x,
                        log.base.data = log.base.data,
                        log.base.labels = log.base.labels,
-                       digits = digits, ...)
+                       digits = digits, ...)}
 }
 
 #' @export
@@ -113,10 +113,11 @@ FC_name <- function(name = "Abundance%unit",
       paste(name, " ($log_", log.base, "$ fold change)", sep = "")
     }
   } else if (format %in% c("R.expression")) {
+    # 'ggplot2' (== 3.5.1.9000) has difficulties with tilde: ~~ -> *" "*
     if (!log.base) {
-      bquote(plain(.(name))~~(plain("fold change")))
+      bquote(plain(.(name))*" "*(plain("fold change")))
     } else {
-      bquote(plain(.(name))~~(log[.(log.base)]~~plain("fold change")))
+      bquote(plain(.(name))*" "*(log[.(log.base)]*" "*plain("fold change")))
     }
   } else if (format == "R.character") {
     if (!log.base) {
@@ -294,8 +295,8 @@ scale_x_logFC <- function(name = "Abundance of x%unit",
   }
 
   if (is.null(labels)) {
-    labels = FC_format(log.base.labels = log.base.labels,
-                       log.base.data = log.base.data)
+    labels <- FC_format(log.base.labels = log.base.labels,
+                        log.base.data = log.base.data)
   }
 
   ggplot2::scale_x_continuous(name = FC_name(name = name, log.base = log.base.labels),
@@ -335,8 +336,8 @@ scale_y_logFC <- function(name = "Abundance of y%unit",
   }
 
   if (is.null(labels)) {
-    labels = FC_format(log.base.labels = log.base.labels,
-                       log.base.data = log.base.data)
+    labels <- FC_format(log.base.labels = log.base.labels,
+                        log.base.data = log.base.data)
   }
 
   ggplot2::scale_y_continuous(name = FC_name(name = name, log.base = log.base.labels),

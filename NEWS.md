@@ -4,6 +4,25 @@ editor_options:
     wrap: 72
 ---
 
+# ggpmisc 0.6.2
+
+A significant new feature in this release is the support of additional model fitting functions, both explicitly and by handling missing methods and values more gracefully. Another important enhancement is a more flexible approach to the filtering of peaks and valleys using height and depth thresholds, which improves the detection of prominent or major (true?) peaks in noisy data by reducing or preventing "false positives".
+
+-   Check compatibility with 'ggplot2' 4.0.0.
+-   In `stat_poly_line()` and `stat_poly_eq()` a fitted model object of an unexpected class triggers a warning instead of an error.
+-   Support `MASS::lqs()`, `nlme::gls()`, `robustbase::lmrob()` and `robustbase::lstReg()` in `stat_poly_line()`, `stat_poly_eq()`, `stat_fit_deviations()`, `stat_fit_residuals()` and `stat_fit_fitted()`. 
+-   Support `nlme::gls()`, `MASS::lqs()`, `robustbase::lmrob()`, `robustbase::ltsReg()` and model fit objects of classes for which method `weights()` is not available in `stat_fit_deviations()`, `stat_fit_fitted()`, `stat_fit_residuals()`.
+-   If `predict()` is not available for a `method`, function `stat_poly_line()` uses `fitted()` instead.
+-   Code breaking change in `stat_fit_deviations()`: consistently return prior weights in variable `weights` and new variable `robustness.weights` for the implicit weights used by robust fit methods.
+-   Bug fix: the value of 'method.label' not always set.
+-   Update `scale_x_logFC()`and `scale_y_logFC()` for improved compatibility with 'ggplot2' (>= 3.5.2).
+-   Implement a local (within-window span) threshold for peak height and valley depth in `stat_peaks()` and `stat_valleys()`, using parameters `local.threshold` and `local.reference`.
+-   **Code breaking:** Rename parameter `ignore_threshold` into `global.threshold` in `find_peaks()`, `stat_peaks()`  and `stat_valleys()` for naming consistency and clarity.
+-   The scaling applied to user-supplied values for `global.threshold` and `local.threshold` can be controlled by passing a `character` argument to `threshold.scaling`. Non-scaled thresholds are also supported.
+-   Support repulsive geoms from 'ggrepel' in `stat_peaks()` and `stat_valleys()` by making extraction of rows conditional.
+-   Add HTML Cheat Sheet.
+-   Add articles 'Custom Polynomial Models' and 'Peaks and Valleys' as on-line only documentation.
+
 # ggpmisc 0.6.1
 
 -   Fix warning with current 'broom' and upcoming 'ggplot2'.
@@ -65,7 +84,7 @@ fail. Previous default can be restored by passing `0.95` as argument to
 
 -   Fix bug caused by the use of `base::isa()` which is not supported for `"formula"` in R < 4.1.0 (reported by Johnny Le).
 -   Fix bug in `stat_peaks()` and `stat_valleys()` that made peak and valley labels for datetime variables mapped to _x_ to be always formatted in the local system's timezone instead of in the timezone of the _x_ scale of the ggplot.
--   Fix bug in `stat_poly_eq()`, `stat_ma_eq()`, `stat_quant_eq()`, and `stat_correlation()` that caused some labels not to obey R option `OutDec`. (Problem described at [Stackoverflow](https://stackoverflow.com/questions/74813032/modifying-the-decimal-mark-of-stat-poly-eq).)
+-   Fix bug in `stat_poly_eq()`, `stat_ma_eq()`, `stat_quant_eq()`, and `stat_correlation()` that caused some labels not to obey R option `OutDec`. (Problem described at Stackoverflow.)
 
 # ggpmisc 0.5.1
 

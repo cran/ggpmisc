@@ -1,6 +1,8 @@
 
 # ggpmisc <img src="man/figures/logo.png" align="right" width="150" />
 
+## Miscellaneous Extensions to ‘ggplot2’
+
 <!-- badges: start -->
 
 [![cran
@@ -20,13 +22,21 @@ site](https://img.shields.io/badge/documentation-ggpmisc-informational.svg)](htt
 Package ‘**ggpmisc**’ (Miscellaneous Extensions to ‘ggplot2’) is a set
 of extensions to R package ‘ggplot2’ (\>= 3.0.0) with emphasis on
 annotations and plotting related to fitted models. Estimates from model
-fit objects can be displayed in ggplots as text, tables or equations.
-Predicted values, residuals, deviations and weights can be plotted for
-various model fit functions. Linear models, quantile regression and
-major axis regression as well as those functions with accessors
-following the syntax of package ‘broom’ are supported. Package
-‘**ggpmisc**’ continues to give access to extensions moved as of version
-0.4.0 to package [‘**ggpp**’](https://docs.r4photobiology.info/ggpp/).
+fit objects can be displayed in ggplots as text, model equations, ANOVA
+and summary table. Predicted values, residuals, deviations and weights
+can be plotted for various model fit functions. Linear models,
+polynomial regression, quantile regression, major axis regression,
+non-linear regression and different approaches to robust and resistant
+regression, as well as user-defined wrapper functions based on them are
+supported. In addition, all model fit functions returning objects for
+which accessors are available or supported by package ‘broom’ and its
+extensions are also supported but not as automatically. Labelling based
+on multiple comparisons supports various *P* adjustment methods and
+contrast schemes. Annotation of peaks and valleys in time series, and
+scales for volcano and quadrant plots as used for gene expression data
+are also provided. Package ‘**ggpmisc**’ continues to give access to
+extensions moved as of version 0.4.0 to package
+[‘**ggpp**’](https://docs.r4photobiology.info/ggpp/).
 
 ## Philosophy
 
@@ -45,7 +55,7 @@ We follow R’s approach of expecting that users know what they need or
 want, and will usually want to adjust how results from model fits are
 presented both graphically and textually. The approach and mechanics of
 plot construction and rendering remain unchanged from those implemented
-in package ‘**ggplot2**’.
+in package [‘**ggplot2**’](https://ggplot2.tidyverse.org/).
 
 ## Statistics
 
@@ -53,11 +63,11 @@ Statistics that help with reporting the results of model fits are:
 
 | Statistic | Returned values (*default geometry*) | Methods |
 |----|----|----|
-| `stat_poly_eq()` | equation, *R*<sup>2</sup>, *P*, etc. (`text_npc`) | lm, rlm (1, 2, 7) |
+| `stat_poly_eq()` | equation, *R*<sup>2</sup>, *P*, etc. (`text_npc`) | lm, rlm, lqs, gls, etc. (1, 2, 7) |
 | `stat_ma_eq()` | equation, *R*<sup>2</sup>, *P*, etc. (`text_npc`) | lmodel2 (6, 7) |
 | `stat_quant_eq()` | equation, *P*, etc. (`text_npc`) | rq (1, 3, 4, 7) |
 | `stat_correlation()` | correlation, *P*-value, CI (`text_npc`) | Pearson (*t*), Kendall (*z*), Spearman (*S*) |
-| `stat_poly_line()` | line + conf. (`smooth`) | lm, rlm (1, 2, 7) |
+| `stat_poly_line()` | line + conf. (`smooth`) | lm, rlm, lqs, gls, etc. (1, 2, 7) |
 | `stat_ma_line()` | line + conf. (`smooth`) | lmodel2 (6, 7) |
 | `stat_quant_line()` | line + conf. (`smooth`) | rq, rqss (1, 3, 4, 7) |
 | `stat_quant_band()` | median + quartiles (`smooth`) | rq, rqss (1, 4, 5, 7) |
@@ -70,20 +80,21 @@ Statistics that help with reporting the results of model fits are:
 | `stat_fit_tb()` | ANOVA and summary tables (`table_npc`) | those supported by ‘broom’ |
 | `stat_multcomp()` | Multiple comparisons (`label_pairwise` or `text`) | those supported by `glht` (1, 2, 7) |
 
-Notes: (1) *weight* aesthetic supported; (2) user defined fit functions
-that return an object of a class derived from `lm` are supported even if
-they override the statistic’s *formula* argument; (3) unlimited
-quantiles supported; (4) user defined fit functions that return an
-object of a class derived from `rq` or `rqs` are supported even if they
-override the statistic’s *formula* and/or *quantiles* argument; (5) two
-and three quantiles supported; (6) user defined fit functions that
-return an object of a class derived from `lmodel2` are supported; (7)
-`method` arguments support colon based notation; (8) various functions
-if method `residuals()` defined for returned value; (9) various
-functions if method `fitted()` defined for returned value.
+Notes: (1) *weight* aesthetic supported; (2) user defined model fit
+functions including wrappers of supported methods are accepted even if
+they modify the model *formula* (additional model fitting methods are
+likely to work, but have not been tested); (3) unlimited quantiles
+supported; (4) user defined fit functions that return an object of a
+class derived from `rq` or `rqs` are supported even if they override the
+statistic’s *formula* and/or *quantiles* argument; (5) two and three
+quantiles supported; (6) user defined fit functions that return an
+object of a class derived from `lmodel2` are supported; (7) `method`
+arguments support colon based notation; (8) model fit functions if
+method `residuals()` defined for returned value; (9) model fit functions
+if method `fitted()` is defined for the returned value.
 
 Statistics `stat_peaks()` and `stat_valleys()` can be used to highlight
-and/or label maxima and minima in a plot.
+and/or label global and/or local maxima and minima in a plot.
 
 ## Aesthetics and scales
 
@@ -173,6 +184,9 @@ ggplot(cars, aes(speed, dist)) +
   stat_fit_deviations(formula = formula, colour = "red") +
   stat_poly_line(formula = formula) +
   stat_poly_eq(use_label(c("eq", "adj.R2", "P")), formula = formula)
+#> Warning: Computation failed in `stat_fit_deviations()`.
+#> Caused by error in `compute_group()`:
+#> ! object 'weight.vals' not found
 ```
 
 ![](man/figures/README-readme-04-1.png)<!-- -->
@@ -189,17 +203,15 @@ ggplot(cars, aes(speed, dist)) +
   stat_fit_tb(method = "lm",
               method.args = list(formula = formula),
               tb.type = "fit.anova",
-              tb.vars = c(Effect = "term", 
+              tb.vars = c(Effect = "term",
                           "df",
-                          "M.S." = "meansq", 
-                          "italic(F)" = "statistic", 
+                          "M.S." = "meansq",
+                          "italic(F)" = "statistic",
                           "italic(P)" = "p.value"),
               tb.params = c(x = 1, "x^2" = 2),
-              label.y.npc = "top", label.x.npc = "left",
+              label.y = "top", label.x = "left",
               size = 2.5,
               parse = TRUE)
-#> Warning in stat_fit_tb(method = "lm", method.args = list(formula = formula), :
-#> Ignoring unknown parameters: `label.y.npc` and `label.x.npc`
 #> Dropping params/terms (rows) from table!
 ```
 
@@ -239,7 +251,7 @@ ggplot(quadrant_example.df, aes(logFC.x, logFC.y)) +
   geom_quadrant_lines() +
   stat_quadrant_counts() +
   stat_dens2d_filter(color = "red", keep.fraction = 0.02) +
-  stat_dens2d_labels(aes(label = gene), keep.fraction = 0.02, 
+  stat_dens2d_labels(aes(label = gene), keep.fraction = 0.02,
                      geom = "text_repel", size = 2, colour = "red") +
   scale_x_logFC(name = "Transcript abundance after A%unit") +
   scale_y_logFC(name = "Transcript abundance after B%unit",
@@ -256,7 +268,7 @@ automatically. We also highlight and label the peaks using
 `stat_peaks()`.
 
 ``` r
-ggplot(lynx, as.numeric = FALSE) + geom_line() + 
+ggplot(lynx, as.numeric = FALSE) + geom_line() +
   stat_peaks(colour = "red") +
   stat_peaks(geom = "text", colour = "red", angle = 66,
              hjust = -0.1, x.label.fmt = "%Y") +
@@ -280,15 +292,15 @@ repository (binaries for Mac, Win, Webassembly, and Linux, as well as
 sources available):
 
 ``` r
-install.packages('ggpmisc', 
-                 repos = c('https://aphalo.r-universe.dev', 
-                           'https://cloud.r-project.org'))
+install.packages("ggpmisc",
+                 repos = c("https://aphalo.r-universe.dev",
+                           "https://cloud.r-project.org"))
 ```
 
 Installation of the current unstable version from GitHub (from sources):
 
 ``` r
-# install.packages("remotes")
+# install.packages("remotes") # nolint: commented_code_linter.
 remotes::install_github("aphalo/ggpmisc")
 ```
 
@@ -321,8 +333,8 @@ publications, please cite according to:
 citation("ggpmisc")
 #> To cite package 'ggpmisc' in publications use:
 #> 
-#>   Aphalo P (2024). _ggpmisc: Miscellaneous Extensions to 'ggplot2'_. R
-#>   package version 0.6.0.9000, https://github.com/aphalo/ggpmisc,
+#>   Aphalo P (2025). _ggpmisc: Miscellaneous Extensions to 'ggplot2'_. R
+#>   package version 0.6.1.9002,
 #>   <https://docs.r4photobiology.info/ggpmisc/>.
 #> 
 #> A BibTeX entry for LaTeX users is
@@ -330,9 +342,8 @@ citation("ggpmisc")
 #>   @Manual{,
 #>     title = {ggpmisc: Miscellaneous Extensions to 'ggplot2'},
 #>     author = {Pedro J. Aphalo},
-#>     year = {2024},
-#>     note = {R package version 0.6.0.9000, 
-#> https://github.com/aphalo/ggpmisc},
+#>     year = {2025},
+#>     note = {R package version 0.6.1.9002},
 #>     url = {https://docs.r4photobiology.info/ggpmisc/},
 #>   }
 ```
@@ -365,6 +376,6 @@ Computational and Graphical Statistics 19 (1): 3–28.
 
 ## License
 
-© 2016-2024 Pedro J. Aphalo (<pedro.aphalo@helsinki.fi>). Released under
+© 2016-2025 Pedro J. Aphalo (<pedro.aphalo@helsinki.fi>). Released under
 the GPL, version 2 or greater. This software carries no warranty of any
 kind.

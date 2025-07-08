@@ -8,7 +8,7 @@
 \description{
 \if{html}{\figure{logo.png}{options: style='float: right' alt='logo' width='120'}}
 
-Extensions to 'ggplot2' respecting the grammar of graphics paradigm. Statistics: locate and tag peaks and valleys; label plot with the equation of a fitted polynomial or other types of models; labels with P-value, R^2 or adjusted R^2 or information criteria for fitted models; label with ANOVA table for fitted models; label with summary for fitted models. Model fit classes for which suitable methods are provided by package 'broom' and 'broom.mixed' are supported. Scales and stats to build volcano and quadrant plots based on outcomes, fold changes, p-values and false discovery rates.
+Extensions to 'ggplot2' respecting the grammar of graphics paradigm. Statistics: locate and tag peaks and valleys; label plot with the equation of a fitted polynomial or other types of models including major axis, quantile and robust and resistant regression. Labels for P-value, R^2 or adjusted R^2 or information criteria for fitted models; parametric and non-parametric correlation; label with ANOVA table for fitted models; label with summary table for fitted models; annotations for multiple comparisons with adjusted P-values. Model fit classes for which suitable methods are provided by package 'broom' and 'broom.mixed' are supported as well as user-defined wrappers on model fit functions. Scales and stats to build volcano and quadrant plots based on outcomes, fold changes, p-values and false discovery rates.
 }
 \details{
 The new facilities for cleanly defining new stats and geoms added to
@@ -26,8 +26,8 @@ plotted with ggplot.
 \item Stats for locating and tagging "peaks" and "valleys" (local or global
  maxima and minima).
 \item Stat for generating labels from model fit objects, including
-formatted equations. By default labels are R's plotmath expressions but LaTeX, markdown
-and plain text formatted labels are optionaly assembled.
+formatted equations. By default labels are R's plotmath expressions but LaTeX,
+markdown and plain text formatted labels are optionaly assembled.
 \item Stats for extracting information from a any model fit supported by
 package 'broom' and using it to generate various annotations and data labels.
 \item Stat for computing and generating labels for the results from multiple
