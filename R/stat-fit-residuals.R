@@ -35,6 +35,9 @@
 #'   variable (on the rhs of formula) for fitting to the attempted.
 #' @param formula a "formula" object. Using aesthetic names instead of
 #'   original variable names.
+#' @param fit.seed RNG seed argument passed to \code{\link[base:Random]{set.seed}()}.
+#'   Defaults to \code{NA}, which means that \code{set.seed()} will not be
+#'   called.
 #' @param resid.type character passed to \code{residuals()} as argument for
 #'   \code{type} (defaults to \code{"working"} except if \code{weighted = TRUE}
 #'   when it is forced to \code{"deviance"}).
@@ -184,6 +187,7 @@ stat_fit_residuals <- function(mapping = NULL,
                                method.args = list(),
                                n.min = 2L,
                                formula = NULL,
+                               fit.seed = NA,
                                resid.type = NULL,
                                weighted = FALSE,
                                na.rm = FALSE,
@@ -203,6 +207,13 @@ stat_fit_residuals <- function(mapping = NULL,
     method.name <- "missing"
   }
 
+  temp <- guess_orientation(orientation = orientation,
+                            formula = formula,
+                            default.formula = y ~ x,
+                            formula.on.x = FALSE)
+  orientation <- temp[["orientation"]]
+  formula <- temp[["formula"]]
+
   ggplot2::layer(
     stat = StatFitResiduals, data = data, mapping = mapping, geom = geom,
     position = position, show.legend = show.legend, inherit.aes = inherit.aes,
@@ -212,6 +223,7 @@ stat_fit_residuals <- function(mapping = NULL,
                    method.args = method.args,
                    n.min = n.min,
                    formula = formula,
+                   fit.seed = fit.seed,
                    resid.type = resid.type,
                    weighted = weighted,
                    na.rm = na.rm,
@@ -232,6 +244,7 @@ residuals_compute_group_fun <- function(data,
                                         method.args = list(),
                                         n.min = 2L,
                                         formula = y ~ x,
+                                        fit.seed = NA,
                                         resid.type = NULL,
                                         weighted = FALSE,
                                         orientation = "x") {
@@ -240,27 +253,8 @@ residuals_compute_group_fun <- function(data,
     data$weight <- 1
   }
 
-  # we guess formula from orientation
-  if (is.null(formula)) {
-    if (is.na(orientation) || orientation == "x") {
-      formula = y ~ x
-    } else if (orientation == "y") {
-      formula = x ~ y
-    }
-  }
-  # we guess orientation from formula
-  if (is.na(orientation)) {
-    orientation <- unname(c(x = "y", y = "x")[as.character(formula)[2]])
-  }
-
-  if (orientation == "x") {
-    if (length(unique(data$x)) < n.min) {
-      return(data.frame())
-    }
-  } else if (orientation == "y") {
-    if (length(unique(data$y)) < n.min) {
-      return(data.frame())
-    }
+  if (length(unique(data[[orientation]])) < n.min) {
+    return(data.frame())
   }
 
   # If method was specified as a character string, replace with
@@ -306,6 +300,7 @@ residuals_compute_group_fun <- function(data,
                      data = quote(data))
   }
   fun.args <- c(fun.args, method.args)
+
   if (length(fun.method)) {
     fun.args[["method"]] <- fun.method
   }
@@ -315,6 +310,9 @@ residuals_compute_group_fun <- function(data,
     names(fun.args)[1] <- "model"
   }
 
+  if (!is.na(fit.seed)) {
+    set.seed(fit.seed)
+  }
   # quantreg contains code with partial matching of names!
   # so we silence selectively only these warnings
   withCallingHandlers({
@@ -325,6 +323,17 @@ residuals_compute_group_fun <- function(data,
       invokeRestart("muffleWarning")
     }
   })
+
+  if (!length(fm) || (is.atomic(fm) && is.na(fm))) {
+    return(data.frame())
+  } else if (!(inherits(fm, "lm") || inherits(fm, "lmrob") ||
+               inherits(fm, "gls") || inherits(fm, "lqs") ||
+               inherits(fm, "lts") || inherits(fm, "sma"))) {
+    message("Method \"", method.name,
+            "\" did not return a ",
+            "\"lm\", \"lmrob\", \"lqs\", \"lts\", \"gls\" or \"sma\" ",
+            "object, possible failure ahead.")
+  }
 
   if (!is.null(resid.type)) {
     if (weighted) {
@@ -368,16 +377,17 @@ residuals_compute_group_fun <- function(data,
     weight.vals <- rep_len(1, nrow(data))
   } else {
     rob.weight.vals <- rep(NA_real_, nrow(data))
-    try(prior.weight.vals <- stats::weights(fm))
-    if (inherits(weight.vals, "try-error")) {
+    try(weight.vals <- stats::weights(fm))
+    if (inherits(weight.vals, "try-error") ||
+        length(weight.vals) != length(fit.residuals)) {
       if (exists("weights", fm) &&  # defensive
-          length(fm[["weights"]]) == nrow(data)) {
+          length(fm[["weights"]]) == length(fit.residuals)) {
         weight.vals <- fm[["weights"]]
       } else {
         weight.vals <- rep_len(NA_real_, nrow(data))
       }
     }
-  }
+   }
 
   if (orientation == "y") {
     data.frame(y = data$y,

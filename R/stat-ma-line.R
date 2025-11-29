@@ -31,30 +31,11 @@
 #'   parameter \code{n.min}. The default \code{n.min = 2L} is the smallest
 #'   possible value. However, model fits with very few observations are of
 #'   little interest and using a larger number for \code{n.min} than the default
-#'   is wise.
+#'   is wise. As model fitting functions could depend on the RNG,
+#'   \code{fit.seed} if different to \code{NA} is used as argument in a call to
+#'   \code{\link[base:Random]{set.seed}()} immediately ahead of model fitting.
 #'
-#' @param mapping The aesthetic mapping, usually constructed with
-#'   \code{\link[ggplot2]{aes}}. Only needs to be set at the layer level if you
-#'   are overriding the plot defaults.
-#' @param data A layer specific dataset, only needed if you want to override
-#'   the plot defaults.
-#' @param geom The geometric object to use display the data
-#' @param position The position adjustment to use for overlapping points on this
-#'   layer
-#' @param show.legend logical. Should this layer be included in the legends?
-#'   \code{NA}, the default, includes if any aesthetics are mapped. \code{FALSE}
-#'   never includes, and \code{TRUE} always includes.
-#' @param inherit.aes If \code{FALSE}, overrides the default aesthetics, rather
-#'   than combining with them. This is most useful for helper functions that
-#'   define both data and aesthetics and shouldn't inherit behaviour from the
-#'   default plot specification, e.g. \code{\link[ggplot2]{borders}}.
-#' @param ... other arguments passed on to \code{\link[ggplot2]{layer}}. This
-#'   can include aesthetics whose values you want to set, not map. See
-#'   \code{\link[ggplot2]{layer}} for more details.
-#' @param na.rm a logical indicating whether NA values should be stripped before
-#'   the computation proceeds.
-#' @param formula a formula object. Using aesthetic names \code{x} and \code{y}
-#'   instead of original variable names.
+#' @inheritParams stat_poly_line
 #' @param range.y,range.x character Pass "relative" or "interval" if method
 #'   "RMA" is to be computed.
 #' @param method function or character If character, "MA", "SMA" , "RMA" or
@@ -64,20 +45,10 @@
 #'   \code{lmodel2()}, it must accept arguments named \code{formula},
 #'   \code{data}, \code{range.y}, \code{range.x} and \code{nperm} and return a
 #'   model fit object of class \code{lmodel2}.
-#' @param method.args named list with additional arguments.
-#' @param n.min integer Minimum number of distinct values in the explanatory
-#'   variable (on the rhs of formula) for fitting to the attempted.
 #' @param nperm integer Number of permutation used to estimate significance.
 #' @param se logical Return confidence interval around smooth? (`TRUE` by
 #'   default, see `level` to control.)
-#' @param fm.values logical Add R2, p-value and n as columns to returned data?
-#'   (`FALSE` by default.)
-#' @param fullrange Should the fit span the full range of the plot, or just
-#'   the data?
 #' @param level Level of confidence interval to use (only 0.95 currently).
-#' @param n Number of points at which to evaluate smoother.
-#' @param orientation character Either "x" or "y" controlling the default for
-#'   \code{formula}.
 #'
 #' @return The value returned by the statistic is a data frame, that will have
 #'   \code{n} rows of predicted values and their confidence limits. Optionally
@@ -195,6 +166,7 @@ stat_ma_line <- function(mapping = NULL,
                          range.y = NULL,
                          range.x = NULL,
                          se = TRUE,
+                         fit.seed = NA,
                          fm.values = FALSE,
                          n = 80,
                          nperm = 99,
@@ -227,26 +199,12 @@ stat_ma_line <- function(mapping = NULL,
     stop("Method 'rq' not supported, please use 'stat_quant_line()'.")
   }
 
-  if (is.null(formula)) {
-    formula = y ~ x
-    if (is.na(orientation)) {
-      orientation = "x"
-    }
-  } else {
-    formula.chr <- as.character(formula)
-    if (is.na(orientation)) {
-      # we guess orientation from formula
-      if (grepl("y", formula.chr[2])) {
-        orientation <- "x"
-      } else if (grepl("x", formula.chr[2])) {
-        orientation <- "y"
-        formula <- swap_xy(formula)
-      }
-    } else if (!grepl("y", formula.chr[2])){
-      stop("When both 'orientation' and 'formula' are passed arguments ",
-           "the formula should have 'x' as explanatory variable.")
-    }
-  }
+  temp <- guess_orientation(orientation = orientation,
+                            formula = formula,
+                            default.formula = y ~ x,
+                            formula.on.x = TRUE)
+  orientation <- temp[["orientation"]]
+  formula <-  temp[["formula"]]
 
   if (is.character(method)) {
     if (grepl("^rq", method)) {
@@ -276,6 +234,7 @@ stat_ma_line <- function(mapping = NULL,
       range.y = range.y,
       range.x = range.x,
       se = se,
+      fit.seed = fit.seed,
       fm.values = fm.values,
       n = n,
       nperm = nperm,
@@ -304,6 +263,7 @@ ma_line_compute_group_fun <-
            formula = NULL,
            range.y = NULL, range.x = NULL,
            se = TRUE,
+           fit.seed = NA,
            fm.values = FALSE,
            n = 80,
            nperm = 99,
@@ -392,6 +352,9 @@ ma_line_compute_group_fun <-
       fit.args <- c(fit.args, method.args)
     }
 
+    if (!is.na(fit.seed)) {
+      set.seed(fit.seed)
+    }
     # lmodel2 issues a warning that is irrelevant here
     # so we silence it selectively
     withCallingHandlers({

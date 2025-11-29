@@ -39,28 +39,8 @@
 #'   approach described by Cardoso (2019) under the name of "Double quantile
 #'   regression".
 #'
-#' @param mapping The aesthetic mapping, usually constructed with
-#'   \code{\link[ggplot2]{aes}}. Only needs to be
-#'   set at the layer level if you are overriding the plot defaults.
-#' @param data A layer specific dataset, only needed if you want to override
-#'   the plot defaults.
-#' @param geom The geometric object to use display the data
-#' @param position The position adjustment to use for overlapping points on this
-#'   layer
-#' @param show.legend logical. Should this layer be included in the legends?
-#'   \code{NA}, the default, includes if any aesthetics are mapped. \code{FALSE}
-#'   never includes, and \code{TRUE} always includes.
-#' @param inherit.aes If \code{FALSE}, overrides the default aesthetics, rather
-#'   than combining with them. This is most useful for helper functions that
-#'   define both data and aesthetics and shouldn't inherit behaviour from the
-#'   default plot specification, e.g. \code{\link[ggplot2]{borders}}.
-#' @param ... other arguments passed on to \code{\link[ggplot2]{layer}}. This
-#'   can include aesthetics whose values you want to set, not map. See
-#'   \code{\link[ggplot2]{layer}} for more details.
-#' @param na.rm	a logical indicating whether NA values should be stripped before
-#'   the computation proceeds.
-#' @param formula a formula object. Using aesthetic names \code{x} and \code{y}
-#'   instead of original variable names.
+#' @inheritParams stat_poly_line
+#'
 #' @param quantiles numeric vector Values in 0..1 indicating the quantiles.
 #' @param method function or character If character, "rq", "rqss" or the name of
 #'   a model fit function are accepted, possibly followed by the fit function's
@@ -70,32 +50,27 @@
 #'   and return a model fit object of class \code{rq}, \code{rqs} or
 #'   \code{rqss}.
 #' @param method.args named list with additional arguments passed to
-#'   \code{rq()}, \code{rqss()} or to a function passed as argument to
+#'   \code{rq()}, \code{rqss()} or to another function passed as argument to
 #'   \code{method}.
-#' @param n.min integer Minimum number of distinct values in the explanatory
-#'   variable (on the rhs of formula) for fitting to the attempted.
-#' @param n Number of points at which to evaluate smoother.
-#' @param orientation character Either "x" or "y" controlling the default for
-#'   \code{formula}.
 #' @param se logical Passed to \code{quantreg::predict.rq()}.
-#' @param fm.values logical Add n as a column to returned data? (`FALSE` by
-#'   default.)
 #' @param level numeric in range [0..1] Passed to \code{quantreg::predict.rq()}.
 #' @param type character Passed to \code{quantreg::predict.rq()}.
 #' @param interval character Passed to \code{quantreg::predict.rq()}.
 #'
 #' @return The value returned by the statistic is a data frame, that will have
-#'   \code{n} rows of predicted values and and their confidence limits for each
-#'   quantile, with each quantile in a group. The variables are \code{x} and
+#'   \code{n} rows of predicted values and and their confidence limits
+#'   \emph{for each quantile}, with quantiles creating groups, or expanding
+#'   existing groups. The variables are \code{x} and
 #'   \code{y} with \code{y} containing predicted values. In addition,
-#'   \code{quantile} and \code{quantile.f} indicate the quantile used and
-#'   and edited \code{group} preserves the original grouping adding a new
-#'   "level" for each quantile. Is \code{se = TRUE}, a confidence band is
-#'   computed and values for it returned in \code{ymax} and \code{ymin}.
+#'   \code{quantile} and \code{quantile.f} indicate the quantile used and and
+#'   edited \code{group} preserves the original grouping adding a new "level"
+#'   for each quantile. Is \code{se = TRUE}, a confidence band is computed and
+#'   values for it returned in \code{ymax} and \code{ymin}.
 #'
-#' @return The value returned by the statistic is a data frame, that will have
-#'   \code{n} rows of predicted values and their confidence limits. Optionally
-#'   it will also include additional values related to the model fit.
+#' @return The value returned by the statistic is a data frame, that with
+#'   \code{n} times the number of quantiles rows of predicted values and their
+#'   confidence limits. Optionally it also includes additional values related
+#'   to the model fit.
 #'
 #' @section Computed variables: `stat_quant_line()` provides the following
 #'   variables, some of which depend on the orientation: \describe{ \item{y *or*
@@ -222,6 +197,7 @@ stat_quant_line <- function(mapping = NULL,
                             quantiles = c(0.25, 0.5, 0.75),
                             formula = NULL,
                             se = length(quantiles) == 1L,
+                            fit.seed = NA,
                             fm.values = FALSE,
                             n = 80,
                             method = "rq",
@@ -257,36 +233,17 @@ stat_quant_line <- function(mapping = NULL,
     stop("Method 'lmodel2' not supported, please use 'stat_ma_line()'.")
   }
 
-  if (is.null(formula)) {
-    if (is.character(method)) {
-      if (method == "rq") {
-        formula <- y ~ x
-      } else if (method == "rqss") {
-        qss <- quantreg::qss
-        formula <- y ~ qss(x)
-        # emit message only if formula is not y ~ x
-        message("Smoothing formula not specified. Using: ",
-                deparse(formula))
-      }
-    }
-    if (is.na(orientation)) {
-      orientation = "x"
-    }
+  if (method.name == "rqss") {
+    default.formula <- y ~ qss(x)
   } else {
-    formula.chr <- as.character(formula)
-    if (is.na(orientation)) {
-      # we guess orientation from formula
-      if (grepl("y", formula.chr[2])) {
-        orientation <- "x"
-      } else if (grepl("x", formula.chr[2])) {
-        orientation <- "y"
-        formula <- swap_xy(formula)
-      }
-    } else if (!grepl("y", formula.chr[2])){
-      stop("When both 'orientation' and 'formula' are passed arguments ",
-           "the formula should have 'x' as explanatory variable.")
-    }
+    default.formula <- y ~ x
   }
+  temp <- guess_orientation(orientation = orientation,
+                            formula = formula,
+                            default.formula = default.formula,
+                            formula.on.x = TRUE)
+  orientation <- temp[["orientation"]]
+  formula <-  temp[["formula"]]
 
   ggplot2::layer(
     data = data,
@@ -301,6 +258,7 @@ stat_quant_line <- function(mapping = NULL,
         quantiles = quantiles,
         formula = formula,
         se = se,
+        fit.seed = fit.seed,
         fm.values = fm.values,
         n = n,
         method = method,
@@ -338,9 +296,12 @@ quant_line_compute_group_fun <- function(data,
                                          type = "none",
                                          interval = "none",
                                          se = TRUE,
+                                         fit.seed = NA,
                                          fm.values = FALSE,
                                          na.rm = FALSE,
-                                         flipped_aes = NA) {
+                                         flipped_aes = NA,
+                                         orientation = "x",
+                                         make.groups = TRUE) {
 
   data <- ggplot2::flip_data(data, flipped_aes)
   if (length(unique(data$x)) < n.min) {
@@ -352,81 +313,71 @@ quant_line_compute_group_fun <- function(data,
     data[["weight"]] <- 1
   }
 
-  min.indep <- min(data[["x"]], na.rm = TRUE)
-  max.indep <- max(data[["x"]], na.rm = TRUE)
-  seq.indep <- seq(min.indep, max.indep, length.out = n)
+  quantiles <- sort(unique(quantiles))
 
+  fms.ls <-  quant_helper_fun(data = data,
+                              formula = formula,
+                              quantiles = quantiles,
+                              fit.by.quantile = TRUE, # one fm per quantile
+                              method = method,
+                              method.name = method.name,
+                              method.args = method.args,
+                              n.min = n.min,
+                              fit.seed = fit.seed,
+                              weight = data[["weight"]],
+                              na.rm = na.rm,
+                              orientation = "x")
+
+  seq.indep <- seq(from = min(data[["x"]], na.rm = TRUE),
+                   to   = max(data[["x"]], na.rm = TRUE),
+                   length.out = n)
   grid <- data.frame(x = seq.indep)
 
-  # If method was specified as a character string, replace with
-  # the corresponding function. Some model fit functions themselves have a
-  # method parameter accepting character strings as argument. We support
-  # these by splitting strings passed as argument at a colon.
-  if (is.character(method)) {
-    if (method %in% c("br", "fn", "pfn", "sfn", "fnc", "conquer",
-                      "pfnb", "qfnb", "ppro", "lasso")) {
-      method <- paste("rq", method, sep = ":")
-      message("Using method: ", method)
+  preds.ls <- list()
+  fms.idxs <- grep("^fm", names(fms.ls))
+  for (i in seq_along(fms.idxs)) {
+    temp.grid <- grid
+
+    fm <- fms.ls[[fms.idxs[i]]]
+    if (!length(fm) || (is.atomic(fm) && is.na(fm))) {
+      next()
     }
-    method <- strsplit(x = method, split = ":", fixed = TRUE)[[1]]
-    if (length(method) > 1L) {
-      fun.method <- method[2]
-      method <- method[1]
+    pred <- stats::predict(fm, newdata = grid, level = level,
+                           type = type, interval = interval)
+
+    if (is.matrix(pred)) {
+      temp.grid[["y"]] <- pred[ , 1L]
+      temp.grid[["ymin"]] <- pred[ , 2L]
+      temp.grid[["ymax"]] <- pred[ , 3L]
     } else {
-      fun.method <- character()
+      temp.grid[["y"]] <- pred
+      temp.grid[["ymin"]] <- z[["ymax"]] <- NA_real_
     }
-    method <- switch(method,
-                     rq = quantreg::rq,
-                     rqss = quantreg::rqss,
-                     match.fun(method))
-  } else if (is.function(method)) {
-    fun.method <- method.args[["method"]]
-    if (length(fun.method)) {
-      method.name <- paste(method.name, fun.method, sep = ":")
+
+    temp.grid[["quantile"]] <- fm[["tau"]]
+    temp.grid[["group"]] <- paste(data[["group"]][1], fm[["tau"]], sep = "-")
+
+    if (fm.values) {
+      temp.grid[["n"]] <- length(resid(fm)) / length(fm[["tau"]])
+      temp.grid[["fm.class"]] <- class(fm)
+      temp.grid[["fm.method"]] <- method.name
+      temp.grid[["fm.formula.chr"]] <- format(formula(fm))
     }
+
+    preds.ls[[i]] <- temp.grid
   }
 
-  if (length(fun.method)) {
-    method.args[["method"]] <- fun.method
+  z <- dplyr::bind_rows(preds.ls)
+
+  if (nrow(z) >= 1L) {
+    # a factor with nicely formatted labels for levels is helpful
+    quant.digits <- ifelse(min(z[["quantile"]]) < 0.01 || max(z[["quantile"]]) > 0.99,
+                           3, 2)
+    quant.levels <- sort(unique(z[["quantile"]]), decreasing = TRUE)
+    quant.labels <- sprintf("%#.*f", quant.digits, quant.levels)
+    z[["quantile.f"]] <-
+      factor(z[["quantile"]], levels = quant.levels, labels = quant.labels)
   }
-
-  z <- lapply(quantiles, quant_pred, data = data, method = method,
-              formula = formula, weight = data[["weight"]], grid = grid,
-              method.args = method.args, orientation = "x",
-              level = level, type = type, interval = interval)
-
-  missing <- sapply(X = z,
-                    FUN = function(x) {!nrow(x)})
-
-  if (any(missing)) {
-    return(data.frame())
-  } else {
-    z <- dplyr::bind_rows(z)
-  }
-
-  if (is.matrix(z[["y"]])) {
-    z[["ymin"]] <- z[["y"]][ , 2L]
-    z[["ymax"]] <- z[["y"]][ , 3L]
-    z[["y"]] <- z[["y"]][ , 1L]
-  } else {
-    z[["ymin"]] <- z[["ymax"]] <- NA_real_
-  }
-
-  if (fm.values) {
-      z[["n"]] <- nrow(na.omit(data[, c("x", "y")]))
-#      z[["fm.class"]] <- class(fm)[1] # fm gets dropped in quant_pred()
-      z[["fm.method"]] <- method.name
-      z[["fm.formula"]] <- list(formula) # fm gets dropped in quant_pred()
-      z[["fm.formula.chr"]] <- format(z[["fm.formula"]])
-  }
-
-  # a factor with nicely formatted labels for levels is helpful
-  quant.digits <- ifelse(min(z[["quantile"]]) < 0.01 || max(z[["quantile"]]) > 0.99,
-                         3, 2)
-  quant.levels <- sort(unique(z[["quantile"]]), decreasing = TRUE)
-  quant.labels <- sprintf("%#.*f", quant.digits, quant.levels)
-  z[["quantile.f"]] <-
-    factor(z[["quantile"]], levels = quant.levels, labels = quant.labels)
 
   z[["flipped_aes"]] <- flipped_aes
   ggplot2::flip_data(z, flipped_aes)

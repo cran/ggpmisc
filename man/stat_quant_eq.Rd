@@ -15,6 +15,7 @@ stat_quant_eq(
   method = "rq:br",
   method.args = list(),
   n.min = 3L,
+  fit.seed = NA,
   eq.with.lhs = TRUE,
   eq.x.rhs = NULL,
   coef.digits = 3,
@@ -35,38 +36,44 @@ stat_quant_eq(
 }
 \arguments{
 \item{mapping}{The aesthetic mapping, usually constructed with
-\code{\link[ggplot2]{aes}}. Only needs to be
-set at the layer level if you are overriding the plot defaults.}
+\code{\link[ggplot2]{aes}}. Only needs to be set at the layer level if you
+are overriding the plot defaults.}
 
-\item{data}{A layer specific dataset, only needed if you want to override
-the plot defaults.}
+\item{data}{A layer specific dataset, only needed if you want to override the
+plot defaults.}
 
 \item{geom}{The geometric object to use display the data}
 
 \item{position}{The position adjustment to use for overlapping points on this
-layer}
+layer.}
 
 \item{...}{other arguments passed on to \code{\link[ggplot2]{layer}}. This
 can include aesthetics whose values you want to set, not map. See
 \code{\link[ggplot2]{layer}} for more details.}
 
-\item{formula}{a formula object. Using aesthetic names instead of
-original variable names.}
+\item{formula}{a formula object. Using aesthetic names \code{x} and \code{y}
+instead of original variable names.}
 
 \item{quantiles}{numeric vector Values in 0..1 indicating the quantiles.}
 
-\item{method}{function or character If character, "rq" or the name of a model
-fit function are accepted, possibly followed by the fit function's
+\item{method}{function or character If character, "rq", "rqss" or the name of
+a model fit function are accepted, possibly followed by the fit function's
 \code{method} argument separated by a colon (e.g. \code{"rq:br"}). If a
 function different to \code{rq()}, it must accept arguments named
 \code{formula}, \code{data}, \code{weights}, \code{tau} and \code{method}
-and return a model fit object of class \code{rq} or \code{rqs}.}
+and return a model fit object of class \code{rq}, \code{rqs} or
+\code{rqss}.}
 
-\item{method.args}{named list with additional arguments passed to \code{rq()}
-or to a function passed as argument to \code{method}.}
+\item{method.args}{named list with additional arguments passed to
+\code{rq()}, \code{rqss()} or to another function passed as argument to
+\code{method}.}
 
-\item{n.min}{integer Minimum number of observations needed for fiting a
-the model.}
+\item{n.min}{integer Minimum number of distinct values in the explanatory
+variable (on the rhs of formula) for fitting to the attempted.}
+
+\item{fit.seed}{RNG seed argument passed to
+\code{\link[base:Random]{set.seed}()}. Defaults to \code{NA}, indicating
+that \code{set.seed()} should not be called.}
 
 \item{eq.with.lhs}{If \code{character} the string is pasted to the front of
 the equation label before parsing or a \code{logical} (see note).}
@@ -100,8 +107,9 @@ use \code{stat_fit_tidy()}.}
 \item{na.rm}{a logical indicating whether NA values should be stripped before
 the computation proceeds.}
 
-\item{orientation}{character Either \code{"x"} or \code{"y"} controlling the
-default for \code{formula}.}
+\item{orientation}{character Either "x" or "y" controlling the default for
+\code{formula}. The letter indicates the aesthetic considered the
+explanatory variable in the model fit.}
 
 \item{parse}{logical Passed to the geom. If \code{TRUE}, the labels will be
 parsed into expressions and displayed as described in \code{?plotmath}.

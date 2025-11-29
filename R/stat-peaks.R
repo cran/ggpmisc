@@ -1,58 +1,32 @@
 #' Local maxima (peaks) or minima (valleys)
 #'
-#' \code{stat_peaks} finds at which x positions the global y maximun or local
-#' y maxima are located. \code{stat_valleys} finds at which x positions the
-#' global y minimum or local y minima located. They both support filtering
-#' of relevant peaks. \strong{Axis flipping is supported.}
+#' \code{stat_peaks} finds at which x positions the global y maximun or local y
+#' maxima are located. \code{stat_valleys} finds at which x positions the global
+#' y minimum or local y minima located. They both support filtering of relevant
+#' peaks. \strong{Axis flipping is supported.}
+#'
+#' @inheritParams find_peaks
 #'
 #' @param mapping The aesthetic mapping, usually constructed with
-#'    \code{\link[ggplot2]{aes}} or \code{\link[ggplot2]{aes_}}. Only needs to be set
-#'    at the layer level if you are overriding the plot defaults.
+#'   \code{\link[ggplot2]{aes}} or \code{\link[ggplot2]{aes_}}. Only needs to be
+#'   set at the layer level if you are overriding the plot defaults.
 #' @param data A layer specific dataset - only needed if you want to override
-#'    the plot defaults.
+#'   the plot defaults.
 #' @param geom The geometric object to use display the data
-#' @param position The position adjustment to use for overlapping points
-#'    on this layer
+#' @param position The position adjustment to use for overlapping points on this
+#'   layer
 #' @param show.legend logical. Should this layer be included in the legends?
-#'   \code{NA}, the default, includes if any aesthetics are mapped.
-#'   \code{FALSE} never includes, and \code{TRUE} always includes.
-#' @param inherit.aes If \code{FALSE}, overrides the default aesthetics,
-#'   rather than combining with them. This is most useful for helper functions
-#'   that define both data and aesthetics and shouldn't inherit behaviour from
-#'   the default plot specification, e.g. \code{\link[ggplot2]{borders}}.
-#' @param ... other arguments passed on to \code{\link[ggplot2]{layer}}. This can
-#'   include aesthetics whose values you want to set, not map. See
+#'   \code{NA}, the default, includes if any aesthetics are mapped. \code{FALSE}
+#'   never includes, and \code{TRUE} always includes.
+#' @param inherit.aes If \code{FALSE}, overrides the default aesthetics, rather
+#'   than combining with them. This is most useful for helper functions that
+#'   define both data and aesthetics and shouldn't inherit behaviour from the
+#'   default plot specification, e.g. \code{\link[ggplot2]{borders}}.
+#' @param ... other arguments passed on to \code{\link[ggplot2]{layer}}. This
+#'   can include aesthetics whose values you want to set, not map. See
 #'   \code{\link[ggplot2]{layer}} for more details.
-#' @param na.rm	a logical value indicating whether NA values should be
-#'   stripped before the computation proceeds.
-#' @param global.threshold numeric A value belonging to class
-#'   \code{"AsIs"} is interpreted as an absolute minimum height or depth
-#'   expressed in data units. A bare \code{numeric} value (normally between 0.0
-#'   and 1.0), is interpreted as relative to the range of the data. In both
-#'   cases it sets a \emph{global} height (depth) threshold below which peaks
-#'   (valleys) are ignored. A bare negative \code{numeric} value indicates the
-#'   \emph{global} height (depth) threshold below which peaks (valleys) are be
-#'   ignored. If \code{global.threshold = NULL}, no threshold is applied and all
-#'   peaks are returned.
-#' @param local.threshold numeric A value belonging to class \code{"AsIs"} is
-#'   interpreted as an absolute minimum height (depth) expressed in data units
-#'   relative to the within-window computed minimum (maximum) value. A bare
-#'   \code{numeric} value (normally between 0.0 and 1.0), is interpreted as
-#'   expressed in units relative to the range of the data. In both cases
-#'   \code{local.threshold} sets a \emph{local} height (depth) threshold below
-#'   which peaks (valleys) are ignored. If \code{local.threshold = NULL} or if
-#'   \code{span} spans the whole of \code{x}, no threshold is applied.
-#' @param local.reference character One of \code{"minimum"}/\code{maximum} or
-#'   \code{"median"}. The reference used to assess the height of the peak,
-#'   either the minimum value within the window or the median of all values in
-#'   the window.
-#' @param span odd positive integer A peak is defined as an element in a
-#'   sequence which is greater than all other elements within a moving window of
-#'   width \code{span} centred at that element. The default value is 5, meaning
-#'   that a peak is taller than its four nearest neighbours. \code{span = NULL}
-#'   extends the span to the whole length of \code{x}.
-#' @param strict logical flag: if \code{TRUE}, an element must be strictly
-#'   greater than all other values in its window to be considered a peak.
+#' @param na.rm	a logical value indicating whether NA values should be stripped
+#'   before the computation proceeds.
 #' @param label.fmt,x.label.fmt,y.label.fmt character  strings giving a format
 #'   definition for construction of character strings labels with function
 #'   \code{\link{sprintf}} from \code{x} and/or \code{y} values.
@@ -64,9 +38,9 @@
 #' @param orientation character The orientation of the layer can be set to
 #'   either \code{"x"}, the default, or \code{"y"}.
 #'
-#' @return A data frame with one row for each peak (or valley) found in the
-#'   data extracted from the input \code{data} or all rows in data. Added
-#'   columns contain the labels.
+#' @return A data frame with one row for each peak (or valley) found in the data
+#'   extracted from the input \code{data} or all rows in data. Added columns
+#'   contain the labels.
 #'
 #' @section Computed and copied variables in the returned data frame:
 #' \describe{
@@ -76,50 +50,37 @@
 #'   \item{y.label}{y-value at the peak (or valley) formatted as character}
 #' }
 #'
-#' @section Default aesthetics:
-#' Set by the statistic and available to geoms.
+#' @section Default aesthetics: These stats use \code{geom_point} by default as
+#'   it is the geom most likely to work well in almost any situation without.
+#'   The default aesthetics set by these stats allow their direct use with
+#'   \code{geom_text}, \code{geom_label}, \code{geom_line}, \code{geom_rug},
+#'   \code{geom_hline} and \code{geom_vline}. The formatting of the labels
+#'   returned can be controlled by the user.
+#'
+#'   Default aesthetics mapped by the statistic and available to geoms, in
+#'   addtion to the automatically set required aesthetics.
 #' \describe{
 #'   \item{label}{stat(x.label)}
 #'   \item{xintercept}{stat(x)}
 #'   \item{yintercept}{stat(y)}
 #' }
 #'
-#' @section Required aesthetics:
-#' Required by the statistic and need to be set with \code{aes()}.
+#' @section Required aesthetics: Required by the statistic and need to be set
+#'   with \code{aes()}. Date time scales are recognized and labels
+#'   formatted accordingly.
+#'
 #' \describe{
-#'   \item{x}{numeric, wavelength in nanometres}
-#'   \item{y}{numeric, a spectral quantity}
+#'   \item{x}{numeric or date time, independent variable}
+#'   \item{y}{numeric, response variable where peaks or valleys are searched}
 #' }
 #'
-#' @seealso \code{\link[photobiology]{find_peaks}}, which is used internally.
+#' @seealso \code{\link{find_peaks}}, which is used internally.
 #'
-#' @details These stats use \code{geom_point} by default as it is the geom most
-#'   likely to work well in almost any situation without need of tweaking. The
-#'   default aesthetics set by these stats allow their direct use with
-#'   \code{geom_text}, \code{geom_label}, \code{geom_line}, \code{geom_rug},
-#'   \code{geom_hline} and \code{geom_vline}. The formatting of the labels
-#'   returned can be controlled by the user.
+#' @inherit find_peaks details
 #'
-#'   Two tests make it possible to ignore irrelevant peaks or valleys. One test
-#'   controlled by (\code{global.threshold}) is based on the absolute
-#'   height/depth  of peaks/valleys and can be used in all cases to ignore
-#'   globally low peaks and shallow valleys. A second test controlled by
-#'   (\code{local.threshold}) is available when the window defined by `span`
-#'   does not include all observations and can be used to ignore peaks/valleys
-#'   that are not locally prominent. In this second approach the height/depth of
-#'   each peak/valley is compared to a summary computed from other values within
-#'   the window where it was found. In this second case, the reference value
-#'   used is the summary indicated by \code{local.reference}. The values
-#'   \code{global.threshold} and \code{local.threshold} if bare numeric are
-#'   relative to the range of \emph{y}. Thresholds for ignoring too small peaks
-#'   are applied after peaks are searched for, and threshold values can in some
-#'   cases result in no peaks being displayed.
-#'
-#'   Date time scales are recognized and labels formatted accordingly.
-#'
-#' @note These stats work nicely together with geoms \code{geom_text_repel} and
-#'   \code{geom_label_repel} from package \code{\link[ggrepel]{ggrepel}} to
-#'   solve the problem of overlapping labels
+#' @note \code{stat_peaks} and \code{stat_valleys} work nicely together with
+#'   geoms \code{geom_text_repel} and \code{geom_label_repel} from package
+#'   \code{\link[ggrepel]{ggrepel}} to solve the problem of overlapping labels
 #'   by displacing them. To discard overlapping labels use \code{check_overlap =
 #'   TRUE} as argument to \code{geom_text}.
 #'

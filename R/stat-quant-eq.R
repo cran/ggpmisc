@@ -13,39 +13,8 @@
 #' approach described by Cardoso (2019) under the name of "Double quantile
 #' regression".
 #'
-#' @param mapping The aesthetic mapping, usually constructed with
-#'   \code{\link[ggplot2]{aes}}. Only needs to be
-#'   set at the layer level if you are overriding the plot defaults.
-#' @param data A layer specific dataset, only needed if you want to override
-#'   the plot defaults.
-#' @param geom The geometric object to use display the data
-#' @param position The position adjustment to use for overlapping points on this
-#'   layer
-#' @param show.legend logical. Should this layer be included in the legends?
-#'   \code{NA}, the default, includes if any aesthetics are mapped. \code{FALSE}
-#'   never includes, and \code{TRUE} always includes.
-#' @param inherit.aes If \code{FALSE}, overrides the default aesthetics, rather
-#'   than combining with them. This is most useful for helper functions that
-#'   define both data and aesthetics and shouldn't inherit behaviour from the
-#'   default plot specification, e.g. \code{\link[ggplot2]{borders}}.
-#' @param ... other arguments passed on to \code{\link[ggplot2]{layer}}. This
-#'   can include aesthetics whose values you want to set, not map. See
-#'   \code{\link[ggplot2]{layer}} for more details.
-#' @param na.rm	a logical indicating whether NA values should be stripped before
-#'   the computation proceeds.
-#' @param formula a formula object. Using aesthetic names instead of
-#'   original variable names.
-#' @param quantiles numeric vector Values in 0..1 indicating the quantiles.
-#' @param method function or character If character, "rq" or the name of a model
-#'   fit function are accepted, possibly followed by the fit function's
-#'   \code{method} argument separated by a colon (e.g. \code{"rq:br"}). If a
-#'   function different to \code{rq()}, it must accept arguments named
-#'   \code{formula}, \code{data}, \code{weights}, \code{tau} and \code{method}
-#'   and return a model fit object of class \code{rq} or \code{rqs}.
-#' @param method.args named list with additional arguments passed to \code{rq()}
-#'   or to a function passed as argument to \code{method}.
-#' @param n.min integer Minimum number of observations needed for fiting a
-#'   the model.
+#' @inheritParams stat_quant_line
+#'
 #' @param eq.with.lhs If \code{character} the string is pasted to the front of
 #'   the equation label before parsing or a \code{logical} (see note).
 #' @param eq.x.rhs \code{character} this string will be used as replacement for
@@ -67,8 +36,6 @@
 #'   \code{"text"}, \code{"markdown"} or \code{"numeric"}. In most cases,
 #'   instead of using this statistics to obtain numeric values, it is better to
 #'   use \code{stat_fit_tidy()}.
-#' @param orientation character Either \code{"x"} or \code{"y"} controlling the
-#'   default for \code{formula}.
 #' @param parse logical Passed to the geom. If \code{TRUE}, the labels will be
 #'   parsed into expressions and displayed as described in \code{?plotmath}.
 #'   Default is \code{TRUE} if \code{output.type = "expression"} and
@@ -446,6 +413,7 @@ stat_quant_eq <- function(mapping = NULL,
                           method = "rq:br",
                           method.args = list(),
                           n.min = 3L,
+                          fit.seed = NA,
                           eq.with.lhs = TRUE,
                           eq.x.rhs = NULL,
                           coef.digits = 3,
@@ -484,25 +452,17 @@ stat_quant_eq <- function(mapping = NULL,
     stop("Method 'lmodel2' not supported, please use 'stat_ma_eq()'.")
   }
 
-  # we guess formula from orientation
-  if (is.null(formula)) {
-    if (is.na(orientation) || orientation == "x") {
-      formula <- y ~ x
-    } else if (orientation == "y") {
-      formula <- x ~ y
-    }
+  if (method.name == "rqss") {
+    default.formula <- y ~ qss(x)
+  } else {
+    default.formula <- y ~ x
   }
-
-  # we guess orientation from formula
-  if (is.na(orientation)) {
-    if (grepl("x", as.character(formula)[2])) {
-      orientation <- "y"
-    } else if (grepl("y", as.character(formula)[2])) {
-      orientation <- "x"
-    } else {
-      stop("The model formula should use 'x' and 'y' as variables")
-    }
-  }
+  temp <- guess_orientation(orientation = orientation,
+                            formula = formula,
+                            default.formula = default.formula,
+                            formula.on.x = FALSE)
+  orientation <- temp[["orientation"]]
+  formula <-  temp[["formula"]]
 
   if (is.null(output.type)) {
     if (geom %in% c("richtext", "textbox", "marquee")) {
@@ -533,6 +493,7 @@ stat_quant_eq <- function(mapping = NULL,
                    method.name = method.name,
                    method.args = method.args,
                    n.min = n.min,
+                   fit.seed = fit.seed,
                    eq.with.lhs = eq.with.lhs,
                    eq.x.rhs = eq.x.rhs,
                    mk.eq.label = mk.eq.label,
@@ -572,6 +533,7 @@ quant_eq_compute_group_fun <- function(data,
                                        method.name,
                                        method.args = list(),
                                        n.min = 3L,
+                                       fit.seed = NA,
                                        weight = 1,
                                        eq.with.lhs = TRUE,
                                        eq.x.rhs = NULL,
@@ -600,20 +562,6 @@ quant_eq_compute_group_fun <- function(data,
     decimal.mark <- "."
   }
 
-  num.quantiles <- length(quantiles)
-
-  # make sure quantiles are ordered
-  quantiles <- sort(quantiles)
-
-  # factor with nicely formatted labels
-  quant.digits <- ifelse(min(quantiles) < 0.01 || max(quantiles) > 0.99, 3, 2)
-  quant.levels <- sort(unique(quantiles), decreasing = TRUE)
-  quant.labels <- sprintf_dm("%#.*f", quant.digits, quant.levels,
-                             decimal.mark = decimal.mark)
-  quantiles.f <- factor(quantiles,
-                        levels = quant.levels,
-                        labels = quant.labels)
-
   output.type <- if (!length(output.type)) {
     "expression"
   } else {
@@ -628,7 +576,8 @@ quant_eq_compute_group_fun <- function(data,
 
   if (exists("grp.label", data)) {
     if (length(unique(data[["grp.label"]])) > 1L) {
-      warning("Non-unique value in 'data$grp.label' using group index ", data[["group"]][1], " as label.")
+      warning("Non-unique value in 'data$grp.label' using group index ",
+              data[["group"]][1], " as label.")
       grp.label <- as.character(data[["group"]][1])
     } else {
       grp.label <- data[["grp.label"]][1]
@@ -660,67 +609,27 @@ quant_eq_compute_group_fun <- function(data,
     label.y <- label.y[1]
   }
 
-  if (orientation == "x") {
-    if (length(unique(data$x)) < n.min) {
-      return(data.frame())
-    }
-  } else if (orientation == "y") {
-    if (length(unique(data$y)) < n.min) {
-      return(data.frame())
-    }
-  }
+  # make sure quantiles are ordered
+  quantiles <- sort(quantiles)
 
-  # If method was specified as a character string, replace with
-  # the corresponding function. Some model fit functions themselves have a
-  # method parameter accepting character strings as argument. We support
-  # these by splitting strings passed as argument at a colon.
-  if (is.character(method)) {
-    if (method %in% c("br", "fn", "pfn", "sfn", "fnc", "conquer",
-                      "pfnb", "qfnb", "ppro", "lasso")) {
-      method <- paste("rq", method, sep = ":")
-      message("Using method: ", method)
-    }
-    method.name <- method
-    method <- strsplit(x = method, split = ":", fixed = TRUE)[[1]]
-    if (length(method) > 1L) {
-      fun.method <- method[2]
-      method <- method[1]
-    } else {
-      fun.method <- character()
-    }
-    method <- switch(method,
-                     rq = quantreg::rq,
-                     rqss = quantreg::rqss,
-                     match.fun(method))
-  } else if (is.function(method)) {
-    fun.method <- method.args[["method"]]
-    if (length(fun.method)) {
-      method.name <- paste(method.name, fun.method, sep = ":")
-    }
-  }
-
-  fun.args <- list(quote(formula),
-                   tau = quantiles,
-                   data = quote(data),
-                   weights = data[["weight"]])
-  fun.args <- c(fun.args, method.args)
-  if (length(fun.method)) {
-    fun.args[["method"]] <- fun.method
-  }
-
-  # quantreg contains code with partial matching of names!
-  # so we silence selectively only these warnings
-  withCallingHandlers({
-    fm <- do.call(method, args = fun.args)
-  }, warning = function(w) {
-    if (startsWith(conditionMessage(w), "partial match of") ||
-        startsWith(conditionMessage(w), "partial argument match of")) {
-      invokeRestart("muffleWarning")
-    }
-  })
+  fm.ls <- quant_helper_fun(data = data,
+                            formula = formula,
+                            quantiles = quantiles,
+                            fit.by.quantile = FALSE,
+                            method = method,
+                            method.name = method.name,
+                            method.args = method.args,
+                            n.min = n.min,
+                            fit.seed = fit.seed,
+                            weight = weight,
+                            na.rm = na.rm,
+                            orientation = orientation)
+  fm <- fm.ls[["fm1"]]
+  fun.args <- fm.ls[["fun.args1"]]
 
   # allow model formula and tau selection by method functions
   if (!length(fm) || (is.atomic(fm) && is.na(fm))) {
+#    warning("Model fit failure!")
     return(data.frame())
   } else if (inherits(fm, "rq") || inherits(fm, "rqs")) {
     # allow model formula selection by the model fit method
@@ -772,6 +681,16 @@ quant_eq_compute_group_fun <- function(data,
   coefs.ls <- asplit(coefs.mt, 2)
   # located here so that names in coef.ls remain the same as in version 0.4.0
   rownames(coefs.mt) <- paste("b", (1:nrow(coefs.mt)) - 1, sep = "_")
+
+  # factor with nicely formatted labels
+  num.quantiles <- length(quantiles)
+  quant.digits <- ifelse(min(quantiles) < 0.01 || max(quantiles) > 0.99, 3, 2)
+  quant.levels <- sort(unique(quantiles), decreasing = TRUE)
+  quant.labels <- sprintf_dm("%#.*f", quant.digits, quant.levels,
+                             decimal.mark = decimal.mark)
+  quantiles.f <- factor(quantiles,
+                        levels = quant.levels,
+                        labels = quant.labels)
 
   z <- tibble::tibble()
   if (output.type == "numeric") {

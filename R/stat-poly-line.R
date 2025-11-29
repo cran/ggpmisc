@@ -5,16 +5,18 @@
 #' least squares. Predicted values and a confidence band, if possible, are
 #' computed and, by default, plotted.
 #'
-#' @details
-#' This statistic is similar to \code{\link[ggplot2]{stat_smooth}} but has
-#' different defaults and supports additonal model fit functions. It also
+#' @details This statistic is similar to \code{\link[ggplot2]{stat_smooth}} but
+#'   has different defaults and supports additional model fit functions. It also
 #' interprets the argument passed to \code{formula} differently than
 #' \code{stat_smooth()}, accepting \code{y} as explanatory variable and setting
 #' \code{orientation} automatically. The default for \code{method} is
 #' \code{"lm"} and spline-based smoothers like \code{loess} are not supported.
 #' Other defaults are consistent with those in \code{stat_poly_eq()},
 #' \code{stat_quant_line()}, \code{stat_quant_band()}, \code{stat_quant_eq()},
-#' \code{stat_ma_line()}, \code{stat_ma_eq()}.
+#' \code{stat_ma_line()}, \code{stat_ma_eq()}.  As some model fitting functions
+#'   can depend on the RNG, \code{fit.seed} if different to \code{NA} is used
+#'   as argument in a call to \code{\link[base:Random]{set.seed}()} immediately
+#'   ahead of model fitting.
 #'
 #' \code{geom_poly_line()} treats the x and y aesthetics differently and can
 #' thus have two orientations. The orientation can be deduced from the argument
@@ -76,34 +78,57 @@
 #'   the computation proceeds.
 #' @param formula a formula object. Using aesthetic names \code{x} and \code{y}
 #'   instead of original variable names.
-#' @param method function or character If character, "lm", "rlm", "lqs", "gls"
-#'   or the name of a model fit function are accepted, possibly followed by the
-#'   fit function's \code{method} argument separated by a colon (e.g.
-#'   \code{"rlm:M"}). If a function different to \code{lm()}, it must accept
-#'   arguments named \code{formula}, \code{data}, \code{weights}, and
-#'   \code{method} and return a model fit object of class \code{lm}.
-#' @param method.args named list with additional arguments.
+#' @param method function or character If character, "lm", "rlm", "lqs". "gls"
+#'   "ma", "sma", or the name of a model fit function are accepted, possibly
+#'   followed by the fit function's \code{method} argument separated by a colon
+#'   (e.g. \code{"rlm:M"}). If a function is different to \code{lm()},
+#'   \code{rlm()}, \code{lqs()}, \code{gls()}, \code{ma}, \code{sma}, it must
+#'   have formal parameters named \code{formula}, \code{data}, \code{weights},
+#'   and \code{method}. See Details.
+#' @param method.args named list with additional arguments. Not \code{data}
+#'   or \code{weights} which are always passed through aesthetic mappings.
 #' @param n.min integer Minimum number of distinct values in the explanatory
 #'   variable (on the rhs of formula) for fitting to the attempted.
 #' @param se Display confidence interval around smooth? (`TRUE` by default only
 #'   for fits with \code{lm()} and \code{rlm()}, see `level` to control.)
-#' @param fm.values logical Add R2, adjusted R2, p-value and n as columns to
-#'   returned data? (`FALSE` by default.)
+#' @param fit.seed RNG seed argument passed to
+#'   \code{\link[base:Random]{set.seed}()}. Defaults to \code{NA}, indicating
+#'   that \code{set.seed()} should not be called.
+#' @param fm.values logical Add metadata and parameter estimates extracted from
+#'   the fitted model object; \code{FALSE} by default.
 #' @param fullrange Should the fit span the full range of the plot, or just the
-#'   data?
+#'   range of the data group used in each fit?
 #' @param level Level of confidence interval to use (0.95 by default).
-#' @param n Number of points at which to evaluate smoother.
+#' @param n Number of points at which to predict with the fitted model.
 #' @param orientation character Either "x" or "y" controlling the default for
-#'   \code{formula}.
+#'   \code{formula}. The letter indicates the aesthetic considered the
+#'   explanatory variable in the model fit.
 #'
 #' @return The value returned by the statistic is a data frame, with \code{n}
 #'   rows of predicted values and their confidence limits. Optionally it will
-#'   also include additional values related to the model fit.
+#'   also include additional values related to the model fit. When a
+#'   \code{predict()} method is not available for the fitted model class, the
+#'   value returned by calling \code{fitted()} is returned instead, with a
+#'   message.
+#'
+#' @section Model fit methods supported: Several model fit functions are
+#'   supported explicitly, and some of their differences smoothed out. The
+#'   compatibility is checked late, based on the class of the returned fitted
+#'   model object. This makes it possible to use wrapper functions that do model
+#'   selection or other adjustments to the fit procedure on a per panel or per
+#'   group basis. In the case of fitted model objects of classes not explicitly
+#'   supported an attempt is made to find the usual accessors, and if found,
+#'   either complete or partial support frequently just works. The argument to
+#'   parameter \code{method} can be either the name of a function or a character
+#'   string giving the name. This approach makes it possible to support model
+#'   fit functions that are not dependencies of 'ggpmisc'. Either attach the
+#'   package where the function is defined and pass it by name or as string, or
+#'   use double colon notation when passing the name of the function.
 #'
 #' @section Computed variables: `stat_poly_line()` provides the following
-#'   variables, some of which depend on the orientation: \describe{ \item{y *or*
-#'   x}{predicted value} \item{ymin *or* xmin}{lower pointwise confidence
-#'   interval around the mean} \item{ymax *or* xmax}{upper pointwise confidence
+#'   variables, some of which depend on the orientation: \describe{ \item{y \strong{or}
+#'   x}{predicted value} \item{ymin \strong{or} xmin}{lower pointwise confidence
+#'   interval around the mean} \item{ymax \strong{or} xmax}{upper pointwise confidence
 #'   interval around the mean} \item{se}{standard error} }
 #'
 #'   If \code{fm.values = TRUE} is passed then columns based on the summary of
@@ -120,9 +145,11 @@
 #'   (\code{"geom_smooth"} is the default) are understood and grouping
 #'   respected.
 #'
-#' @family ggplot statistics for linear and polynomial regression
+#' @note Currently confidence bands for the regression band are not plotted in
+#'   some cases, and in the case of MA and SMA model, it only displays the
+#'   uncertainty of the slope.
 #'
-#' @export
+#' @family ggplot statistics for linear and polynomial regression
 #'
 #' @examples
 #' ggplot(mpg, aes(displ, hwy)) +
@@ -181,6 +208,7 @@ stat_poly_line <- function(mapping = NULL,
                            method = "lm",
                            formula = NULL,
                            se = NULL,
+                           fit.seed = NA,
                            fm.values = FALSE,
                            n = 80,
                            fullrange = FALSE,
@@ -220,26 +248,11 @@ stat_poly_line <- function(mapping = NULL,
     se <- ifelse(grepl("gls|lqs", method.name), FALSE, TRUE)
   }
 
-  if (is.null(formula)) {
-    formula = y ~ x
-    if (is.na(orientation)) {
-      orientation = "x"
-    }
-  } else {
-    formula.chr <- as.character(formula)
-    if (is.na(orientation)) {
-      # we guess orientation from formula
-      if (grepl("y", formula.chr[2])) {
-        orientation <- "x"
-      } else if (grepl("x", formula.chr[2])) {
-        orientation <- "y"
-        formula <- swap_xy(formula)
-      }
-    } else if (!grepl("y", formula.chr[2])){
-      stop("When both 'orientation' and 'formula' are passed arguments ",
-           "the formula should have 'x' as explanatory variable.")
-    }
-  }
+  temp <- guess_orientation(orientation = orientation,
+                            formula = formula,
+                            formula.on.x = TRUE)
+  orientation <- temp[["orientation"]]
+  formula <-  temp[["formula"]]
 
   ggplot2::layer(
     data = data,
@@ -254,6 +267,7 @@ stat_poly_line <- function(mapping = NULL,
       method.name = method.name,
       formula = formula,
       se = se,
+      fit.seed = fit.seed,
       fm.values = fm.values,
       n = n,
       fullrange = fullrange,
@@ -274,6 +288,7 @@ poly_line_compute_group_fun <-
            method.name,
            formula = NULL,
            se,
+           fit.seed = NA,
            fm.values = FALSE,
            n = 80,
            fullrange = FALSE,
@@ -285,8 +300,8 @@ poly_line_compute_group_fun <-
            flipped_aes = NA,
            orientation = "x") {
     data <- ggplot2::flip_data(data, flipped_aes)
-    if (length(unique(data$x)) < n.min) {
-      # Not enough data to perform fit
+
+    if (length(unique(data[[orientation]])) < n.min) {
       return(data.frame())
     }
 
@@ -341,25 +356,34 @@ poly_line_compute_group_fun <-
                        data = quote(data))
     }
     fun.args <- c(fun.args, method.args)
+    if (grepl("^ma$|^sma$", method.name) && !"alpha" %in% names(fun.args)) {
+      fun.args <- c(fun.args, list(alpha = 1 - level))
+    }
 
     # gls() parameter for formula is called 'model'
     if (grepl("gls", method.name)) {
       names(fun.args)[1] <- "model"
     }
 
+    if (!is.na(fit.seed)) {
+      set.seed(fit.seed)
+    }
     fm <- do.call(method, args = fun.args)
 
     if (!length(fm) || (is.atomic(fm) && is.na(fm))) {
       return(data.frame())
     } else if (!(inherits(fm, "lm") || inherits(fm, "lmrob") ||
                  inherits(fm, "gls") || inherits(fm, "lqs") ||
-                 inherits(fm, "lts"))) {
+                 inherits(fm, "lts") || inherits(fm, "sma"))) {
       message("Method \"", method.name,
-              "\" did not return a \"lm\", \"lmrob\", \"lqs\", \"lts\" or \"gls\" object, possible failure ahead.")
+              "\" did not return a ",
+              "\"lm\", \"lmrob\", \"lqs\", \"lts\", \"gls\" or \"sma\" ",
+              "object, possible failure ahead.")
     }
 
     has.predict.method <- FALSE
     for (cl in class(fm)) {
+      if (cl == "sma") break() # has dummy predict() method
       if (any(grepl("^predict", utils::methods(class = cl)))) {
         has.predict.method <- TRUE
         break()
@@ -399,8 +423,57 @@ poly_line_compute_group_fun <-
       }
       prediction <- cbind(newdata, prediction)
     } else {
-      message("Fitted values returned")
-      prediction <- data.frame(x = data[["x"]], y = fitted(fm))
+      if (class(fm)[1] == "sma") {
+        if (se) {
+          message("SMA/MA, band is currently for slope only!")
+          # fm$coef[[1]] is a data.frame
+          #
+          #           coef(SMA) lower limit upper limit
+          # elevation 39.441685   38.011038    40.87233
+          # slope     -4.609003   -5.008148    -4.24167
+          ### parameter estimates assumed independent!!
+          ## bootstraping would be more appropriate
+          coef.sma <- fm$coef[[1]]
+          b0 <- unlist(coef.sma["elevation", ])
+          b0 <- ifelse(is.na(b0), 0, b0)
+          b1 <- unlist(coef.sma["slope", ])
+          # centering is needed
+          b0delta <- b0 - b0[1]
+          if (all(b0 == 0)) {
+            # center on zero
+            center.y <- 0
+            center.x <- 0
+          } else {
+            # data centroid
+            center.y <- mean(data[["y"]])
+            center.x <- mean(data[["x"]])
+          }
+          rightside <- xseq > center.x
+          leftside <- !rightside
+          prediction <- data.frame(x = xseq,
+                                   y = center.y + b0delta[1] +
+                                     b1[1] * (xseq - center.x),
+                                   ymin = center.y +
+                                     (rightside * b1[2] + leftside * b1[3]) *
+                                     (xseq - center.x),
+                                   ymax = center.y +
+                                     (rightside * b1[3] + leftside * b1[2]) *
+                                     (xseq - center.x))
+        } else { # se is FALSE
+          coefs <- stats::coefficients(fm)
+          # named vector
+          #
+          # elevation     slope
+          # 39.441685 -4.609003
+          prediction <-
+            data.frame(x = xseq, # data[["x"]]
+                       y = coefs["elevation"] + coefs["slope"] * xseq)
+        }
+      } else {
+        message("Fitted line plotted")
+        prediction <-
+          data.frame(x = data[["x"]], y = fitted(fm))
+      }
     }
 
     if (fm.values) {
@@ -459,41 +532,3 @@ StatPolyLine <-
                    dropped_aes = c("weight"),
                    required_aes = c("x", "y")
   )
-
-
-#' Swap x and y in a formula
-#'
-#' By default a formula of x on y is converted into a formula of y
-#' on x, while the reverse swap is done only if \code{backward = TRUE}.
-#'
-#' @param f formula An R model formula
-#' @param backwards logical
-#'
-#' @details
-#' This function is meant to be used only as a helper within 'ggplot2'
-#' statistics. Normally together with geometries supporting orientation when
-#' we want to automate the change in orientation based on a user-supplied
-#' formula. Only \code{x} and \code{y} are changed, and in other respects
-#' the formula is rebuilt copying the environment from \code{f}.
-#'
-#' @return A copy of \code{f} with \code{x} and \code{y} swapped by each other
-#'   in the lhs and rhs.
-#'
-swap_xy <- function(f, backwards = FALSE) {
-  f.chr <- as.character(f)
-  if (backwards) {
-    # lhs
-    f.chr[2] <- gsub("\\by\\b", "x", f.chr[2])
-    # rhs
-    f.chr[-c(1, 2)] <- gsub("\\bx\\b", "y", f.chr[-c(1, 2)])
-  } else {
-    # lhs
-    f.chr[2] <- gsub("\\bx\\b", "y", f.chr[2])
-    # rhs
-    f.chr[-c(1, 2)] <- gsub("\\by\\b", "x", f.chr[-c(1, 2)])
-  }
-  # reassemble
-  f.chr <- paste(f.chr[2], f.chr[3], sep = f.chr[1])
-  # define new formula in the same environment as original
-  stats::as.formula(f.chr, env = environment(f))
-}

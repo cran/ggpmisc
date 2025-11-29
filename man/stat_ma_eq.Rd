@@ -17,6 +17,7 @@ stat_ma_eq(
   range.y = NULL,
   range.x = NULL,
   nperm = 99,
+  fit.seed = NA,
   eq.with.lhs = TRUE,
   eq.x.rhs = NULL,
   small.r = getOption("ggpmisc.small.r", default = FALSE),
@@ -44,20 +45,20 @@ stat_ma_eq(
 \code{\link[ggplot2]{aes}}. Only needs to be set at the layer level if you
 are overriding the plot defaults.}
 
-\item{data}{A layer specific dataset, only needed if you want to override
-the plot defaults.}
+\item{data}{A layer specific dataset, only needed if you want to override the
+plot defaults.}
 
 \item{geom}{The geometric object to use display the data}
 
 \item{position}{The position adjustment to use for overlapping points on this
-layer}
+layer.}
 
 \item{...}{other arguments passed on to \code{\link[ggplot2]{layer}}. This
 can include aesthetics whose values you want to set, not map. See
 \code{\link[ggplot2]{layer}} for more details.}
 
 \item{formula}{a formula object. Using aesthetic names \code{x} and \code{y}
-instead of original variable names. Either \code{y ~ x} or \code{x ~ y}.}
+instead of original variable names.}
 
 \item{method}{function or character If character, "MA", "SMA" , "RMA" or
 "OLS", alternatively "lmodel2" or the name of a model fit function are
@@ -67,7 +68,8 @@ separated by a colon (e.g. \code{"lmodel2:MA"}). If a function different to
 \code{data}, \code{range.y}, \code{range.x} and \code{nperm} and return a
 model fit object of class \code{lmodel2}.}
 
-\item{method.args}{named list with additional arguments.}
+\item{method.args}{named list with additional arguments. Not \code{data}
+or \code{weights} which are always passed through aesthetic mappings.}
 
 \item{n.min}{integer Minimum number of distinct values in the explanatory
 variable (on the rhs of formula) for fitting to the attempted.}
@@ -76,6 +78,10 @@ variable (on the rhs of formula) for fitting to the attempted.}
 "RMA" is to be computed.}
 
 \item{nperm}{integer Number of permutation used to estimate significance.}
+
+\item{fit.seed}{RNG seed argument passed to
+\code{\link[base:Random]{set.seed}()}. Defaults to \code{NA}, indicating
+that \code{set.seed()} should not be called.}
 
 \item{eq.with.lhs}{If \code{character} the string is pasted to the front of
 the equation label before parsing or a \code{logical} (see note).}
@@ -115,7 +121,8 @@ used between labels for different groups.}
 the computation proceeds.}
 
 \item{orientation}{character Either "x" or "y" controlling the default for
-\code{formula}.}
+\code{formula}. The letter indicates the aesthetic considered the
+explanatory variable in the model fit.}
 
 \item{parse}{logical Passed to the geom. If \code{TRUE}, the labels will be
 parsed into expressions and displayed as described in \code{?plotmath}.
@@ -168,7 +175,10 @@ This stat can be used to automatically annotate a plot with
   parameter \code{n.min}. The default \code{n.min = 2L} is the smallest
   possible value. However, model fits with very few observations are of
   little interest and using a larger number for \code{n.min} than the default
-  is usually wise.
+  is usually wise. As model fitting functions can depend on
+  the RNG, \code{fit.seed} if different to \code{NA} is used as argument in a
+  call to \code{\link[base:Random]{set.seed}()} immediately ahead of model
+  fitting.
 }
 \note{
 For backward compatibility a logical is accepted as argument for

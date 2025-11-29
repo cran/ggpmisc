@@ -13,6 +13,7 @@ stat_poly_line(
   method = "lm",
   formula = NULL,
   se = NULL,
+  fit.seed = NA,
   fm.values = FALSE,
   n = 80,
   fullrange = FALSE,
@@ -42,12 +43,13 @@ layer.}
 can include aesthetics whose values you want to set, not map. See
 \code{\link[ggplot2]{layer}} for more details.}
 
-\item{method}{function or character If character, "lm", "rlm", "lqs", "gls"
-or the name of a model fit function are accepted, possibly followed by the
-fit function's \code{method} argument separated by a colon (e.g.
-\code{"rlm:M"}). If a function different to \code{lm()}, it must accept
-arguments named \code{formula}, \code{data}, \code{weights}, and
-\code{method} and return a model fit object of class \code{lm}.}
+\item{method}{function or character If character, "lm", "rlm", "lqs". "gls"
+"ma", "sma", or the name of a model fit function are accepted, possibly
+followed by the fit function's \code{method} argument separated by a colon
+(e.g. \code{"rlm:M"}). If a function is different to \code{lm()},
+\code{rlm()}, \code{lqs()}, \code{gls()}, \code{ma}, \code{sma}, it must
+have formal parameters named \code{formula}, \code{data}, \code{weights},
+and \code{method}. See Details.}
 
 \item{formula}{a formula object. Using aesthetic names \code{x} and \code{y}
 instead of original variable names.}
@@ -55,17 +57,22 @@ instead of original variable names.}
 \item{se}{Display confidence interval around smooth? (`TRUE` by default only
 for fits with \code{lm()} and \code{rlm()}, see `level` to control.)}
 
-\item{fm.values}{logical Add R2, adjusted R2, p-value and n as columns to
-returned data? (`FALSE` by default.)}
+\item{fit.seed}{RNG seed argument passed to
+\code{\link[base:Random]{set.seed}()}. Defaults to \code{NA}, indicating
+that \code{set.seed()} should not be called.}
 
-\item{n}{Number of points at which to evaluate smoother.}
+\item{fm.values}{logical Add metadata and parameter estimates extracted from
+the fitted model object; \code{FALSE} by default.}
+
+\item{n}{Number of points at which to predict with the fitted model.}
 
 \item{fullrange}{Should the fit span the full range of the plot, or just the
-data?}
+range of the data group used in each fit?}
 
 \item{level}{Level of confidence interval to use (0.95 by default).}
 
-\item{method.args}{named list with additional arguments.}
+\item{method.args}{named list with additional arguments. Not \code{data}
+or \code{weights} which are always passed through aesthetic mappings.}
 
 \item{n.min}{integer Minimum number of distinct values in the explanatory
 variable (on the rhs of formula) for fitting to the attempted.}
@@ -74,7 +81,8 @@ variable (on the rhs of formula) for fitting to the attempted.}
 the computation proceeds.}
 
 \item{orientation}{character Either "x" or "y" controlling the default for
-\code{formula}.}
+\code{formula}. The letter indicates the aesthetic considered the
+explanatory variable in the model fit.}
 
 \item{show.legend}{logical. Should this layer be included in the legends?
 \code{NA}, the default, includes if any aesthetics are mapped. \code{FALSE}
@@ -88,7 +96,10 @@ default plot specification, e.g. \code{\link[ggplot2]{borders}}.}
 \value{
 The value returned by the statistic is a data frame, with \code{n}
   rows of predicted values and their confidence limits. Optionally it will
-  also include additional values related to the model fit.
+  also include additional values related to the model fit. When a
+  \code{predict()} method is not available for the fitted model class, the
+  value returned by calling \code{fitted()} is returned instead, with a
+  message.
 }
 \description{
 \code{stat_poly_line()} fits a polynomial, by default with
@@ -97,15 +108,18 @@ least squares. Predicted values and a confidence band, if possible, are
 computed and, by default, plotted.
 }
 \details{
-This statistic is similar to \code{\link[ggplot2]{stat_smooth}} but has
-different defaults and supports additonal model fit functions. It also
+This statistic is similar to \code{\link[ggplot2]{stat_smooth}} but
+  has different defaults and supports additional model fit functions. It also
 interprets the argument passed to \code{formula} differently than
 \code{stat_smooth()}, accepting \code{y} as explanatory variable and setting
 \code{orientation} automatically. The default for \code{method} is
 \code{"lm"} and spline-based smoothers like \code{loess} are not supported.
 Other defaults are consistent with those in \code{stat_poly_eq()},
 \code{stat_quant_line()}, \code{stat_quant_band()}, \code{stat_quant_eq()},
-\code{stat_ma_line()}, \code{stat_ma_eq()}.
+\code{stat_ma_line()}, \code{stat_ma_eq()}.  As some model fitting functions
+  can depend on the RNG, \code{fit.seed} if different to \code{NA} is used
+  as argument in a call to \code{\link[base:Random]{set.seed}()} immediately
+  ahead of model fitting.
 
 \code{geom_poly_line()} treats the x and y aesthetics differently and can
 thus have two orientations. The orientation can be deduced from the argument
@@ -145,11 +159,32 @@ statistics in the grammar of graphics.
   interest and using larger values of \code{n.min} than the default is
   wise.
 }
+\note{
+Currently confidence bands for the regression band are not plotted in
+  some cases, and in the case of MA and SMA model, it only displays the
+  uncertainty of the slope.
+}
+\section{Model fit methods supported}{
+ Several model fit functions are
+  supported explicitly, and some of their differences smoothed out. The
+  compatibility is checked late, based on the class of the returned fitted
+  model object. This makes it possible to use wrapper functions that do model
+  selection or other adjustments to the fit procedure on a per panel or per
+  group basis. In the case of fitted model objects of classes not explicitly
+  supported an attempt is made to find the usual accessors, and if found,
+  either complete or partial support frequently just works. The argument to
+  parameter \code{method} can be either the name of a function or a character
+  string giving the name. This approach makes it possible to support model
+  fit functions that are not dependencies of 'ggpmisc'. Either attach the
+  package where the function is defined and pass it by name or as string, or
+  use double colon notation when passing the name of the function.
+}
+
 \section{Computed variables}{
  `stat_poly_line()` provides the following
-  variables, some of which depend on the orientation: \describe{ \item{y *or*
-  x}{predicted value} \item{ymin *or* xmin}{lower pointwise confidence
-  interval around the mean} \item{ymax *or* xmax}{upper pointwise confidence
+  variables, some of which depend on the orientation: \describe{ \item{y \strong{or}
+  x}{predicted value} \item{ymin \strong{or} xmin}{lower pointwise confidence
+  interval around the mean} \item{ymax \strong{or} xmax}{upper pointwise confidence
   interval around the mean} \item{se}{standard error} }
 
   If \code{fm.values = TRUE} is passed then columns based on the summary of

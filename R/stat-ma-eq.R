@@ -4,41 +4,8 @@
 #' generates several labels including the equation, p-value,
 #' coefficient of determination (R^2), and number of observations.
 #'
-#' @param mapping The aesthetic mapping, usually constructed with
-#'   \code{\link[ggplot2]{aes}}. Only needs to be set at the layer level if you
-#'   are overriding the plot defaults.
-#' @param data A layer specific dataset, only needed if you want to override
-#'   the plot defaults.
-#' @param geom The geometric object to use display the data
-#' @param position The position adjustment to use for overlapping points on this
-#'   layer
-#' @param show.legend logical. Should this layer be included in the legends?
-#'   \code{NA}, the default, includes if any aesthetics are mapped. \code{FALSE}
-#'   never includes, and \code{TRUE} always includes.
-#' @param inherit.aes If \code{FALSE}, overrides the default aesthetics, rather
-#'   than combining with them. This is most useful for helper functions that
-#'   define both data and aesthetics and shouldn't inherit behaviour from the
-#'   default plot specification, e.g. \code{\link[ggplot2]{borders}}.
-#' @param ... other arguments passed on to \code{\link[ggplot2]{layer}}. This
-#'   can include aesthetics whose values you want to set, not map. See
-#'   \code{\link[ggplot2]{layer}} for more details.
-#' @param na.rm a logical indicating whether NA values should be stripped before
-#'   the computation proceeds.
-#' @param formula a formula object. Using aesthetic names \code{x} and \code{y}
-#'   instead of original variable names. Either \code{y ~ x} or \code{x ~ y}.
-#' @param range.y,range.x character Pass "relative" or "interval" if method
-#'   "RMA" is to be computed.
-#' @param method function or character If character, "MA", "SMA" , "RMA" or
-#'   "OLS", alternatively "lmodel2" or the name of a model fit function are
-#'   accepted, possibly followed by the fit function's \code{method} argument
-#'   separated by a colon (e.g. \code{"lmodel2:MA"}). If a function different to
-#'   \code{lmodel2()}, it must accept arguments named \code{formula},
-#'   \code{data}, \code{range.y}, \code{range.x} and \code{nperm} and return a
-#'   model fit object of class \code{lmodel2}.
-#' @param method.args named list with additional arguments.
-#' @param n.min integer Minimum number of distinct values in the explanatory
-#'   variable (on the rhs of formula) for fitting to the attempted.
-#' @param nperm integer Number of permutation used to estimate significance.
+#' @inheritParams stat_ma_line
+#'
 #' @param eq.with.lhs If \code{character} the string is pasted to the front of
 #'   the equation label before parsing or a \code{logical} (see note).
 #' @param eq.x.rhs \code{character} this string will be used as replacement for
@@ -63,8 +30,6 @@
 #'   used between labels for different groups.
 #' @param output.type character One of "expression", "LaTeX", "text",
 #'   "markdown" or "numeric".
-#' @param orientation character Either "x" or "y" controlling the default for
-#'   \code{formula}.
 #' @param parse logical Passed to the geom. If \code{TRUE}, the labels will be
 #'   parsed into expressions and displayed as described in \code{?plotmath}.
 #'   Default is \code{TRUE} if \code{output.type = "expression"} and
@@ -117,7 +82,10 @@
 #'   parameter \code{n.min}. The default \code{n.min = 2L} is the smallest
 #'   possible value. However, model fits with very few observations are of
 #'   little interest and using a larger number for \code{n.min} than the default
-#'   is usually wise.
+#'   is usually wise. As model fitting functions can depend on
+#'   the RNG, \code{fit.seed} if different to \code{NA} is used as argument in a
+#'   call to \code{\link[base:Random]{set.seed}()} immediately ahead of model
+#'   fitting.
 #'
 #' @section User-defined methods: User-defined functions can be passed as
 #'   argument to \code{method}. The requirements are 1) that the signature is
@@ -317,6 +285,7 @@ stat_ma_eq <- function(mapping = NULL,
                        range.y = NULL,
                        range.x = NULL,
                        nperm = 99,
+                       fit.seed = NA,
                        eq.with.lhs = TRUE,
                        eq.x.rhs = NULL,
                        small.r = getOption("ggpmisc.small.r", default = FALSE),
@@ -360,24 +329,12 @@ stat_ma_eq <- function(mapping = NULL,
       stop("Method 'rq' not supported, please use 'stat_quant_eq()'.")
   }
 
-  # we guess formula from orientation
-  if (is.null(formula)) {
-    if (is.na(orientation) || orientation == "x") {
-      formula = y ~ x
-    } else if (orientation == "y") {
-      formula = x ~ y
-    }
-  }
-  # we guess orientation from formula
-  if (is.na(orientation)) {
-    if (grepl("x", as.character(formula)[2])) {
-      orientation <- "y"
-    } else if (grepl("y", as.character(formula)[2])) {
-      orientation <- "x"
-    } else {
-      stop("The model formula should use 'x' and 'y' as variables")
-    }
-  }
+  temp <- guess_orientation(orientation = orientation,
+                            formula = formula,
+                            default.formula = y ~ x,
+                            formula.on.x = FALSE)
+  orientation <- temp[["orientation"]]
+  formula <-  temp[["formula"]]
 
   if (is.null(output.type)) {
     if (geom %in% c("richtext", "textbox", "marquee")) {
@@ -406,6 +363,7 @@ stat_ma_eq <- function(mapping = NULL,
                    range.y = range.y,
                    range.x = range.x,
                    nperm = nperm,
+                   fit.seed = fit.seed,
                    eq.with.lhs = eq.with.lhs,
                    eq.x.rhs = eq.x.rhs,
                    small.r = small.r,
@@ -449,6 +407,7 @@ ma_eq_compute_group_fun <- function(data,
                                     range.y = NULL,
                                     range.x = NULL,
                                     nperm = 99,
+                                    fit.seed = NA,
                                     eq.with.lhs = TRUE,
                                     eq.x.rhs = NULL,
                                     small.r = FALSE,
@@ -590,6 +549,9 @@ ma_eq_compute_group_fun <- function(data,
     fit.args <- c(fit.args, method.args)
   }
 
+  if (!is.na(fit.seed)) {
+    set.seed(fit.seed)
+  }
   # lmodel2 issues a warning that is irrelevant here
   # so we silence it selectively
   withCallingHandlers({
