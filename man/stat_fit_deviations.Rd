@@ -11,13 +11,13 @@ stat_fit_deviations(
   geom = "segment",
   position = "identity",
   ...,
+  orientation = NA,
   method = "lm",
   method.args = list(),
   n.min = 2L,
   formula = NULL,
   fit.seed = NA,
   na.rm = FALSE,
-  orientation = NA,
   show.legend = FALSE,
   inherit.aes = TRUE
 )
@@ -26,17 +26,17 @@ stat_fit_fitted(
   mapping = NULL,
   data = NULL,
   geom = "point",
+  position = "identity",
+  orientation = NA,
+  ...,
   method = "lm",
   method.args = list(),
   n.min = 2L,
   formula = NULL,
   fit.seed = NA,
-  position = "identity",
   na.rm = FALSE,
-  orientation = NA,
   show.legend = FALSE,
-  inherit.aes = TRUE,
-  ...
+  inherit.aes = TRUE
 )
 }
 \arguments{
@@ -55,6 +55,9 @@ layer}
 \item{...}{other arguments passed on to \code{\link[ggplot2]{layer}}. This
 can include aesthetics whose values you want to set, not map. See
 \code{\link[ggplot2]{layer}} for more details.}
+
+\item{orientation}{character Either "x" or "y" controlling the default for
+\code{formula}.}
 
 \item{method}{function or character If character, "lm", "rlm", "lqs", "rq"
 and the name of a function to be matched, possibly followed by the fit
@@ -77,9 +80,6 @@ called.}
 
 \item{na.rm}{a logical indicating whether NA values should be stripped
 before the computation proceeds.}
-
-\item{orientation}{character Either "x" or "y" controlling the default for
-\code{formula}.}
 
 \item{show.legend}{logical. Should this layer be included in the legends?
 \code{NA}, the default, includes if any aesthetics are mapped. \code{FALSE}
@@ -119,15 +119,20 @@ In the case of \code{method = "rq"} quantiles are fixed at \code{tau =
 }
 \section{Computed variables}{
  Data frame with same \code{nrow} as \code{data}
-  as subset for each group containing five numeric variables. \describe{
-  \item{x}{x coordinates of observations} \item{x.fitted}{x coordinates of
-  fitted values} \item{y}{y coordinates of observations} \item{y.fitted}{y
-  coordinates of fitted values}, \item{weights}{the weights
-  passed as input to \code{lm()}, \code{rlm()}, or \code{lmrob()},
+  as subset for each group containing five numeric variables.
+
+  \describe{
+  \item{x}{x coordinates of observations}
+  \item{x.fitted}{x coordinates of fitted values}
+  \item{y}{y coordinates of observations}
+  \item{y.fitted}{y coordinates of fitted values}
+  \item{weights}{the weights passed as input to \code{lm()}, \code{rlm()}, or \code{lmrob()},
   using aesthetic weight. More generally the value returned by
-  \code{weights()} }, \item{robustness.weights}{the "weights"
+  \code{weights()}}
+  \item{robustness.weights}{the "weights"
   of the applied minimization criterion relative to those of OLS in
-  \code{rlm()}, or \code{lmrob()}} }
+  \code{rlm()}, or \code{lmrob()}}
+  }
 
   To explore the values returned by this statistic we suggest the use of
   \code{\link[gginnards]{geom_debug}}. An example is shown below, where one
@@ -146,28 +151,22 @@ my.data <- data.frame(x, y)
 
 # plot residuals from linear model
 ggplot(my.data, aes(x, y)) +
-  geom_smooth(method = "lm", formula = y ~ x) +
+  stat_poly_line(method = "lm", formula = y ~ x) +
   stat_fit_deviations(method = "lm", formula = y ~ x, colour = "red") +
   geom_point()
 
 # plot residuals from linear model with y as explanatory variable
 ggplot(my.data, aes(x, y)) +
-  geom_smooth(method = "lm", formula = y ~ x, orientation = "y") +
+  stat_poly_line(method = "lm", formula = x ~ y) +
   stat_fit_deviations(method = "lm", formula = x ~ y, colour = "red") +
-  geom_point()
-
-# as above using orientation
-ggplot(my.data, aes(x, y)) +
-  geom_smooth(method = "lm", orientation = "y") +
-  stat_fit_deviations(orientation = "y", colour = "red") +
   geom_point()
 
 # both regressions and their deviations
 ggplot(my.data, aes(x, y)) +
-  geom_smooth(method = "lm") +
-  stat_fit_deviations(colour = "blue") +
-  geom_smooth(method = "lm", orientation = "y", colour = "red") +
-  stat_fit_deviations(orientation = "y", colour = "red") +
+  stat_poly_line(method = "lm", formula = y ~ x) +
+  stat_fit_deviations(method = "lm", formula = y ~ x, colour = "red") +
+  stat_poly_line(method = "lm", formula = x ~ y) +
+  stat_fit_deviations(method = "lm", formula = x ~ y, colour = "orange") +
   geom_point()
 
 # give a name to a formula
@@ -175,18 +174,18 @@ my.formula <- y ~ poly(x, 3, raw = TRUE)
 
 # plot linear regression
 ggplot(my.data, aes(x, y)) +
-  geom_smooth(method = "lm", formula = my.formula) +
+  stat_poly_line(method = "lm", formula = my.formula) +
   stat_fit_deviations(formula = my.formula, colour = "red") +
   geom_point()
 
 ggplot(my.data, aes(x, y)) +
-  geom_smooth(method = "lm", formula = my.formula) +
-  stat_fit_deviations(formula = my.formula, method = stats::lm, colour = "red") +
+  stat_poly_line(formula = my.formula, method = "lm") +
+  stat_fit_deviations(formula = my.formula, method = "lm", colour = "red") +
   geom_point()
 
 # plot robust regression
 ggplot(my.data, aes(x, y)) +
-  stat_smooth(method = "rlm", formula = my.formula) +
+  stat_poly_line(formula = my.formula, method = "rlm") +
   stat_fit_deviations(formula = my.formula, method = "rlm", colour = "red") +
   geom_point()
 
@@ -194,9 +193,9 @@ ggplot(my.data, aes(x, y)) +
 my.data.outlier <- my.data
 my.data.outlier[6, "y"] <- my.data.outlier[6, "y"] * 10
 ggplot(my.data.outlier, aes(x, y)) +
-  stat_smooth(method = MASS::rlm, formula = my.formula) +
+  stat_poly_line(method = MASS::rlm, formula = my.formula) +
   stat_fit_deviations(formula = my.formula, method = "rlm",
-                      mapping = aes(colour = after_stat(weights)),
+                      mapping = aes(colour = after_stat(robustness.weights)),
                       show.legend = TRUE) +
   scale_color_gradient(low = "red", high = "blue", limits = c(0, 1),
                        guide = "colourbar") +
@@ -215,23 +214,25 @@ ggplot(my.data, aes(x, y)) +
                       method = "rq", method.args = list(tau = 0.75)) +
   geom_point()
 
-# inspecting the returned data with geom_debug()
+# inspecting the returned data with geom_debug_group()
 gginnards.installed <- requireNamespace("gginnards", quietly = TRUE)
 
 if (gginnards.installed)
   library(gginnards)
 
-# plot, using geom_debug() to explore the after_stat data
+# plot, using geom_debug_group() to explore the after_stat data
 if (gginnards.installed)
   ggplot(my.data, aes(x, y)) +
-    geom_smooth(method = "lm", formula = my.formula) +
-    stat_fit_deviations(formula = my.formula, geom = "debug") +
+    stat_poly_line(method = "lm", formula = my.formula) +
+    stat_fit_deviations(formula = my.formula,
+                        geom = "debug_group") +
     geom_point()
 
 if (gginnards.installed)
   ggplot(my.data.outlier, aes(x, y)) +
-    stat_smooth(method = MASS::rlm, formula = my.formula) +
-    stat_fit_deviations(formula = my.formula, method = "rlm", geom = "debug") +
+    stat_poly_line(method = "rlm", formula = my.formula) +
+    stat_fit_deviations(formula = my.formula, method = "rlm",
+                        geom = "debug_group") +
     geom_point()
 
 }
@@ -244,3 +245,23 @@ Other ggplot statistics for model fits:
 \code{\link{stat_fit_tidy}()}
 }
 \concept{ggplot statistics for model fits}
+\section{Aesthetics}{
+
+\code{stat_fit_deviations()} understands the following aesthetics. Required aesthetics are displayed in bold and defaults are displayed for optional aesthetics:
+\tabular{rll}{
+ • \tab \strong{\code{\link[ggplot2:aes_position]{x}}} \tab   \cr
+ • \tab \strong{\code{\link[ggplot2:aes_position]{y}}} \tab   \cr
+ • \tab \code{\link[ggplot2:aes_group_order]{group}} \tab → inferred \cr
+ • \tab \code{\link[ggplot2:aes_position]{xend}} \tab → \code{after_stat(x.fitted)} \cr
+ • \tab \code{\link[ggplot2:aes_position]{yend}} \tab → \code{after_stat(y.fitted)} \cr
+}
+
+\code{stat_fit_fitted()} understands the following aesthetics. Required aesthetics are displayed in bold and defaults are displayed for optional aesthetics:
+\tabular{rll}{
+ • \tab \strong{\code{\link[ggplot2:aes_position]{x}}} \tab   \cr
+ • \tab \strong{\code{\link[ggplot2:aes_position]{y}}} \tab   \cr
+ • \tab \code{\link[ggplot2:aes_group_order]{group}} \tab → inferred \cr
+}
+
+Learn more about setting these aesthetics in \code{vignette("ggplot2-specs")}.
+}

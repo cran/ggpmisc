@@ -1,14 +1,14 @@
 # generics::tidy as tibble -----------------------------------------------------
 
-#' @title Model-fit summary or ANOVA
+#' @title Fitted-model summary and ANOVA tables
 #'
-#' @description \code{stat_fit_tb} fits a model and returns a "tidy" version of
+#' @description \code{stat_fit_tb()} fits a model and returns a "tidy" version of
 #'   the model's summary or ANOVA table, using '\code{tidy()} methods from
 #'   packages 'broom', 'broom.mixed', or other 'broom' extensions. The
 #'   annotation is added to the plots in tabular form.
 #'
 #' @param mapping The aesthetic mapping, usually constructed with
-#'   \code{\link[ggplot2]{aes}}. Only needs to be
+#'   \code{\link[ggplot2]{aes}()}. Only needs to be
 #'   set at the layer level if you are overriding the plot defaults.
 #' @param data A layer specific dataset, only needed if you want to override the
 #'   plot defaults.
@@ -32,10 +32,11 @@
 #'   to \code{tidy()}.
 #' @param n.min integer Minimum number of distinct values in the explanatory
 #'   variable (on the rhs of formula) for fitting to the attempted.
-#' @param fit.seed RNG seed argument passed to \code{\link[base:Random]{set.seed}()}.
-#'   Defaults to \code{NA}, which means that \code{set.seed()} will not be
-#'   called.
-#' @param tb.type character One of "fit.summary", "fit.anova" or "fit.coefs".
+#' @param fit.seed RNG seed argument passed to
+#'   \code{\link[base:Random]{set.seed}()}. Defaults to \code{NA}, which means
+#'   that \code{set.seed()} will not be called.
+#' @param tb.type character One of \code{"fit.summary"}, \code{"fit.anova"} or
+#'   \code{"fit.coefs"}.
 #' @param digits integer indicating the number of significant digits to be used
 #'   for all numeric values in the table.
 #' @param p.digits integer indicating the number of decimal places to round
@@ -56,7 +57,9 @@
 #' @param table.hjust numeric Horizontal justification for the core and column
 #'   headings of the table.
 #' @param parse If TRUE, the labels will be parsed into expressions and
-#'   displayed as described in \code{?plotmath}.
+#'   displayed as described in \code{\link[grDevices]{plotmath}}.
+#'
+#' @aesthetics StatFitTb
 #'
 #' @details \code{stat_fit_tb()} Applies a model fitting function per panel,
 #'   using the grouping factors from aesthetic mappings in the fitted model.
@@ -94,11 +97,11 @@
 #'   the model fitting function and model formula we suggest the use of
 #'   \code{\link[gginnards]{geom_debug}}.
 #'
-#' @seealso \code{\link[broom]{broom}}, \code{broom.mixed}, and
-#'   \code{\link[broom]{tidy}} for details on how the tidying of the result of
-#'   model fits is done. See \code{\link[ggpp]{geom_table}} for details on how
-#'   inset tables respond to mapped aesthetics and table themes. For details on
-#'   predefined table themes see \code{\link[ggpp]{ttheme_gtdefault}}.
+#' @seealso Package \code{\link[broom]{broom}} for details on how the tidying of
+#'   the result of model fits is done. See \code{\link[ggpp]{geom_table}} for
+#'   details on how inset tables respond to mapped aesthetics and table themes.
+#'   For details on predefined table themes see
+#'   \code{\link[ggpp]{ttheme_gtdefault}}.
 #'
 #' @family ggplot statistics for model fits
 #'
@@ -131,13 +134,13 @@
 #'     stat_fit_tb() +
 #'     expand_limits(y = 70)
 #'
-#' # we can use geom_debug() and str() to inspect the returned value
+#' # we can use geom_debug_panel() and str() to inspect the returned value
 #' # and discover the variables that can be mapped to aesthetics with
 #' # after_stat()
 #' if (broom.installed && gginnards.installed)
 #'   ggplot(my.df, aes(covariate, x)) +
 #'     geom_point() +
-#'     stat_fit_tb(geom = "debug", dbgfun.data = str) +
+#'     stat_fit_tb(geom = "debug_panel", dbgfun.data = str) +
 #'     expand_limits(y = 70)
 #'
 #' # Linear regression fit summary, with default formatting
@@ -396,7 +399,7 @@ fit_tb_compute_panel_fun <- function(data,
                                      label.x = "center",
                                      label.y = "top") {
 
-  rlang::check_installed("broom", reason = "to use `stat_fit_tb()`")
+  rlang::check_installed("broom", reason = "to use stat_fit_tb()")
 
   force(data)
   if (length(unique(data$x)) < n.min) {
@@ -547,7 +550,8 @@ fit_tb_compute_panel_fun <- function(data,
 
   # enclose the tibble and the call in lists to make them acceptable as columns
   formula.ls <- fail_safe_formula(fm, method.args)
-  z <- tibble::tibble(fm.tb = list(fm.tb),
+  z <- tibble::tibble(group = -1L,
+                      fm.tb = list(fm.tb),
                       fm.tb.type = tb.type,
                       fm.class = fm.class[1],
                       fm.method = method.name,

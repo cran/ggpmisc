@@ -1,8 +1,8 @@
 Package: ggpmisc
 Type: Package
 Title: Miscellaneous Extensions to 'ggplot2'
-Version: 0.6.3
-Date: 2025-11-29
+Version: 0.7.0
+Date: 2026-03-22
 Authors@R: 
     c(
     person("Pedro J.", "Aphalo", email = "pedro.aphalo@helsinki.fi", role = c("aut", "cre"), comment = c(ORCID = "0000-0003-3385-972X")),
@@ -11,45 +11,47 @@ Authors@R:
     )
 Maintainer: Pedro J. Aphalo <pedro.aphalo@helsinki.fi>
 Description: Extensions to 'ggplot2' respecting the grammar of graphics
-    paradigm. Statistics: locate and tag peaks and valleys; label plot with the
-    equation of a fitted polynomial or other types of models including major
-    axis, quantile and robust and resistant regression. Labels for P-value, 
+    paradigm. Statistics to locate and tag peaks and valleys and to label plots
+    with the equation of a fitted polynomial model by ordinary least squares,
+    major axis, quantile and robust and resistant regression approaches. Line 
+    and model equation for Normal mixture models. Labels for P-value, 
     R^2 or adjusted R^2 or information criteria for fitted models; parametric
-    and non-parametric correlation; label with ANOVA table for fitted models; 
-    label with summary table for fitted models; annotations for multiple 
+    and non-parametric correlation; ANOVA table or summary table for fitted 
+    models as plot insets; annotations for multiple pairwise
     comparisons with adjusted P-values. Model fit classes for which suitable 
     methods are provided by package 'broom' and 'broom.mixed' are supported as 
-    well as user-defined wrappers on model fit functions. Scales and stats to 
+    well as user-defined wrappers on model fit functions, allowing model
+    selection and conditional labelling. Scales and stats to 
     build volcano and quadrant plots based on
     outcomes, fold changes, p-values and false discovery rates.
 License: GPL (>= 2)
 LazyLoad: TRUE
 ByteCompile: TRUE
-Depends: R (>= 4.0.0), ggpp (>= 0.5.8)
+Depends: R (>= 4.1.0), ggpp (>= 0.6.0)
 Imports: grid, stats, ggplot2 (>= 3.5.0), scales (>= 1.3.0), rlang (>=
-        1.1.3), generics (>= 0.1.3), MASS (>= 7.3-60), confintr (>=
-        1.0.2), polynom (>= 1.4-1), quantreg (>= 6.0), lmodel2 (>=
-        1.7-4), nlme (>= 3.1-160), splus2R (>= 1.3-5), multcomp (>=
-        1.4-25), multcompView (>= 0.1-10), mixtools (>= 2.0.0), tibble
-        (>= 3.2.1), plyr (>= 1.8.9), dplyr (>= 1.1.4), tidyr (>=
-        1.3.0), lubridate (>= 1.9.3), caTools (>= 1.18.3)
-Suggests: knitr (>= 1.45), rmarkdown (>= 2.25), ggrepel (>= 0.9.5),
-        broom (>= 1.0.3), broom.mixed (>= 0.2.9.5), robustbase (>=
-        0.99-4-1), gginnards (>= 0.2.0), ggtext (>= 0.1.2), testthat,
-        vdiffr
+        1.1.5), generics (>= 0.1.4), polynom (>= 1.4-1), confintr (>=
+        1.0.2), splus2R (>= 1.3-5), tibble (>= 3.3.1), plyr (>= 1.8.9),
+        dplyr (>= 1.1.4), tidyr (>= 1.3.0), lubridate (>= 1.9.5),
+        caTools (>= 1.18.3), quantreg (>= 6.1)
+Suggests: broom (>= 1.0.10), broom.mixed (>= 0.2.9.5), robustbase (>=
+        0.99-4-1), MASS (>= 7.3-60), lmodel2 (>= 1.7-4), nlme (>=
+        3.1-166), smatr (>= 3.4-8), multcomp (>= 1.4-30), multcompView
+        (>= 0.1-11), mixtools (>= 2.0.0.1), segmented (>= 2.2-1),
+        gginnards (>= 0.2.0), ggrepel (>= 0.9.8), ggtext (>= 0.1.2),
+        xdvir (>= 0.1.2), marquee (>= 1.2.1), knitr (>= 1.50),
+        rmarkdown (>= 2.28), testthat, vdiffr
 URL: https://docs.r4photobiology.info/ggpmisc/,
         https://github.com/aphalo/ggpmisc
 BugReports: https://github.com/aphalo/ggpmisc/issues
 Encoding: UTF-8
 RoxygenNote: 7.3.3
 VignetteBuilder: knitr
-Config/Needs/website: rmarkdown
 NeedsCompilation: no
-Packaged: 2025-11-29 16:06:02 UTC; aphalo
+Packaged: 2026-03-22 23:49:22 UTC; aphalo
 Author: Pedro J. Aphalo [aut, cre] (ORCID:
     <https://orcid.org/0000-0003-3385-972X>),
   Kamil Slowikowski [ctb] (ORCID:
     <https://orcid.org/0000-0002-2843-6370>),
   Samer Mouksassi [ctb] (ORCID: <https://orcid.org/0000-0002-7152-6654>)
 Repository: CRAN
-Date/Publication: 2025-11-29 17:10:02 UTC
+Date/Publication: 2026-03-23 06:40:02 UTC

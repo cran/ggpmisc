@@ -45,6 +45,8 @@
 #' @param orientation character Either "x" or "y" controlling the default for
 #'   \code{formula}.
 #'
+#' @aesthetics StatFitResiduals
+#'
 #' @details This stat can be used to automatically plot residuals as points in a
 #'   plot. At the moment it supports only linear models fitted with function
 #'   \code{lm()} or \code{rlm()}. It applies to the fitted model object methods
@@ -169,12 +171,12 @@
 #' if (gginnards.installed)
 #'   ggplot(my.data, aes(x, y)) +
 #'    stat_fit_residuals(formula = my.formula, resid.type = "working",
-#'                       geom = "debug")
+#'                       geom = "debug_group")
 #'
 #' if (gginnards.installed)
 #'   ggplot(my.data, aes(x, y)) +
 #'     stat_fit_residuals(formula = my.formula, method = "rlm",
-#'                        geom = "debug")
+#'                        geom = "debug_group")
 #'
 #' @export
 #'
@@ -183,6 +185,7 @@ stat_fit_residuals <- function(mapping = NULL,
                                geom = "point",
                                position = "identity",
                                ...,
+                               orientation = NA,
                                method = "lm",
                                method.args = list(),
                                n.min = 2L,
@@ -191,7 +194,6 @@ stat_fit_residuals <- function(mapping = NULL,
                                resid.type = NULL,
                                weighted = FALSE,
                                na.rm = FALSE,
-                               orientation = NA,
                                show.legend = FALSE,
                                inherit.aes = TRUE) {
 
@@ -215,8 +217,13 @@ stat_fit_residuals <- function(mapping = NULL,
   formula <- temp[["formula"]]
 
   ggplot2::layer(
-    stat = StatFitResiduals, data = data, mapping = mapping, geom = geom,
-    position = position, show.legend = show.legend, inherit.aes = inherit.aes,
+    stat = StatFitResiduals,
+    data = data,
+    mapping = mapping,
+    geom = geom,
+    position = position,
+    show.legend = show.legend,
+    inherit.aes = inherit.aes,
     params =
       rlang::list2(method = method,
                    method.name = method.name,
@@ -248,161 +255,42 @@ residuals_compute_group_fun <- function(data,
                                         resid.type = NULL,
                                         weighted = FALSE,
                                         orientation = "x") {
-  stopifnot(!any(c("formula", "data") %in% names(method.args)))
-  if (is.null(data$weight)) {
-    data$weight <- 1
-  }
 
-  if (length(unique(data[[orientation]])) < n.min) {
+  temp.ls <- fit_models_internal(data = data,
+                                 method = method,
+                                 method.name = method.name,
+                                 method.args = method.args,
+                                 n.min = n.min,
+                                 formula = formula,
+                                 fit.seed = fit.seed,
+                                 orientation = orientation)
+  if (!length(temp.ls) || !length(temp.ls[["fm"]])) {
+    # An empty data.frame results in no plot layer when passed to geoms
     return(data.frame())
   }
+  fm <- temp.ls[["fm"]]
+  method.name <- temp.ls[["method.name"]]
+  method.args <- temp.ls[["method.args"]]
 
-  # If method was specified as a character string, replace with
-  # the corresponding function. Some model fit functions themselves have a
-  # method parameter accepting character strings as argument. We support
-  # these by splitting strings passed as argument at a colon.
-  if (is.character(method)) {
-    method <- switch(method,
-                     lm = "lm:qr",
-                     rlm = "rlm:M",
-                     rq = "rq:br",
-                     lqs = "lqs:lqs",
-                     gls = "gls:REML",
-                     method)
-    method.name <- method
-    method <- strsplit(x = method, split = ":", fixed = TRUE)[[1]]
-    if (length(method) > 1L) {
-      fun.method <- method[2]
-      method <- method[1]
-    } else {
-      fun.method <- character()
-    }
-
-    method <- switch(method,
-                     lm = stats::lm,
-                     rlm = MASS::rlm,
-                     rq = quantreg::rq,
-                     lqs = MASS::lqs,
-                     gls = nlme::gls,
-                     match.fun(method))
-  } else if (is.function(method)) {
-    fun.method <- character()
-  }
-
-  if (exists("weight", data) && !all(data[["weight"]] == 1)) {
-    stopifnot("A mapping to 'weight' and a named argument 'weights' cannot co-exist" =
-                !"weights" %in% method.args)
-    fun.args <- list(formula = quote(formula),
-                     data = quote(data),
-                     weights = data[["weight"]])
-  } else {
-    fun.args <- list(formula = quote(formula),
-                     data = quote(data))
-  }
-  fun.args <- c(fun.args, method.args)
-
-  if (length(fun.method)) {
-    fun.args[["method"]] <- fun.method
-  }
-
-  # gls() parameter for formula is called model
-  if (grepl("gls", method.name)) {
-    names(fun.args)[1] <- "model"
-  }
-
-  if (!is.na(fit.seed)) {
-    set.seed(fit.seed)
-  }
-  # quantreg contains code with partial matching of names!
-  # so we silence selectively only these warnings
-  withCallingHandlers({
-    fm <- do.call(method, args = fun.args)
-  }, warning = function(w) {
-    if (startsWith(conditionMessage(w), "partial match of") ||
-        startsWith(conditionMessage(w), "partial argument match of")) {
-      invokeRestart("muffleWarning")
-    }
-  })
-
-  if (!length(fm) || (is.atomic(fm) && is.na(fm))) {
-    return(data.frame())
-  } else if (!(inherits(fm, "lm") || inherits(fm, "lmrob") ||
-               inherits(fm, "gls") || inherits(fm, "lqs") ||
-               inherits(fm, "lts") || inherits(fm, "sma"))) {
-    message("Method \"", method.name,
-            "\" did not return a ",
-            "\"lm\", \"lmrob\", \"lqs\", \"lts\", \"gls\" or \"sma\" ",
-            "object, possible failure ahead.")
-  }
-
-  if (!is.null(resid.type)) {
-    if (weighted) {
-      if (resid.type != "deviance") {
-        warning("Ignoring supplied 'resid.type' as 'weighted = TRUE'")
-      }
-      resid.args <- list(obj = fm, drop0 = TRUE)
-    } else {
-      resid.args <- list(object = fm, type = resid.type)
-    }
-  } else {
-    if (weighted) {
-      resid.args <- list(obj = fm, drop0 = TRUE)
-    } else {
-      resid.args <- list(object = fm)
-    }
-  }
-  if (weighted) {
-    fit.residuals <- do.call(stats::weighted.residuals, args = resid.args)
-  } else {
-    fit.residuals <- do.call(stats::residuals, args = resid.args)
-  }
-
-  if (inherits(fm, "lmrob")) {
-    rob.weight.vals <- stats::weights(fm, type = "robustness")
-    weight.vals <- stats::weights(fm, type = "prior")
-    if (!length(weight.vals)) {
-      weight.vals <- rep_len(1, nrow(data))
-    }
-  } else if (inherits(fm, "lts")) {
-    rob.weight.vals <- fm[["lts.wt"]]
-    weight.vals <- rep_len(1, nrow(data))
-  } else if (inherits(fm, "rlm")) {
-    rob.weight.vals <- fm[["w"]]
-    weight.vals <- stats::weights(fm)
-  } else if (inherits(fm, "lqs")) {
-    ## what does fm$bestone contain?
-    warning("Returned \"robustness weights\" are likely incorrect")
-    rob.weight.vals <- rep_len(0, nrow(data))
-    rob.weight.vals[fm[["bestone"]]] <- 1
-    weight.vals <- rep_len(1, nrow(data))
-  } else {
-    rob.weight.vals <- rep(NA_real_, nrow(data))
-    try(weight.vals <- stats::weights(fm))
-    if (inherits(weight.vals, "try-error") ||
-        length(weight.vals) != length(fit.residuals)) {
-      if (exists("weights", fm) &&  # defensive
-          length(fm[["weights"]]) == length(fit.residuals)) {
-        weight.vals <- fm[["weights"]]
-      } else {
-        weight.vals <- rep_len(NA_real_, nrow(data))
-      }
-    }
-   }
+  fit.residuals <- extract_residuals(fm,
+                                     resid.type = resid.type,
+                                     weighted = weighted)
+  weights.ls <- extract_weights(fm, n.row = nrow(data))
 
   if (orientation == "y") {
     data.frame(y = data$y,
                x = fit.residuals,
                x.resid = fit.residuals,
                y.resid = NA_real_,
-               weights = weight.vals,
-               robustness.weights = rob.weight.vals)
+               weights = weights.ls[["weight.vals"]],
+               robustness.weights = weights.ls[["rob.weight.vals"]])
   } else {
     data.frame(x = data$x,
                y = fit.residuals,
                y.resid = fit.residuals,
                x.resid = NA_real_,
-               weights = weight.vals,
-               robustness.weights = rob.weight.vals)
+               weights = weights.ls[["weight.vals"]],
+               robustness.weights = weights.ls[["rob.weight.vals"]])
   }
 }
 

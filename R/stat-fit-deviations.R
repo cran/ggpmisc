@@ -40,6 +40,9 @@
 #' @param orientation character Either "x" or "y" controlling the default for
 #'   \code{formula}.
 #'
+#' @aesthetics StatFitDeviations
+#' @aesthetics StatFitFitted
+#'
 #' @details This stat can be used to automatically highlight residuals as
 #'   segments in a plot of a fitted model equation. This stat only returns the
 #'   fitted values and observations, the prediction and its confidence need to
@@ -62,15 +65,20 @@
 #'   included for consistency with \code{ggplot2}.
 #'
 #' @section Computed variables: Data frame with same \code{nrow} as \code{data}
-#'   as subset for each group containing five numeric variables. \describe{
-#'   \item{x}{x coordinates of observations} \item{x.fitted}{x coordinates of
-#'   fitted values} \item{y}{y coordinates of observations} \item{y.fitted}{y
-#'   coordinates of fitted values}, \item{weights}{the weights
-#'   passed as input to \code{lm()}, \code{rlm()}, or \code{lmrob()},
+#'   as subset for each group containing five numeric variables.
+#'
+#'   \describe{
+#'   \item{x}{x coordinates of observations}
+#'   \item{x.fitted}{x coordinates of fitted values}
+#'   \item{y}{y coordinates of observations}
+#'   \item{y.fitted}{y coordinates of fitted values}
+#'   \item{weights}{the weights passed as input to \code{lm()}, \code{rlm()}, or \code{lmrob()},
 #'   using aesthetic weight. More generally the value returned by
-#'   \code{weights()} }, \item{robustness.weights}{the "weights"
+#'   \code{weights()}}
+#'   \item{robustness.weights}{the "weights"
 #'   of the applied minimization criterion relative to those of OLS in
-#'   \code{rlm()}, or \code{lmrob()}} }
+#'   \code{rlm()}, or \code{lmrob()}}
+#'   }
 #'
 #'   To explore the values returned by this statistic we suggest the use of
 #'   \code{\link[gginnards]{geom_debug}}. An example is shown below, where one
@@ -90,28 +98,22 @@
 #'
 #' # plot residuals from linear model
 #' ggplot(my.data, aes(x, y)) +
-#'   geom_smooth(method = "lm", formula = y ~ x) +
+#'   stat_poly_line(method = "lm", formula = y ~ x) +
 #'   stat_fit_deviations(method = "lm", formula = y ~ x, colour = "red") +
 #'   geom_point()
 #'
 #' # plot residuals from linear model with y as explanatory variable
 #' ggplot(my.data, aes(x, y)) +
-#'   geom_smooth(method = "lm", formula = y ~ x, orientation = "y") +
+#'   stat_poly_line(method = "lm", formula = x ~ y) +
 #'   stat_fit_deviations(method = "lm", formula = x ~ y, colour = "red") +
-#'   geom_point()
-#'
-#' # as above using orientation
-#' ggplot(my.data, aes(x, y)) +
-#'   geom_smooth(method = "lm", orientation = "y") +
-#'   stat_fit_deviations(orientation = "y", colour = "red") +
 #'   geom_point()
 #'
 #' # both regressions and their deviations
 #' ggplot(my.data, aes(x, y)) +
-#'   geom_smooth(method = "lm") +
-#'   stat_fit_deviations(colour = "blue") +
-#'   geom_smooth(method = "lm", orientation = "y", colour = "red") +
-#'   stat_fit_deviations(orientation = "y", colour = "red") +
+#'   stat_poly_line(method = "lm", formula = y ~ x) +
+#'   stat_fit_deviations(method = "lm", formula = y ~ x, colour = "red") +
+#'   stat_poly_line(method = "lm", formula = x ~ y) +
+#'   stat_fit_deviations(method = "lm", formula = x ~ y, colour = "orange") +
 #'   geom_point()
 #'
 #' # give a name to a formula
@@ -119,18 +121,18 @@
 #'
 #' # plot linear regression
 #' ggplot(my.data, aes(x, y)) +
-#'   geom_smooth(method = "lm", formula = my.formula) +
+#'   stat_poly_line(method = "lm", formula = my.formula) +
 #'   stat_fit_deviations(formula = my.formula, colour = "red") +
 #'   geom_point()
 #'
 #' ggplot(my.data, aes(x, y)) +
-#'   geom_smooth(method = "lm", formula = my.formula) +
-#'   stat_fit_deviations(formula = my.formula, method = stats::lm, colour = "red") +
+#'   stat_poly_line(formula = my.formula, method = "lm") +
+#'   stat_fit_deviations(formula = my.formula, method = "lm", colour = "red") +
 #'   geom_point()
 #'
 #' # plot robust regression
 #' ggplot(my.data, aes(x, y)) +
-#'   stat_smooth(method = "rlm", formula = my.formula) +
+#'   stat_poly_line(formula = my.formula, method = "rlm") +
 #'   stat_fit_deviations(formula = my.formula, method = "rlm", colour = "red") +
 #'   geom_point()
 #'
@@ -138,9 +140,9 @@
 #' my.data.outlier <- my.data
 #' my.data.outlier[6, "y"] <- my.data.outlier[6, "y"] * 10
 #' ggplot(my.data.outlier, aes(x, y)) +
-#'   stat_smooth(method = MASS::rlm, formula = my.formula) +
+#'   stat_poly_line(method = MASS::rlm, formula = my.formula) +
 #'   stat_fit_deviations(formula = my.formula, method = "rlm",
-#'                       mapping = aes(colour = after_stat(weights)),
+#'                       mapping = aes(colour = after_stat(robustness.weights)),
 #'                       show.legend = TRUE) +
 #'   scale_color_gradient(low = "red", high = "blue", limits = c(0, 1),
 #'                        guide = "colourbar") +
@@ -159,23 +161,25 @@
 #'                       method = "rq", method.args = list(tau = 0.75)) +
 #'   geom_point()
 #'
-#' # inspecting the returned data with geom_debug()
+#' # inspecting the returned data with geom_debug_group()
 #' gginnards.installed <- requireNamespace("gginnards", quietly = TRUE)
 #'
 #' if (gginnards.installed)
 #'   library(gginnards)
 #'
-#' # plot, using geom_debug() to explore the after_stat data
+#' # plot, using geom_debug_group() to explore the after_stat data
 #' if (gginnards.installed)
 #'   ggplot(my.data, aes(x, y)) +
-#'     geom_smooth(method = "lm", formula = my.formula) +
-#'     stat_fit_deviations(formula = my.formula, geom = "debug") +
+#'     stat_poly_line(method = "lm", formula = my.formula) +
+#'     stat_fit_deviations(formula = my.formula,
+#'                         geom = "debug_group") +
 #'     geom_point()
 #'
 #' if (gginnards.installed)
 #'   ggplot(my.data.outlier, aes(x, y)) +
-#'     stat_smooth(method = MASS::rlm, formula = my.formula) +
-#'     stat_fit_deviations(formula = my.formula, method = "rlm", geom = "debug") +
+#'     stat_poly_line(method = "rlm", formula = my.formula) +
+#'     stat_fit_deviations(formula = my.formula, method = "rlm",
+#'                         geom = "debug_group") +
 #'     geom_point()
 #'
 #' @export
@@ -185,13 +189,13 @@ stat_fit_deviations <- function(mapping = NULL,
                                 geom = "segment",
                                 position = "identity",
                                 ...,
+                                orientation = NA,
                                 method = "lm",
                                 method.args = list(),
                                 n.min = 2L,
                                 formula = NULL,
                                 fit.seed = NA,
                                 na.rm = FALSE,
-                                orientation = NA,
                                 show.legend = FALSE,
                                 inherit.aes = TRUE) {
 
@@ -212,11 +216,16 @@ stat_fit_deviations <- function(mapping = NULL,
                             default.formula = y ~ x,
                             formula.on.x = FALSE)
   orientation <- temp[["orientation"]]
-  formula <-  temp[["formula"]]
+  formula <- temp[["formula"]]
 
   ggplot2::layer(
-    stat = StatFitDeviations, data = data, mapping = mapping, geom = geom,
-    position = position, show.legend = show.legend, inherit.aes = inherit.aes,
+    stat = StatFitDeviations,
+    data = data,
+    mapping = mapping,
+    geom = geom,
+    position = position,
+    show.legend = show.legend,
+    inherit.aes = inherit.aes,
     params =
       rlang::list2(method = method,
                    method.name = method.name,
@@ -247,151 +256,41 @@ deviations_compute_group_fun <- function(data,
                                          fit.seed = NA,
                                          orientation = "x") {
 
-  stopifnot(!any(c("formula", "data") %in% names(method.args)))
-
-  if (is.null(data$weight)) {
-    data$weight <- 1
-  }
-
-  if (length(unique(data[[orientation]])) < n.min) {
-      return(data.frame())
-  }
-
-  # If method was specified as a character string, replace with
-  # the corresponding function. Some model fit functions themselves have a
-  # method parameter accepting character strings as argument. We support
-  # these by splitting strings passed as argument at a colon.
-  if (is.character(method)) {
-    method <- switch(method,
-                     lm = "lm:qr",
-                     rlm = "rlm:M",
-                     lqs = "lqs:lts",
-                     rq = "rq:br",
-                     gls = "gls:REML",
-                     method)
-    method.name <- method
-    method <- strsplit(x = method, split = ":", fixed = TRUE)[[1]]
-    if (length(method) > 1L) {
-      fun.method <- method[2]
-      method <- method[1]
-    } else {
-      fun.method <- character()
-    }
-
-    method <- switch(method,
-                     lm = stats::lm,
-                     rlm = MASS::rlm,
-                     lqs = MASS::lqs,
-                     rq = quantreg::rq,
-                     gls = nlme::gls,
-                     match.fun(method))
-  } else if (is.function(method)) {
-    fun.method <- character()
-  }
-
-  if (exists("weight", data) && !all(data[["weight"]] == 1)) {
-    stopifnot("A mapping to 'weight' and a named argument 'weights' cannot co-exist" =
-                !"weights" %in% method.args)
-    fun.args <- list(formula = quote(formula),
-                     data = quote(data),
-                     weights = data[["weight"]])
-  } else {
-    fun.args <- list(formula = quote(formula),
-                     data = quote(data))
-  }
-  fun.args <- c(fun.args, method.args)
-  if (length(fun.method)) {
-    fun.args[["method"]] <- fun.method
-  }
-
-  # gls() parameter for formula is called model
-  if (grepl("gls", method.name)) {
-    names(fun.args)[1] <- "model"
-  }
-
-  if (!is.na(fit.seed)) {
-    set.seed(fit.seed)
-  }
-  # quantreg contains code with partial matching of names!
-  # so we silence selectively only these warnings
-  withCallingHandlers({
-    fm <- do.call(method, args = fun.args)
-  }, warning = function(w) {
-    if (startsWith(conditionMessage(w), "partial match of") ||
-        startsWith(conditionMessage(w), "partial argument match of")) {
-      invokeRestart("muffleWarning")
-    }
-  })
-
-  if (!length(fm) || (is.atomic(fm) && is.na(fm))) {
+  temp.ls <- fit_models_internal(data = data,
+                                 method = method,
+                                 method.name = method.name,
+                                 method.args = method.args,
+                                 n.min = n.min,
+                                 formula = formula,
+                                 fit.seed = fit.seed,
+                                 orientation = orientation)
+  if (!length(temp.ls) || !length(temp.ls[["fm"]])) {
+    # An empty data.frame results in no plot layer when passed to geoms
     return(data.frame())
-  } else if (!(inherits(fm, "lm") || inherits(fm, "lmrob") ||
-               inherits(fm, "gls") || inherits(fm, "lqs") ||
-               inherits(fm, "lts") || inherits(fm, "sma"))) {
-    message("Method \"", method.name,
-            "\" did not return a ",
-            "\"lm\", \"lmrob\", \"lqs\", \"lts\", \"gls\" or \"sma\" ",
-            "object, possible failure ahead.")
   }
+  fm <- temp.ls[["fm"]]
+  method.name <- temp.ls[["method.name"]]
+  method.args <- temp.ls[["method.args"]]
 
-  # As users may use model fit functions that we have not tested
-  # we try hard to extract the components from the model fit object
-  try(fitted.vals <- stats::fitted(fm))
-  if (inherits(fitted.vals, "try-error") ||
-      length(fitted.vals) != nrow(data)) {
-    if (exists("fitted.values", fm) &&  # defensive
-        length(fm[["fitted.values"]]) == nrow(data)) {
-      fitted.vals <- fm[["fitted.values"]]
-    } else {
-      warning("Fitted values could not be retrieved!")
-      fitted.vals <- rep(NA_real_, nrow(data))
-    }
-  }
 
-  if (inherits(fm, "lmrob")) {
-    rob.weight.vals <- stats::weights(fm, type = "robustness")
-    weight.vals <- stats::weights(fm, type = "prior")
-    if (!length(weight.vals)) {
-      weight.vals <- rep_len(1, nrow(data))
-    }
-  } else if (inherits(fm, "lts")) {
-    rob.weight.vals <- fm[["lts.wt"]]
-    weight.vals <- rep_len(1, nrow(data))
-  } else if (inherits(fm, "rlm")) {
-    rob.weight.vals <- fm[["w"]]
-    weight.vals <- stats::weights(fm)
-  } else if (inherits(fm, "lqs")) {
-    rob.weight.vals <- rep_len(NA_real_, nrow(data))
-    weight.vals <- rep_len(1, nrow(data))
-  } else {
-    rob.weight.vals <- rep(NA_real_, nrow(data))
-    try(weight.vals <- stats::weights(fm))
-    if (inherits(weight.vals, "try-error") ||
-        length(weight.vals) != nrow(data)) {
-      if (exists("weights", fm) &&  # defensive
-          length(fm[["weights"]]) == nrow(data)) {
-        weight.vals <- fm[["weights"]]
-      } else {
-        weight.vals <- rep_len(NA_real_, nrow(data))
-      }
-    }
-  }
+  fitted.vals <- extract_fitted(fm, n.row = nrow(data))
+  weights.ls <- extract_weights(fm, n.row = nrow(data))
 
   if (orientation == "y") {
     data.frame(x = data$x,
                y = data$y,
                x.fitted = fitted.vals,
                y.fitted = data$y,
-               weights = weight.vals,
-               robustness.weights = rob.weight.vals,
+               weights = weights.ls[["weight.vals"]],
+               robustness.weights = weights.ls[["rob.weight.vals"]],
                hjust = 0)
   } else {
     data.frame(x = data$x,
                y = data$y,
                x.fitted = data$x,
                y.fitted = fitted.vals,
-               weights = weight.vals,
-               robustness.weights = rob.weight.vals,
+               weights = weights.ls[["weight.vals"]],
+               robustness.weights = weights.ls[["rob.weight.vals"]],
                hjust = 0)
   }
 }
@@ -402,6 +301,7 @@ deviations_compute_group_fun <- function(data,
 #' @export
 StatFitDeviations <-
   ggplot2::ggproto("StatFitDeviations", ggplot2::Stat,
+                   extra_params = c("na.rm", "orientation"),
                    compute_group = deviations_compute_group_fun,
                    dropped_aes = "weight",
                    default_aes =
@@ -414,17 +314,20 @@ StatFitDeviations <-
 #'
 #' @export
 #'
-stat_fit_fitted <- function(mapping = NULL, data = NULL, geom = "point",
+stat_fit_fitted <- function(mapping = NULL,
+                            data = NULL,
+                            geom = "point",
+                            position = "identity",
+                            orientation = NA,
+                            ...,
                             method = "lm",
                             method.args = list(),
                             n.min = 2L,
                             formula = NULL,
                             fit.seed = NA,
-                            position = "identity",
                             na.rm = FALSE,
-                            orientation = NA,
                             show.legend = FALSE,
-                            inherit.aes = TRUE, ...) {
+                            inherit.aes = TRUE) {
 
   if (is.character(method)) {
     method <- trimws(method, which = "both")
@@ -478,109 +381,24 @@ fitted_compute_group_fun <- function(data,
                                      fit.seed = NA,
                                      orientation = "x",
                                      return.fitted = FALSE) {
-  stopifnot(!any(c("formula", "data") %in% names(method.args)))
 
-  if (is.null(data$weight)) {
-    data$weight <- 1
-  }
-
-  if (length(unique(data[[orientation]])) < n.min) {
+  temp.ls <- fit_models_internal(data = data,
+                                 method = method,
+                                 method.name = method.name,
+                                 method.args = method.args,
+                                 n.min = n.min,
+                                 formula = formula,
+                                 fit.seed = fit.seed,
+                                 orientation = orientation)
+  if (!length(temp.ls) || !length(temp.ls[["fm"]])) {
+    # An empty data.frame results in no plot layer when passed to geoms
     return(data.frame())
   }
+  fm <- temp.ls[["fm"]]
+  method.name <- temp.ls[["method.name"]]
+  method.args <- temp.ls[["method.args"]]
 
-  # If method was specified as a character string, replace with
-  # the corresponding function. Some model fit functions themselves have a
-  # method parameter accepting character strings as argument. We support
-  # these by splitting strings passed as argument at a colon.
-  if (is.character(method)) {
-    method <- switch(method,
-                     lm = "lm:qr",
-                     rlm = "rlm:M",
-                     lqs = "lqs:lts",
-                     rq = "rq:br",
-                     gls = "gls:REML",
-                     method)
-    method.name <- method
-    method <- strsplit(x = method, split = ":", fixed = TRUE)[[1]]
-    if (length(method) > 1L) {
-      fun.method <- method[2]
-      method <- method[1]
-    } else {
-      fun.method <- character()
-    }
-    if (method == "rq") {
-      rlang::check_installed("quantreg", reason = "for `stat_fit_deviations()` with method `rq()`")
-    }
-
-    method <- switch(method,
-                     lm = stats::lm,
-                     rlm = MASS::rlm,
-                     lqs = MASS::lqs,
-                     rq = quantreg::rq,
-                     gls = nlme::gls,
-                     match.fun(method))
-  } else if (is.function(method)) {
-    fun.method <- character()
-  }
-
-  if (exists("weight", data) && !all(data[["weight"]] == 1)) {
-    stopifnot("A mapping to 'weight' and a named argument 'weights' cannot co-exist" =
-                !"weights" %in% method.args)
-    fun.args <- list(formula = quote(formula),
-                     data = quote(data),
-                     weights = data[["weight"]])
-  } else {
-    fun.args <- list(formula = quote(formula),
-                     data = quote(data))
-  }
-  fun.args <- c(fun.args, method.args)
-  if (length(fun.method)) {
-    fun.args[["method"]] <- fun.method
-  }
-
-  # gls() parameter for formula is called model
-  if (grepl("gls", method.name)) {
-    names(fun.args)[1] <- "model"
-  }
-
-  if (!is.na(fit.seed)) {
-    set.seed(fit.seed)
-  }
-  # quantreg contains code with partial matching of names!
-  # so we silence selectively only these warnings
-  withCallingHandlers({
-    fm <- do.call(method, args = fun.args)
-  }, warning = function(w) {
-    if (startsWith(conditionMessage(w), "partial match of") ||
-        startsWith(conditionMessage(w), "partial argument match of")) {
-      invokeRestart("muffleWarning")
-    }
-  })
-
-  if (!length(fm) || (is.atomic(fm) && is.na(fm))) {
-    return(data.frame())
-  } else if (!(inherits(fm, "lm") || inherits(fm, "lmrob") ||
-               inherits(fm, "gls") || inherits(fm, "lqs") ||
-               inherits(fm, "lts") || inherits(fm, "sma"))) {
-    message("Method \"", method.name,
-            "\" did not return a ",
-            "\"lm\", \"lmrob\", \"lqs\", \"lts\", \"gls\" or \"sma\" ",
-            "object, possible failure ahead.")
-  }
-
-  # As users may use model fit functions that we have not tested
-  # we try hard to extract the components from the model fit object
-  try(fitted.vals <- stats::fitted(fm))
-  if (inherits(fitted.vals, "try-error") ||
-      length(fitted.vals) != nrow(data)) {
-    if (exists("fitted.values", fm) &&  # defensive
-        length(fm[["fitted.values"]]) == nrow(data)) {
-      fitted.vals <- fm[["fitted.values"]]
-    } else {
-      warning("Fitted values could not be retrieved!")
-      fitted.vals <- rep(NA_real_, nrow(data))
-    }
-  }
+  fitted.vals <- extract_fitted(fm, n.row = nrow(data))
 
   if (orientation == "y") {
     data.frame(x = fitted.vals,
@@ -599,6 +417,7 @@ fitted_compute_group_fun <- function(data,
 #'
 StatFitFitted <-
   ggplot2::ggproto("StatFitFitted", ggplot2::Stat,
+                   extra_params = c("na.rm", "orientation"),
                    compute_group = fitted_compute_group_fun,
                    required_aes = c("x", "y")
   )

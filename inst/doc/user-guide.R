@@ -1,7 +1,7 @@
 ## ----include=FALSE, echo=FALSE------------------------------------------------
 library(knitr)
 opts_chunk$set(fig.align = 'center', 
-               fig.show = 'hold', fig.width = 7, fig.height = 4)
+               fig.show = 'hold', fig.width = 6.5, fig.height = 4)
 options(warnPartialMatchArgs = FALSE,
         tibble.print.max = 4,
         tibble.print.min = 4,
@@ -196,7 +196,7 @@ formula <- y ~ poly(x, 5, raw = TRUE)
 ggplot(my.data, aes(x, y)) +
   geom_point() +
   stat_poly_line(formula = formula) +
-  stat_poly_eq(mapping = use_label("eq"), formula = formula)
+  stat_poly_eq(mapping = use_label("eq"), formula = formula, size = 2.7)
 
 ## ----eval=eval_flag-----------------------------------------------------------
 formula <- y ~ x + I(x^2) + I(x^3) - 1
@@ -222,7 +222,7 @@ formula <- y ~ poly(x, 3, raw = TRUE)
 ggplot(my.data, aes(x, y2)) +
   geom_point() +
   stat_poly_line(formula = formula) +
-  stat_poly_eq(aes(label = after_stat(eq.label)), size = 3,
+  stat_poly_eq(aes(label = after_stat(eq.label)), size = 2.5,
                formula = formula) +
   facet_wrap(~group)
 
@@ -231,7 +231,7 @@ formula <- y ~ poly(x, 3, raw = TRUE)
 ggplot(my.data, aes(x, y2)) +
   geom_point() +
   stat_poly_line(formula = formula) +
-  stat_poly_eq(aes(label = after_stat(eq.label)), size = 3,
+  stat_poly_eq(aes(label = after_stat(eq.label)), size = 2.5,
                formula = formula) +
   facet_wrap(~group, scales = "free_y")
 
@@ -274,7 +274,7 @@ formula <- y ~ poly(x, 3, raw = TRUE)
 ggplot(my.data, aes(x, y2, fill = block)) +
   geom_point(shape = 21, size = 3) +
   stat_poly_line(formula = formula) +
-  stat_poly_eq(aes(label = after_stat(rr.label)), size = 3,
+  stat_poly_eq(aes(label = after_stat(rr.label)), size = 2.7,
                geom = "label_npc", alpha = 0.33,
                formula = formula) +
   facet_wrap(~group, scales = "free_y")
@@ -295,7 +295,7 @@ ggplot(my.data, aes(x, y2, colour = group)) +
   geom_point() +
   stat_poly_line(formula = formula) +
   stat_poly_eq(geom = "text", aes(label = after_stat(eq.label)),
-               label.x = c(100, 20), label.y = c(-0.1, 2.1), hjust = "inward",
+               label.x = c(100, 15), label.y = c(-0.15, 2.1), hjust = "inward",
                formula = formula)
 
 ## -----------------------------------------------------------------------------
@@ -352,7 +352,8 @@ ggplot(my.data, aes(x, y, color = group)) +
   stat_quant_line(formula = formula) +
   stat_quant_eq(aes(label = paste(after_stat(qtl.label), "*\": \"*",
                                   after_stat(eq.label), sep = "")),
-               formula = formula)
+                size = 2.7,
+                formula = formula)
 
 ## ----warning=FALSE------------------------------------------------------------
 ggplot(my.data, aes(x, y, group = group, linetype = group, 
@@ -362,6 +363,7 @@ ggplot(my.data, aes(x, y, group = group, linetype = group,
   stat_quant_eq(aes(label = paste(after_stat(grp.label), "*\", \"*",
                                   after_stat(qtl.label), "*\": \"*",
                                   after_stat(eq.label), sep = "")),
+                size = 2.7,
                 formula = formula, quantiles = c(0.05, 0.95)) +
   theme_classic()
 
@@ -818,7 +820,7 @@ formula <- y ~ x + I(x^2) + I(x^3)
 ggplot(my.data, aes(x, y, colour = group)) +
   geom_point() +
   stat_smooth(method = "lm", formula = formula) +
-  stat_fit_glance(geom = "debug",
+  stat_fit_glance(geom = "debug_group",
                   method = "lm", 
                   method.args = list(formula = formula),
                   label.x = "right",
@@ -832,7 +834,7 @@ formula <- y ~ x + I(x^2) + I(x^3)
 ggplot(my.data, aes(x, y)) +
   geom_point() +
   stat_smooth(method = "lm", formula = formula) +
-  stat_fit_tb(geom = "debug",
+  stat_fit_tb(geom = "debug_panel",
               summary.fun = str,
               method = "lm",
               method.args = list(formula = formula),

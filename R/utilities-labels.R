@@ -43,7 +43,7 @@ sprintf_dm <- function(fmt,
 #' @param format character One of "e", "f" or "g" for exponential, fixed, or
 #' significant digits formatting.
 #' @param output.type character One of "expression", "latex", "tex", "text",
-#'   "tikz", "markdown".
+#'   "tikz", "markdown", "marquee".
 #'
 #' @examples
 #'
@@ -89,8 +89,8 @@ value2char <- function(value,
       temp.char <- sprintf_dm(format,
                               digits, value, decimal.mark = decimal.mark)
     }
-    if (output.type %in% c("latex", "tex", "tikz") && grepl("e", temp.char)) {
-      paste(gsub("e", " \times 10^{", temp.char), "}", sep = "")
+    if (grepl("^latex", output.type) && grepl("e", temp.char)) {
+      paste(gsub("e", " \\\\times 10^{", temp.char), "}", sep = "")
     } else {
       temp.char
     }
@@ -116,13 +116,13 @@ value2char <- function(value,
 #' @param fixed logical Interpret \code{digits} as indicating a number of
 #'   digits after the decimal mark or as the number of significant digits.
 #' @param output.type character One of "expression", "latex", "tex", "text",
-#'   "tikz", "markdown".
+#'   "tikz", "markdown". "marquee".
 #' @param decimal.mark character Defaults to the value of R option
 #'   \code{"OutDec"}.
 #'
 #' @return A character string with formatting, encoded to be parsed as an R
 #'   plotmath expression, as plain text, as markdown or to be used with
-#'   \eqn{LaTeX} within \strong{math mode}.
+#'   'LaTeX' within \strong{math mode}.
 #'
 #' @seealso \code{\link{sprintf_dm}}
 #'
@@ -178,14 +178,19 @@ plain_label <- function(value,
     } else {
       z
     }
-  } else if (output.type %in% c("latex", "tex", "tikz")) {
+  } else if (grepl("^latex", output.type)) {
     z <- paste("\\mathrm{", value.name, "} = ", value.char, sep = "")
     if (length(z) > 1L) {
-      paste(z, collapse = "\\mathrm{; }")
+      z <- paste(z, collapse = "\\mathrm{; }")
+    }
+    if (output.type == "latex.eqn") {
+      paste("$", z, "$")
+    } else if (output.type == "latex.deqn") {
+      paste("$$", z, "$$")
     } else {
       z
     }
-  } else if (output.type %in% c("text", "markdown")) {
+  } else if (output.type %in% c("text", "markdown", "marquee")) {
     z <- paste(value.name, " = ", value.char, sep = "")
     if (length(z) > 1L) {
       paste(z, collapse = "; ")
@@ -235,15 +240,20 @@ italic_label <- function(value,
     } else {
       z
     }
-  } else if (output.type %in% c("latex", "tex", "tikz")) {
-    z <- paste("\\mathit{", value.name, "} = ", value.char, sep = "")
+  } else if (grepl("^latex", output.type)) {
+    z <- paste(value.name, " = ", value.char, sep = "")
     if (length(z) > 1L) {
-      paste(z, collapse = "\\mathrm{; }")
+      z <- paste(z, collapse = "; ")
+    }
+    if (output.type == "latex.eqn") {
+      paste("$", z, "$")
+    } else if (output.type == "latex.deqn") {
+      paste("$$", z, "$$")
     } else {
       z
     }
-  } else if (output.type == "markdown") {
-    z <- paste("_", value.name, "_ = ", value.char, sep = "")
+  } else if (output.type %in% c("markdown", "marquee")) {
+    z <- paste("*", value.name, "* = ", value.char, sep = "")
     if (length(z) > 1L) {
       paste(z, collapse = "; ")
     } else {
@@ -293,14 +303,19 @@ bold_label <- function(value,
     } else {
       z
     }
-  } else if (output.type %in% c("latex", "tex", "tikz")) {
+  } else if (grepl("^latex", output.type)) {
     z <- paste("\\mathbf{", value.name, "} = ", value.char, sep = "")
     if (length(z) > 1L) {
-      paste(z, collapse = "\\mathrm{; }")
+      z <- paste(z, collapse = "\\mathrm{; }")
+    }
+    if (output.type == "latex.eqn") {
+      paste("$", z, "$")
+    } else if (output.type == "latex.deqn") {
+      paste("$$", z, "$$")
     } else {
       z
     }
-  } else if (output.type == "markdown") {
+  } else if (output.type %in% c("markdown", "marquee")) {
     z <- paste("**", value.name, "** = ", value.char, sep = "")
     if (length(z) > 1L) {
       paste(z, collapse = "; ")
@@ -411,13 +426,36 @@ p_value_label <- function(value,
           sep = ifelse(p.value < 10^(-digits),
                        "~`<`~",
                        "~`=`~"))
-  } else if (output.type %in% c("latex", "tex", "text", "tikz")) {
-    paste(paste(ifelse(small.p, "p",  "P"),
+  } else if (grepl("^latex", output.type) || output.type == "text") {
+    z <- paste(paste(ifelse(small.p, "p",  "P"),
+                     ifelse(subscript != "",
+                            paste("_{", subscript, "}", sep = ""),
+                            ""),
+                     ifelse(superscript != "",
+                            paste("^{", superscript, "}", sep = ""),
+                            ""),
+                     sep = ""),
+               ifelse(p.value < 10^(-digits),
+                      sprintf_dm(format, digits, 10^(-digits),
+                                 decimal.mark = decimal.mark),
+                      p.value.char),
+               sep = ifelse(p.value < 10^(-digits),
+                            " < ",
+                            " = "))
+    if (output.type == "latex.eqn") {
+      paste("$", z, "$")
+    } else if (output.type == "latex.deqn") {
+      paste("$$", z, "$$")
+    } else {
+      z
+    }
+  } else if (output.type == "markdown") {
+    paste(paste(ifelse(small.p, "*p*",  "*P*"),
                 ifelse(subscript != "",
-                       paste("_{", subscript, "}", sep = ""),
+                       paste("<sub>", subscript, "</sub>", sep = ""),
                        ""),
                 ifelse(superscript != "",
-                       paste("^{", superscript, "}", sep = ""),
+                       paste("<sup>", superscript, "</sup>", sep = ""),
                        ""),
                 sep = ""),
           ifelse(p.value < 10^(-digits),
@@ -427,13 +465,13 @@ p_value_label <- function(value,
           sep = ifelse(p.value < 10^(-digits),
                        " < ",
                        " = "))
-  } else if (output.type == "markdown") {
-    paste(paste(ifelse(small.p, "_p_",  "_P_"),
+  }  else if (output.type == "marquee") {
+    paste(paste(ifelse(small.p, "*p*",  "*P*"),
                 ifelse(subscript != "",
-                       paste("<sub>", subscript, "</sub>", sep = ""),
+                       paste("{.sub ", subscript, "}", sep = ""),
                        ""),
                 ifelse(superscript != "",
-                       paste("<sup>", superscript, "</sup>", sep = ""),
+                       paste("{.sup ", superscript, "}", sep = ""),
                        ""),
                 sep = ""),
           ifelse(p.value < 10^(-digits),
@@ -508,16 +546,25 @@ f_value_label <- function(value,
     paste("italic(F)[", df1.char,
           "*\",\"*", df2.char,
           "]~`=`~", f.value.char, sep = "")
-  } else if (output.type %in% c("latex", "tex","tikz")) {
-    paste("F_{", df1.char, ",", df2.char,
-          "} = ", f.value.char, sep = "")
+  } else if (grepl("^latex", output.type)) {
+    z <- paste("F_{", df1.char, ",", df2.char,
+               "} = ", f.value.char, sep = "")
+    if (output.type == "latex.eqn") {
+      paste("$", z, "$")
+    } else if (output.type == "latex.deqn") {
+      paste("$$", z, "$$")
+    } else {
+      z
+    }
   } else if (output.type == "markdown") {
-    paste("_F_<sub>", df1.char, ",", df2.char,
+    paste("*F*<sub>", df1.char, ",", df2.char,
           "</sub> = ", f.value.char, sep = "")
+  } else if (output.type == "marquee") {
+    paste("*F*{.sub ", df1.char, ",", df2.char,
+          "} = ", f.value.char, sep = "")
   } else {
     paste("F(", df1.char, ",", df2.char,
           ") = ", f.value.char, sep = "")
-
   }
 }
 
@@ -570,11 +617,21 @@ t_value_label <- function(value,
   if (output.type == "expression") {
     paste("italic(t)[", df.char,
           "]~`=`~", t.value.char, sep = "")
-  } else if (output.type %in% c("latex", "tex", "tikz")) {
-    paste("t_{", df.char, "} = ", t.value.char, sep = "")
+  } else if (grepl("^latex", output.type)) {
+    z <- paste("t_{", df.char, "} = ", t.value.char, sep = "")
+    if (output.type == "latex.eqn") {
+      paste("$", z, "$")
+    } else if (output.type == "latex.deqn") {
+      paste("$$", z, "$$")
+    } else {
+      z
+    }
   } else if (output.type == "markdown") {
-    paste("_t_<sub>", df.char,
+    paste("*t*<sub>", df.char,
           "</sub> = ", t.value.char, sep = "")
+  } else if (output.type == "marquee") {
+    paste("*t*{.sub ", df.char,
+          "} = ", t.value.char, sep = "")
   } else {
     paste("t(", df.char, ") = ", t.value.char, sep = "")
 
@@ -631,7 +688,7 @@ mean_value_label <- function(value,
     "bar(x)"
   } else if (output.type %in% c("latex", "tex", "tikz")) {
     "\\bar{x}"
-  } else if (output.type == "markdown") {
+  } else if (output.type %in% c("markdown", "marquee")) {
     "mean(x)"
   } else {
     "mean(x)"
@@ -661,6 +718,8 @@ var_value_label <- function(value,
     "\\sigma^2"
   } else if (output.type == "markdown") {
     "&sigma;<sup>2</sup>"
+  } else if (output.type == "marquee") {
+    "\u03C3{.sup 2}"
   } else {
     "s^2"
   }
@@ -685,10 +744,12 @@ sd_value_label <- function(value,
 
   value.name <- if (output.type == "expression") {
     "sigma"
-  } else if (output.type %in% c("latex", "tex", "tikz")) {
+  } else if (grepl("^latex", output.type)) {
     "\\sigma"
   } else if (output.type == "markdown") {
     "&sigma;"
+  } else if (output.type == "marquee") {
+    "\u03C3"
   } else {
     "s.d."
   }
@@ -802,37 +863,44 @@ r_label <- function(value,
       paste(r.symbol, "~`=`~", r.value.char, sep = "")
     }
 
-  } else if (output.type %in% c("latex", "tex", "text", "tikz")) {
+  } else if (grepl("^latex", output.type) || output.type == "text") {
 
     r.symbol <-
       if (method == "pearson") {
         ifelse(small.r, "r", "R")
       } else if (method == "kendall") {
-        ifelse(output.type == "text", "tau", "\tau")
+        ifelse(output.type == "text", "tau", "\\tau")
       } else if (method == "spearman") {
-        ifelse(output.type == "text", "rho", "\rho")
+        ifelse(output.type == "text", "rho", "\\rho")
       } else {
         method
       }
 
     if (abs(r.value) < 10^(-digits) & r.value != 0) {
-      paste("|", r.symbol, "|", " < ",
-            sprintf_dm(format,
-                       digits, 10^(-digits), decimal.mark = decimal.mark),
-            sep = "")
+      z <- paste("|", r.symbol, "|", " < ",
+                 sprintf_dm(format,
+                            digits, 10^(-digits), decimal.mark = decimal.mark),
+                 sep = "")
     } else {
-      paste(r.symbol, " = ", r.value.char, sep = "")
+      z <- paste(r.symbol, " = ", r.value.char, sep = "")
+    }
+    if (output.type == "latex.eqn") {
+      paste("$", z, "$")
+    } else if (output.type == "latex.deqn") {
+      paste("$$", z, "$$")
+    } else {
+      z
     }
 
-  } else if (output.type == "markdown") {
+  } else if (output.type %in% c("markdown", "marquee")) {
 
     r.symbol <-
       if (method == "pearson") {
-        ifelse(small.r, "_r_", "_R_")
+        ifelse(small.r, "*r*", "*R*")
       } else if (method == "kendall") {
-        "_&rho;_"
+        ifelse(output.type == "marquee", "*\u03C1*", "*&rho;*")
       } else if (method == "spearman") {
-        "_&tau;_"
+        ifelse(output.type == "marquee", "*\u03C4*", "*&tau;*")
       } else {
         method
       }
@@ -851,6 +919,8 @@ r_label <- function(value,
 
 #' @rdname plain_label
 #'
+#' @param pc.out logical If \code{TRUE} format value in label as percent.
+#'
 #' @examples
 #' rr_label(value = 0.95, digits = 2, output.type = "expression")
 #' rr_label(value = 0.0001, digits = 2, output.type = "expression")
@@ -861,6 +931,7 @@ r_label <- function(value,
 rr_label <- function(value,
                      small.r = getOption("ggpmisc.small.r", default = FALSE),
                      digits = 3,
+                     pc.out = FALSE,
                      fixed = TRUE,
                      output.type = "expression",
                      decimal.mark = getOption("OutDec", default = ".")) {
@@ -882,12 +953,14 @@ rr_label <- function(value,
     return(NA_character_)
   }
 
-  if (digits < 2) {
-    warning("'digits < 2' Likely information loss!")
+  if (pc.out && fixed) {
+    if (digits < 0) warning("'digits < 0' for %: Likely information loss!")
+  } else {
+    if (digits < 2) warning("'digits < 2': Likely information loss!")
   }
   format <- ifelse(fixed, "f", "g")
 
-  rr.value <- value
+  rr.value <- ifelse(pc.out, value * 100, value)
 
   rr.value.char <- value2char(value = rr.value,
                               digits = digits,
@@ -901,32 +974,83 @@ rr_label <- function(value,
   if (output.type == "expression") {
     rr.symbol <- ifelse(small.r, "italic(r)^2", "italic(R)^2")
     if (rr.value < 10^(-digits) & rr.value != 0) {
-      paste(rr.symbol,
-            sprintf_dm(protected.format,
-                       digits, 10^(-digits), decimal.mark = decimal.mark),
-            sep = "~`<`~")
+      z <- paste(rr.symbol,
+                 sprintf_dm(protected.format,
+                            digits, 10^(-digits), decimal.mark = decimal.mark),
+                 sep = "~`<`~")
     } else {
-      paste(rr.symbol, rr.value.char, sep = "~`=`~")
+      z <- paste(rr.symbol, rr.value.char, sep = "~`=`~")
     }
-  } else if (output.type %in% c("latex", "tex", "text", "tikz")) {
+    if (pc.out) {
+      paste(z, "*\"%\"")
+    } else {
+      z
+    }
+  } else if (grepl("^latex", output.type) || output.type == "text") {
     rr.symbol <- ifelse(small.r, "r^2", "R^2")
     if (rr.value < 10^(-digits) & rr.value != 0) {
-      paste(rr.symbol,
-            sprintf_dm(format,
-                       digits, 10^(-digits), decimal.mark = decimal.mark),
-            sep = " < ")
+      z <- paste(rr.symbol,
+                 sprintf_dm(format,
+                            digits, 10^(-digits), decimal.mark = decimal.mark),
+                 sep = " < ")
     } else {
-      paste(rr.symbol, rr.value.char, sep = " = ")
+      z <- paste(rr.symbol, rr.value.char, sep = " = ")
+    }
+    if (pc.out) {
+      z <- paste(z, "\\%")
+    }
+    if (output.type == "latex.eqn") {
+      paste("$", z, "$")
+    } else if (output.type == "latex.deqn") {
+      paste("$$", z, "$$")
+    } else {
+      z
+    }
+  } else if (output.type == "text") {
+    rr.symbol <- ifelse(small.r, "r^2", "R^2")
+    if (rr.value < 10^(-digits) & rr.value != 0) {
+      z <- paste(rr.symbol,
+                 sprintf_dm(format,
+                            digits, 10^(-digits), decimal.mark = decimal.mark),
+                 sep = " < ")
+    } else {
+      z <- paste(rr.symbol, rr.value.char, sep = " = ")
+    }
+    if (pc.out) {
+      paste(z, "%")
+    } else {
+      z
     }
   } else if (output.type == "markdown") {
-    rr.symbol <- ifelse(small.r, "_r_<sup>2</sup>", "_R_<sup>2</sup>")
+    rr.symbol <- ifelse(small.r, "*r*<sup>2</sup>", "*R*<sup>2</sup>")
     if (rr.value < 10^(-digits) & rr.value != 0) {
-      paste(rr.symbol,
-            sprintf_dm(format,
-                       digits, 10^(-digits), decimal.mark = decimal.mark),
-            sep = " < ")
+      z <- paste(rr.symbol,
+                 sprintf_dm(format,
+                            digits, 10^(-digits), decimal.mark = decimal.mark),
+                 sep = " < ")
     } else {
-      paste(rr.symbol, rr.value.char, sep = " = ")
+      z <- paste(rr.symbol, rr.value.char, sep = " = ")
+    }
+    if (pc.out) {
+      paste(z, "%")
+    } else {
+      z
+    }
+
+  } else if (output.type == "marquee") {
+    rr.symbol <- ifelse(small.r, "*r*{.sup 2}", "*R*{.sup 2}")
+    if (rr.value < 10^(-digits) & rr.value != 0) {
+      z <- paste(rr.symbol,
+                 sprintf_dm(format,
+                            digits, 10^(-digits), decimal.mark = decimal.mark),
+                 sep = " < ")
+    } else {
+      z <- paste(rr.symbol, rr.value.char, sep = " = ")
+    }
+    if (pc.out) {
+      paste(z, "%")
+    } else {
+      z
     }
   }
 }
@@ -942,6 +1066,7 @@ rr_label <- function(value,
 adj_rr_label <- function(value,
                          small.r = getOption("ggpmisc.small.r", default = FALSE),
                          digits = 3,
+                         pc.out = FALSE,
                          fixed = TRUE,
                          output.type = "expression",
                          decimal.mark = getOption("OutDec", default = ".")) {
@@ -962,12 +1087,15 @@ adj_rr_label <- function(value,
     return(NA_character_)
   }
 
-  if (digits < 2) {
-    warning("'digits < 2' Likely information loss!")
+  if (pc.out && fixed) {
+    if (digits < 0) warning("'digits < 0' for %: Likely information loss!")
+  } else {
+    if (digits < 2) warning("'digits < 2': Likely information loss!")
   }
+
   format <- ifelse(fixed, "f", "g")
 
-  adj.rr.value <- value
+  adj.rr.value <- ifelse(pc.out, value * 100, value)
 
   adj.rr.value.char <- value2char(value = adj.rr.value,
                                   digits = digits,
@@ -979,25 +1107,76 @@ adj_rr_label <- function(value,
   protected.format <- paste("\"", format, "\"", sep = "")
 
   if (output.type == "expression") {
-    paste(ifelse(small.r, "italic(r)[adj]^2", "italic(R)[adj]^2"),
-          ifelse(adj.rr.value < 10^(-digits) & adj.rr.value != 0,
-                 sprintf_dm(protected.format, digits, 10^(-digits), decimal.mark = decimal.mark),
-                 adj.rr.value.char),
-          sep = ifelse(adj.rr.value < 10^(-digits) & adj.rr.value != 0,
-                       "~`<`~",
-                       "~`=`~"))
-  } else if (output.type %in% c("latex", "tex", "text", "tikz")) {
-    paste(ifelse(small.r, "r_{adj}^2", "R_{adj}^2"),
-          ifelse(adj.rr.value < 10^(-digits),
-                 sprintf_dm(format, digits, 10^(-digits), decimal.mark = decimal.mark),
-                 adj.rr.value.char),
-          sep = ifelse(adj.rr.value < 10^(-digits), " < ", " = "))
+    z <- paste(ifelse(small.r, "italic(r)[adj]^2", "italic(R)[adj]^2"),
+               ifelse(adj.rr.value < 10^(-digits) & adj.rr.value != 0,
+                      sprintf_dm(protected.format, digits, 10^(-digits),
+                                 decimal.mark = decimal.mark),
+                      adj.rr.value.char),
+               sep = ifelse(adj.rr.value < 10^(-digits) & adj.rr.value != 0,
+                            "~`<`~",
+                            "~`=`~"))
+    if (pc.out) {
+      paste(z, "*\"%\"")
+    } else {
+      z
+    }
+  } else if (grepl("^latex", output.type)) {
+    z <- paste(ifelse(small.r, "r_\\mathrm{adj}^2", "R_\\mathrm{adj}^2"),
+               ifelse(adj.rr.value < 10^(-digits),
+                      sprintf_dm(format, digits, 10^(-digits),
+                                 decimal.mark = decimal.mark),
+                      adj.rr.value.char),
+               sep = ifelse(adj.rr.value < 10^(-digits), " < ", " = "))
+    if (pc.out) {
+      z <- paste(z, "\\%")
+    }
+    if (output.type == "latex.eqn") {
+      paste("$", z, "$")
+    } else if (output.type == "latex.deqn") {
+      paste("$$", z, "$$")
+    } else {
+      z
+    }
+  } else if (output.type == "text") {
+    z <- paste(ifelse(small.r, "r_adj^2", "R_adj^2"),
+               ifelse(adj.rr.value < 10^(-digits),
+                      sprintf_dm(format, digits, 10^(-digits),
+                                 decimal.mark = decimal.mark),
+                      adj.rr.value.char),
+               sep = ifelse(adj.rr.value < 10^(-digits), " < ", " = "))
+    if (pc.out) {
+      paste(z, "%")
+    } else {
+      z
+    }
   } else if (output.type == "markdown") {
-    paste(ifelse(small.r, "_r_<sup>2</sup><sub>adj</sub>", "_R_<sup>2</sup><sub>adj</sub>"),
-          ifelse(adj.rr.value < 10^(-digits),
-                 sprintf_dm(protected.format, digits, 10^(-digits), decimal.mark = decimal.mark),
-                 adj.rr.value.char),
-          sep = ifelse(adj.rr.value < 10^(-digits), " < ", " = "))
+    z <- paste(ifelse(small.r,
+                      "*r*<sup>2</sup><sub>adj</sub>",
+                      "*R*<sup>2</sup><sub>adj</sub>"),
+               ifelse(adj.rr.value < 10^(-digits),
+                      sprintf_dm(protected.format, digits, 10^(-digits),
+                                 decimal.mark = decimal.mark),
+                      adj.rr.value.char),
+               sep = ifelse(adj.rr.value < 10^(-digits), " < ", " = "))
+    if (pc.out) {
+      paste(z, "%")
+    } else {
+      z
+    }
+  } else if (output.type == "marquee") {
+    z <- paste(ifelse(small.r,
+                      "*r*{.sup 2}{.sub adj}",
+                      "*R*{.sup 2}{.sub adj}"),
+               ifelse(adj.rr.value < 10^(-digits),
+                      sprintf_dm(protected.format, digits, 10^(-digits),
+                                 decimal.mark = decimal.mark),
+                      adj.rr.value.char),
+               sep = ifelse(adj.rr.value < 10^(-digits), " < ", " = "))
+    if (pc.out) {
+      paste(z, "%")
+    } else {
+      z
+    }
   }
 }
 
@@ -1080,7 +1259,17 @@ rr_ci_label <- function(value,
   if (output.type == "expression") {
     paste("\"", conf.level.char, "% CI ",
           range.brackets[1], rr.ci.char, range.brackets[2], "\"", sep = "")
-  } else if (output.type %in% c("latex", "tex", "text", "tikz", "markdown")) {
+  } else if (grepl("^latex", output.type)) {
+    z <- paste(conf.level.char, "\\% \\mathrm{CI} ",
+               range.brackets[1], rr.ci.char, range.brackets[2], sep = "")
+    if (output.type == "latex.eqn") {
+      paste("$", z, "$")
+    } else if (output.type == "latex.deqn") {
+      paste("$$", z, "$$")
+    } else {
+      z
+    }
+  } else if (output.type %in% c("text", "markdown", "marquee")) {
     paste(conf.level.char, "% CI ",
           range.brackets[1], rr.ci.char, range.brackets[2], sep = "")
   }
@@ -1161,8 +1350,97 @@ r_ci_label <- function(value,
   if (output.type == "expression") {
     paste("\"", conf.level.char, "% CI ",
           range.brackets[1], r.ci.char, range.brackets[2], "\"", sep = "")
-  } else if (output.type %in% c("latex", "tex", "text", "tikz", "markdown")) {
-    paste(conf.level.char, "% CI ",
-          range.brackets[1], r.ci.char, range.brackets[2], sep = "")
+  } else if (grepl("^latex", output.type)) {
+    z <- paste(conf.level.char, "\\% \\mathrm{CI} ",
+               range.brackets[1], r.ci.char, range.brackets[2], sep = "")
+    if (output.type == "latex.eqn") {
+      paste("$", z, "$")
+    } else if (output.type == "latex.deqn") {
+      paste("$$", z, "$$")
+    } else {
+      z
+    }
+  } else if (output.type %in% c("text", "markdown", "marquee")) {
+    z <- paste(conf.level.char, "% CI ",
+               range.brackets[1], r.ci.char, range.brackets[2], sep = "")
   }
 }
+
+#' Validate output type
+#'
+#' Replace \code{NULL} \code{output.type} based on \code{geom} and validate
+#' other values. Convert synonyms and change into lower case mal-formed
+#' input.
+#'
+#' @param output.type character User-set argument or default from stat
+#' @param geom character The name of the geom that will be used to render the
+#'   labels.
+#' @param supported.types character vector of accepted values for user input.
+#'
+#' @return If \code{output.type} is \code{NULL} a suitable value based on the
+#'   name of the geom is returned, defaulting to "expression". If not
+#'   \code{NULL}, the value is passed through unchanged.
+#'
+#' @section Output types: The formatting of character strings to be displayed
+#' in plots are marked as mathematical equations. Depending on the geom used,
+#' the mark-up needs to be encoded differently, or in some cases mark-up not
+#' applied.
+#' \describe{
+#'   \item{\code{"expression"}}{The labels are encoded as character strings to be parsed into R's plotmath expressions.}
+#'   \item{\code{"LaTeX", "TeX", "tikz", "latex"}}{The labels are encoded as 'LaTeX' maths equations, without the "fences" for switching in math mode.}
+#'   \item{\code{"latex.eqn"}}{Same as \code{"latex"} but enclosed in single \code{$}, i.e., as in-line maths.}
+#'   \item{\code{"latex.deqn"}}{Same as \code{"latex"} but enclosed in double \code{$$}, i.e., as display maths.}
+#'   \item{\code{"markdown"}}{The labels are encoded as character strings using markdown syntax, with some embedded HTML.}
+#'   \item{\code{"marquee"}}{The labels are encoded as character strings using markdown syntax, with 'marquee' supported spans.}
+#'   \item{\code{"text"}}{The labels are plain ASCII character strings.}
+#'   \item{\code{"numeric"}}{No labels are generated. This value is accepted by the statistics, but not by the label formatting functions.}
+#'   \item{\code{NULL}}{The value used, \code{expression}, \code{latex.eqn} or \code{markup} depends on the argument passed to \code{geom}.}}
+#'
+#' If \code{geom = "latex"} (package 'xdvir') the output type used is
+#' \code{"latex.eqn"}. If \code{geom = "richtext"} (package 'ggtext') or
+#' \code{geom = "textbox"} (package 'ggtext') the output type used is
+#' \code{"markdown"}. If \code{geom = "marquee"} (package 'marquee') the output
+#' type used is \code{"marquee"}. For all other values of \code{geom} the default
+#' is \code{"expression"} unless the user passes an argument. Invalid values as
+#' argument trigger an Error.
+#'
+#' @examples
+#' check_output_type(NULL)
+#' check_output_type("text")
+#' check_output_type(NULL, geom = "text")
+#' check_output_type(NULL, geom = "latex")
+#'
+#' @export
+#'
+check_output_type <-
+  function(output.type,
+           geom = "text",
+           supported.types =
+             c("expression", "text", "markdown", "marquee", "numeric",
+               "latex", "latex.eqn", "latex.deqn")) {
+    if (is.null(output.type)) {
+      if (geom %in% c("richtext", "textbox")) { # package 'ggtext'
+        output.type <- "markdown"
+      } else if (geom == "latex") { # package 'xdvir'
+        output.type <- "latex.eqn"
+      } else if (geom %in% c("marquee", "marquee_repel")) {
+        # packages 'marquee' or 'ggrepel'
+        output.type <- "marquee"
+      } else {
+        # packages 'ggplot2', 'ggpp', and others
+        output.type <- "expression"
+      }
+    } else {
+      output.type <- tolower(output.type)
+      # simplify tests elsewhere
+      if (output.type %in% c("tex", "tikz")) {
+        output.type <- "latex"
+      }
+    }
+    if (!output.type %in% supported.types) {
+      stop("'", output.type, "' not supported!",
+           " Expected one of: ", paste(supported.types, collapse = ", "), ".")
+    } else {
+      output.type
+    }
+  }

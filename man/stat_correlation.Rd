@@ -153,15 +153,10 @@ This statistic can be used to annotate a plot with the correlation
 }
 \note{
 Currently \code{coef.keep.zeros} is ignored, with trailing zeros always
-  retained in the labels but not protected from being dropped by R when
-  character strings are parsed into expressions.
+  retained in the \code{character} labels returned but not protected from
+  being dropped by R when these \code{character} strings are parsed into
+  plotmath expressions (i.e., when \code{output.type = "expression"}).
 }
-\section{Aesthetics}{
- \code{stat_correaltion()} requires \code{x} and
-  \code{y}. In addition, the aesthetics understood by the geom
-  (\code{"text"} is the default) are understood and grouping respected.
-}
-
 \section{Computed variables}{
  If output.type is \code{"numeric"} the returned
   tibble contains the columns listed below with variations depending on the
@@ -194,6 +189,31 @@ value is missing the label is set to \code{character(0L)}.
 
 To explore the computed values returned for a given input we suggest the use
 of \code{\link[gginnards]{geom_debug}} as shown in the last examples below.
+}
+
+\section{Output types}{
+ The formatting of character strings to be displayed
+in plots are marked as mathematical equations. Depending on the geom used,
+the mark-up needs to be encoded differently, or in some cases mark-up not
+applied.
+\describe{
+  \item{\code{"expression"}}{The labels are encoded as character strings to be parsed into R's plotmath expressions.}
+  \item{\code{"LaTeX", "TeX", "tikz", "latex"}}{The labels are encoded as 'LaTeX' maths equations, without the "fences" for switching in math mode.}
+  \item{\code{"latex.eqn"}}{Same as \code{"latex"} but enclosed in single \code{$}, i.e., as in-line maths.}
+  \item{\code{"latex.deqn"}}{Same as \code{"latex"} but enclosed in double \code{$$}, i.e., as display maths.}
+  \item{\code{"markdown"}}{The labels are encoded as character strings using markdown syntax, with some embedded HTML.}
+  \item{\code{"marquee"}}{The labels are encoded as character strings using markdown syntax, with 'marquee' supported spans.}
+  \item{\code{"text"}}{The labels are plain ASCII character strings.}
+  \item{\code{"numeric"}}{No labels are generated. This value is accepted by the statistics, but not by the label formatting functions.}
+  \item{\code{NULL}}{The value used, \code{expression}, \code{latex.eqn} or \code{markup} depends on the argument passed to \code{geom}.}}
+
+If \code{geom = "latex"} (package 'xdvir') the output type used is
+\code{"latex.eqn"}. If \code{geom = "richtext"} (package 'ggtext') or
+\code{geom = "textbox"} (package 'ggtext') the output type used is
+\code{"markdown"}. If \code{geom = "marquee"} (package 'marquee') the output
+type used is \code{"marquee"}. For all other values of \code{geom} the default
+is \code{"expression"} unless the user passes an argument. Invalid values as
+argument trigger an Error.
 }
 
 \examples{
@@ -275,7 +295,7 @@ ggplot(my.data, aes(x, y)) +
                                        after_stat(p.value.label),
                                        after_stat(t.value.label))))
 
-# Inspecting the returned data using geom_debug()
+# Inspecting the returned data using geom_debug_group()
 # This provides a quick way of finding out the names of the variables that
 # are available for mapping to aesthetics with after_stat().
 
@@ -288,40 +308,57 @@ if (gginnards.installed)
 if (gginnards.installed)
   ggplot(my.data, aes(x, y)) +
     geom_point() +
-    stat_correlation(geom = "debug")
+    stat_correlation(geom = "debug_group")
 
 if (gginnards.installed)
   ggplot(my.data, aes(x, y)) +
     geom_point() +
-    stat_correlation(geom = "debug", method = "pearson")
+    stat_correlation(geom = "debug_group", method = "pearson")
 
 if (gginnards.installed)
   ggplot(my.data, aes(x, y)) +
     geom_point() +
-    stat_correlation(geom = "debug", method = "kendall")
+    stat_correlation(geom = "debug_group", method = "kendall")
 
 if (gginnards.installed)
   ggplot(my.data, aes(x, y)) +
     geom_point() +
-    stat_correlation(geom = "debug", method = "spearman")
+    stat_correlation(geom = "debug_group", method = "spearman")
 
 if (gginnards.installed)
   ggplot(my.data, aes(x, y)) +
     geom_point() +
-    stat_correlation(geom = "debug", output.type = "numeric")
+    stat_correlation(geom = "debug_group", output.type = "numeric")
 
 if (gginnards.installed)
   ggplot(my.data, aes(x, y)) +
     geom_point() +
-    stat_correlation(geom = "debug", output.type = "markdown")
+    stat_correlation(geom = "debug_group", output.type = "markdown")
 
 if (gginnards.installed)
   ggplot(my.data, aes(x, y)) +
     geom_point() +
-    stat_correlation(geom = "debug", output.type = "LaTeX")
+    stat_correlation(geom = "debug_group", output.type = "LaTeX")
 
 }
 \seealso{
 \code{\link[stats]{cor.test}} for details on the computations.
 }
 \concept{ggplot statistics for correlation.}
+\section{Aesthetics}{
+
+\code{stat_correlation()} understands the following aesthetics. Required aesthetics are displayed in bold and defaults are displayed for optional aesthetics:
+\tabular{rll}{
+ • \tab \strong{\code{\link[ggplot2:aes_position]{x}}} \tab   \cr
+ • \tab \strong{\code{\link[ggplot2:aes_position]{y}}} \tab   \cr
+ • \tab \code{\link[ggplot2:aes_group_order]{group}} \tab → inferred \cr
+ • \tab \code{grp.label} \tab   \cr
+ • \tab \code{hjust} \tab → \code{"inward"} \cr
+ • \tab \code{label} \tab → \code{after_stat(r.label)} \cr
+ • \tab \code{npcx} \tab → \code{after_stat(npcx)} \cr
+ • \tab \code{npcy} \tab → \code{after_stat(npcy)} \cr
+ • \tab \code{vjust} \tab → \code{"inward"} \cr
+}
+
+Learn more about setting these aesthetics in \code{vignette("ggplot2-specs")}.
+}

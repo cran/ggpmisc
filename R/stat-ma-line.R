@@ -15,17 +15,17 @@
 #'
 #'   As the fitted line is the same whether \code{x} or \code{y} is on the rhs
 #'   of the model equation, \code{orientation} even if accepted does not have an
-#'   effect on the fitted line. In contrast, \code{\link[ggplot2]{geom_smooth}} treats
-#'   each axis differently and can thus have two orientations. The orientation
-#'   is easy to deduce from the argument passed to \code{formula}. Thus,
-#'   \code{stat_ma_line()} will by default guess which orientation the layer
-#'   should have. If no argument is passed to \code{formula}, the orientation
-#'   can be specified directly passing an argument to the \code{orientation}
-#'   parameter, which can be either \code{"x"} or \code{"y"}. The value gives
-#'   the axis that is on the rhs of the model equation, \code{"x"} being the
-#'   default orientation. Package 'ggpmisc' does not define new geometries
-#'   matching the new statistics as they are not needed and conceptually
-#'   transformations of \code{data} are expressed as statistics.
+#'   effect on the fitted line. In contrast, \code{\link[ggplot2]{geom_smooth}}
+#'   treats each axis differently and can thus have two orientations. The
+#'   orientation is easy to deduce from the argument passed to \code{formula}.
+#'   Thus, \code{stat_ma_line()} will by default guess which orientation the
+#'   layer should have. If no argument is passed to \code{formula}, the
+#'   orientation can be specified directly passing an argument to the
+#'   \code{orientation} parameter, which can be either \code{"x"} or \code{"y"}.
+#'   The value gives the axis that is on the rhs of the model equation,
+#'   \code{"x"} being the default orientation. Package 'ggpmisc' does not define
+#'   new geometries matching the new statistics as they are not needed and
+#'   conceptually transformations of \code{data} are expressed as statistics.
 #'
 #'   The minimum number of observations with distinct values can be set through
 #'   parameter \code{n.min}. The default \code{n.min = 2L} is the smallest
@@ -36,6 +36,9 @@
 #'   \code{\link[base:Random]{set.seed}()} immediately ahead of model fitting.
 #'
 #' @inheritParams stat_poly_line
+#'
+#' @aesthetics StatMaLine
+#'
 #' @param range.y,range.x character Pass "relative" or "interval" if method
 #'   "RMA" is to be computed.
 #' @param method function or character If character, "MA", "SMA" , "RMA" or
@@ -55,10 +58,13 @@
 #'   it will also include additional values related to the model fit.
 #'
 #' @section Computed variables: `stat_ma_line()` provides the following
-#'   variables, some of which depend on the orientation: \describe{ \item{y *or*
-#'   x}{predicted value} \item{ymin *or* xmin}{lower pointwise confidence
-#'   interval around the mean} \item{ymax *or* xmax}{upper pointwise confidence
-#'   interval around the mean} \item{se}{standard error} }
+#'   variables, some of which depend on the orientation:
+#'
+#'   \describe{ \item{y \strong{or} x}{predicted value}
+#'   \item{ymin \strong{or} xmin}{lower pointwise confidence interval around the mean}
+#'   \item{ymax \strong{or} xmax}{upper pointwise confidence interval around the mean}
+#'   \item{se}{standard error}
+#'   }
 #'
 #'   If \code{fm.values = TRUE} is passed then columns based on the summary of
 #'   the model fit are added, with the same value in each row within a group.
@@ -66,11 +72,11 @@
 #'   approach to achieve effects like colouring or hiding of the model fit line
 #'   based on P-values, r-squared or the number of observations.
 #'
-#' @section Aesthetics: \code{stat_ma_line} understands \code{x} and \code{y},
+#' @inheritSection stat_poly_line Model fit methods supported
+#'
+#' @note \code{stat_ma_line} understands \code{x} and \code{y},
 #'   to be referenced in the \code{formula}. Both must be mapped to
-#'   \code{numeric} variables. In addition, the aesthetics understood by the
-#'   geom (\code{"geom_smooth"} is the default) are understood and grouping
-#'   respected.
+#'   \code{numeric} variables.
 #'
 #' @family ggplot statistics for major axis regression
 #'
@@ -138,7 +144,7 @@
 #'   stat_ma_line() +
 #'   facet_wrap(~group)
 #'
-#' # Inspecting the returned data using geom_debug()
+#' # Inspecting the returned data using geom_debug_group()
 #' gginnards.installed <- requireNamespace("gginnards", quietly = TRUE)
 #'
 #' if (gginnards.installed)
@@ -146,11 +152,11 @@
 #'
 #' if (gginnards.installed)
 #'   ggplot(my.data, aes(x, y)) +
-#'     stat_ma_line(geom = "debug")
+#'     stat_ma_line(geom = "debug_group")
 #'
 #' if (gginnards.installed)
 #'   ggplot(my.data, aes(x, y)) +
-#'     stat_ma_line(geom = "debug", fm.values = TRUE)
+#'     stat_ma_line(geom = "debug_group", fm.values = TRUE)
 #'
 #' @export
 #'
@@ -159,6 +165,7 @@ stat_ma_line <- function(mapping = NULL,
                          geom = "smooth",
                          position = "identity",
                          ...,
+                         orientation = NA,
                          method = "lmodel2:MA",
                          method.args = list(),
                          n.min = 2L,
@@ -173,7 +180,6 @@ stat_ma_line <- function(mapping = NULL,
                          fullrange = FALSE,
                          level = 0.95,
                          na.rm = FALSE,
-                         orientation = NA,
                          show.legend = NA,
                          inherit.aes = TRUE) {
 
@@ -273,6 +279,9 @@ ma_line_compute_group_fun <-
            na.rm = FALSE,
            flipped_aes = NA,
            orientation = "x") {
+
+    rlang::check_installed("lmodel2", reason = "to use stat_ma_line()")
+
     data <- ggplot2::flip_data(data, flipped_aes)
     if (length(unique(data$x)) < n.min) {
       # Not enough data to perform fit

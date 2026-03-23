@@ -10,6 +10,7 @@ stat_distrmix_line(
   geom = "line",
   position = "identity",
   ...,
+  orientation = "x",
   method = "normalmixEM",
   se = NULL,
   fit.seed = NA,
@@ -24,7 +25,6 @@ stat_distrmix_line(
   components = "all",
   n.min = 10L * k,
   na.rm = FALSE,
-  orientation = "x",
   show.legend = NA,
   inherit.aes = TRUE
 )
@@ -45,6 +45,9 @@ layer.}
 \item{...}{other arguments passed on to \code{\link[ggplot2]{layer}}. This
 can include aesthetics whose values you want to set, not map. See
 \code{\link[ggplot2]{layer}} for more details.}
+
+\item{orientation}{character Either "x" or "y", the mapping of the values
+to which the mixture model is to be fitetd. NOT YET IMPLEMENTED!}
 
 \item{method}{function or character If character, "normalmixEM"
 or the name of a model fit function are accepted, possibly followed by the
@@ -82,9 +85,6 @@ variable for fitting to the attempted.}
 
 \item{na.rm}{a logical indicating whether NA values should be stripped before
 the computation proceeds.}
-
-\item{orientation}{character Either "x" or "y", the mapping of the values
-to which the mixture model is to be fitetd. NOT YET IMPLEMENTED!}
 
 \item{show.legend}{logical. Should this layer be included in the legends?
 \code{NA}, the default, includes if any aesthetics are mapped. \code{FALSE}
@@ -145,13 +145,6 @@ This statistic is similar to \code{\link[ggplot2]{stat_density}} but
   by group depending on the outcome of model fitting.
 }
 
-\section{Aesthetics}{
- \code{stat_distrmix_eq} expects observations mapped to
-  \code{x} from a \code{numeric} variable. A new grouping is added by mapping
-  \code{component} to the \code{group} aesthetic. Additional aesthetics as
-  understood by the geom (\code{"geom_line"} by default) can be set.
-}
-
 \examples{
 ggplot(faithful, aes(x = waiting)) +
   stat_distrmix_line()
@@ -186,7 +179,7 @@ ggplot(faithful, aes(x = waiting)) +
 ggplot(subset(faithful, waiting > 66), aes(x = waiting)) +
   stat_distrmix_line(k = 1)
 
-# Inspecting the returned data using geom_debug()
+# Inspecting the returned data using geom_debug_group()
 gginnards.installed <- requireNamespace("gginnards", quietly = TRUE)
 
 if (gginnards.installed)
@@ -194,19 +187,19 @@ if (gginnards.installed)
 
 if (gginnards.installed)
   ggplot(faithful, aes(x = waiting)) +
-    stat_distrmix_line(geom = "debug", components = "all")
+    stat_distrmix_line(geom = "debug_group", components = "all")
 
 if (gginnards.installed)
   ggplot(faithful, aes(x = waiting)) +
-    stat_distrmix_line(geom = "debug", components = "sum")
+    stat_distrmix_line(geom = "debug_group", components = "sum")
 
 if (gginnards.installed)
   ggplot(faithful, aes(x = waiting)) +
-    stat_distrmix_line(geom = "debug", components = "members")
+    stat_distrmix_line(geom = "debug_group", components = "members")
 
 if (gginnards.installed)
   ggplot(faithful, aes(x = waiting)) +
-    stat_distrmix_line(geom = "debug", fm.values = TRUE)
+    stat_distrmix_line(geom = "debug_group", fm.values = TRUE)
 
 }
 \seealso{
@@ -214,3 +207,13 @@ Other ggplot statistics for mixture model fits.:
 \code{\link{stat_distrmix_eq}()}
 }
 \concept{ggplot statistics for mixture model fits.}
+\section{Aesthetics}{
+
+\code{stat_distrmix_line()} understands the following aesthetics. Required aesthetics are displayed in bold and defaults are displayed for optional aesthetics:
+\tabular{rll}{
+ • \tab \strong{\code{\link[ggplot2:aes_position]{x}} \emph{or} \code{\link[ggplot2:aes_position]{y}}} \tab   \cr
+ • \tab \code{\link[ggplot2:aes_group_order]{group}} \tab → \code{after_stat(component)} \cr
+}
+
+Learn more about setting these aesthetics in \code{vignette("ggplot2-specs")}.
+}

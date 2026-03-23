@@ -10,6 +10,7 @@ stat_distrmix_eq(
   geom = "text_npc",
   position = "identity",
   ...,
+  orientation = "x",
   method = "normalmixEM",
   method.args = list(),
   n.min = 10L * k,
@@ -29,7 +30,6 @@ stat_distrmix_eq(
   vstep = NULL,
   output.type = NULL,
   na.rm = FALSE,
-  orientation = "x",
   parse = NULL,
   show.legend = NA,
   inherit.aes = TRUE
@@ -51,6 +51,9 @@ layer.}
 \item{...}{other arguments passed on to \code{\link[ggplot2]{layer}}. This
 can include aesthetics whose values you want to set, not map. See
 \code{\link[ggplot2]{layer}} for more details.}
+
+\item{orientation}{character Either "x" or "y", the mapping of the values
+to which the mixture model is to be fitetd. NOT YET IMPLEMENTED!}
 
 \item{method}{function or character If character, "normalmixEM"
 or the name of a model fit function are accepted, possibly followed by the
@@ -103,9 +106,6 @@ used between labels for different mixture model components.}
 \item{na.rm}{a logical indicating whether NA values should be stripped before
 the computation proceeds.}
 
-\item{orientation}{character Either "x" or "y", the mapping of the values
-to which the mixture model is to be fitetd. NOT YET IMPLEMENTED!}
-
 \item{parse}{logical Passed to the geom. If \code{TRUE}, the labels will be
 parsed into expressions and displayed as described in \code{?plotmath}.
 Default is \code{TRUE} if \code{output.type = "expression"} and
@@ -149,6 +149,14 @@ This statistic is similar to \code{\link[ggplot2]{stat_density}} but
   with function \code{\link[MASS]{fitdistr}()}. In this case the SE values
   are exact estimates.
 }
+\section{Aesthetics}{
+ \code{stat_distrmix_eq} expects observations mapped to
+  \code{x} from a \code{numeric} variable. A new grouping is added by mapping
+  as default \code{component} to the \code{group} aesthetic and
+  \code{eq.label} to the label aesthetic. Additional aesthetics as
+  understood by the geom (\code{"text_npc"} by default) can be set.
+}
+
 \section{Computed variables}{
  \code{stat_distrmix_eq()} provides the
   following
@@ -156,8 +164,8 @@ This statistic is similar to \code{\link[ggplot2]{stat_density}} but
   \describe{\item{x}{the location of text labels}
   \item{y}{the location of text labels}
   \item{eq.label}{\code{character} string for equations}
-  \item{eq.label}{\code{character} string for number of observations}
-  \item{eq.label}{\code{character} string for model fit method}
+  \item{n.label}{\code{character} string for number of observations}
+  \item{method.label}{\code{character} string for model fit method}
   \item{lambda}{\code{numeric} the estimate of the contribution of the
  component of the mixture towards the joint density}
   \item{mu}{\code{numeric} the estimate of the mean}
@@ -188,12 +196,29 @@ This statistic is similar to \code{\link[ggplot2]{stat_density}} but
   by group depending on the outcome of model fitting.
 }
 
-\section{Aesthetics}{
- \code{stat_distrmix_eq} expects observations mapped to
-  \code{x} from a \code{numeric} variable. A new grouping is added by mapping
-  as default \code{component} to the \code{group} aesthetic and
-  \code{eq.label} to the label aesthetic. Additional aesthetics as
-  understood by the geom (\code{"text_npc"} by default) can be set.
+\section{Output types}{
+ The formatting of character strings to be displayed
+in plots are marked as mathematical equations. Depending on the geom used,
+the mark-up needs to be encoded differently, or in some cases mark-up not
+applied.
+\describe{
+  \item{\code{"expression"}}{The labels are encoded as character strings to be parsed into R's plotmath expressions.}
+  \item{\code{"LaTeX", "TeX", "tikz", "latex"}}{The labels are encoded as 'LaTeX' maths equations, without the "fences" for switching in math mode.}
+  \item{\code{"latex.eqn"}}{Same as \code{"latex"} but enclosed in single \code{$}, i.e., as in-line maths.}
+  \item{\code{"latex.deqn"}}{Same as \code{"latex"} but enclosed in double \code{$$}, i.e., as display maths.}
+  \item{\code{"markdown"}}{The labels are encoded as character strings using markdown syntax, with some embedded HTML.}
+  \item{\code{"marquee"}}{The labels are encoded as character strings using markdown syntax, with 'marquee' supported spans.}
+  \item{\code{"text"}}{The labels are plain ASCII character strings.}
+  \item{\code{"numeric"}}{No labels are generated. This value is accepted by the statistics, but not by the label formatting functions.}
+  \item{\code{NULL}}{The value used, \code{expression}, \code{latex.eqn} or \code{markup} depends on the argument passed to \code{geom}.}}
+
+If \code{geom = "latex"} (package 'xdvir') the output type used is
+\code{"latex.eqn"}. If \code{geom = "richtext"} (package 'ggtext') or
+\code{geom = "textbox"} (package 'ggtext') the output type used is
+\code{"markdown"}. If \code{geom = "marquee"} (package 'marquee') the output
+type used is \code{"marquee"}. For all other values of \code{geom} the default
+is \code{"expression"} unless the user passes an argument. Invalid values as
+argument trigger an Error.
 }
 
 \examples{
@@ -258,7 +283,7 @@ ggplot(subset(faithful, waiting > 66), aes(x = waiting)) +
   stat_distrmix_line(k = 1) +
   stat_distrmix_eq(k = 1, se = TRUE)
 
-# Inspecting the returned data using geom_debug()
+# Inspecting the returned data using geom_debug_group()
 gginnards.installed <- requireNamespace("gginnards", quietly = TRUE)
 
 if (gginnards.installed)
@@ -266,20 +291,20 @@ if (gginnards.installed)
 
 if (gginnards.installed)
   ggplot(faithful, aes(x = waiting)) +
-    stat_distrmix_line(geom = "debug", components = "all")
-    stat_distrmix_eq(geom = "debug", components = "all")
+    stat_distrmix_line(geom = "debug_group", components = "all")
+    stat_distrmix_eq(geom = "debug_group", components = "all")
 
 if (gginnards.installed)
   ggplot(faithful, aes(x = waiting)) +
-    stat_distrmix_eq(geom = "debug", components = "sum")
+    stat_distrmix_eq(geom = "debug_group", components = "sum")
 
 if (gginnards.installed)
   ggplot(faithful, aes(x = waiting)) +
-    stat_distrmix_eq(geom = "debug", components = "members")
+    stat_distrmix_eq(geom = "debug_group", components = "members")
 
 if (gginnards.installed)
   ggplot(faithful, aes(x = waiting)) +
-    stat_distrmix_eq(geom = "debug",
+    stat_distrmix_eq(geom = "debug_group",
                       components = "members",
                       fm.values = TRUE)
 
@@ -289,3 +314,18 @@ Other ggplot statistics for mixture model fits.:
 \code{\link{stat_distrmix_line}()}
 }
 \concept{ggplot statistics for mixture model fits.}
+\section{Aesthetics}{
+
+\code{stat_distrmix_eq()} understands the following aesthetics. Required aesthetics are displayed in bold and defaults are displayed for optional aesthetics:
+\tabular{rll}{
+ • \tab \strong{\code{\link[ggplot2:aes_position]{x}} \emph{or} \code{\link[ggplot2:aes_position]{y}}} \tab   \cr
+ • \tab \code{\link[ggplot2:aes_group_order]{group}} \tab → \code{after_stat(component)} \cr
+ • \tab \code{hjust} \tab → \code{"inward"} \cr
+ • \tab \code{label} \tab → \code{after_stat(eq.label)} \cr
+ • \tab \code{npcx} \tab → \code{after_stat(npcx)} \cr
+ • \tab \code{npcy} \tab → \code{after_stat(npcy)} \cr
+ • \tab \code{vjust} \tab → \code{"inward"} \cr
+}
+
+Learn more about setting these aesthetics in \code{vignette("ggplot2-specs")}.
+}

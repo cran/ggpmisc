@@ -139,6 +139,7 @@ rr_label(
   value,
   small.r = getOption("ggpmisc.small.r", default = FALSE),
   digits = 3,
+  pc.out = FALSE,
   fixed = TRUE,
   output.type = "expression",
   decimal.mark = getOption("OutDec", default = ".")
@@ -148,6 +149,7 @@ adj_rr_label(
   value,
   small.r = getOption("ggpmisc.small.r", default = FALSE),
   digits = 3,
+  pc.out = FALSE,
   fixed = TRUE,
   output.type = "expression",
   decimal.mark = getOption("OutDec", default = ".")
@@ -189,7 +191,7 @@ name.}
 digits after the decimal mark or as the number of significant digits.}
 
 \item{output.type}{character One of "expression", "latex", "tex", "text",
-"tikz", "markdown".}
+"tikz", "markdown". "marquee".}
 
 \item{decimal.mark}{character Defaults to the value of R option
 \code{"OutDec"}.}
@@ -206,6 +208,8 @@ to \emph{P} symbol.}
 \item{method}{character The method used to estimate correlation, which
 selects the symbol used for the value.}
 
+\item{pc.out}{logical If \code{TRUE} format value in label as percent.}
+
 \item{conf.level}{numeric critical \emph{P}-value expressed as fraction in
 [0..1].}
 
@@ -214,7 +218,7 @@ selects the symbol used for the value.}
 \value{
 A character string with formatting, encoded to be parsed as an R
   plotmath expression, as plain text, as markdown or to be used with
-  \eqn{LaTeX} within \strong{math mode}.
+  'LaTeX' within \strong{math mode}.
 }
 \description{
 These functions format numeric values as character labels including the

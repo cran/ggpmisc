@@ -10,6 +10,7 @@ stat_quant_band(
   geom = "smooth",
   position = "identity",
   ...,
+  orientation = NA,
   quantiles = c(0.25, 0.5, 0.75),
   formula = NULL,
   fit.seed = NA,
@@ -19,7 +20,6 @@ stat_quant_band(
   method.args = list(),
   n.min = 3L,
   na.rm = FALSE,
-  orientation = NA,
   show.legend = NA,
   inherit.aes = TRUE
 )
@@ -40,6 +40,10 @@ layer.}
 \item{...}{other arguments passed on to \code{\link[ggplot2]{layer}}. This
 can include aesthetics whose values you want to set, not map. See
 \code{\link[ggplot2]{layer}} for more details.}
+
+\item{orientation}{character Either "x" or "y" controlling the default for
+\code{formula}. The letter indicates the aesthetic considered the
+explanatory variable in the model fit.}
 
 \item{quantiles}{A numeric vector of length 3, with unique values in
 \eqn{0\ldots 1}. The three quantile regressions are mapped to \code{y},
@@ -76,10 +80,6 @@ variable (on the rhs of formula) for fitting to the attempted.}
 \item{na.rm}{a logical indicating whether NA values should be stripped before
 the computation proceeds.}
 
-\item{orientation}{character Either "x" or "y" controlling the default for
-\code{formula}. The letter indicates the aesthetic considered the
-explanatory variable in the model fit.}
-
 \item{show.legend}{logical. Should this layer be included in the legends?
 \code{NA}, the default, includes if any aesthetics are mapped. \code{FALSE}
 never includes, and \code{TRUE} always includes.}
@@ -112,7 +112,7 @@ axis differently and thus is dependent on orientation. If no argument is
 passed to \code{formula}, it defaults to \code{y ~ x} but \code{x ~y} is also
 accepted, and equivalent to \code{y ~ x} plus \code{orientation = "y"}.
 Package 'ggpmisc' does not define a new geometry matching this statistic as
-it is enough for the statistic to return suitable `x` and `y` values.
+it is enough for the statistic to return suitable `data` for plotting.
 }
 \section{Aesthetics}{
  \code{stat_quant_eq} expects \code{x} and \code{y},
@@ -123,6 +123,82 @@ it is enough for the statistic to return suitable `x` and `y` values.
   variables. In addition, the aesthetics recognized by the geometry
   (\code{"geom_smooth"} is the default) are obeyed and grouping
   respected.
+}
+
+\section{Model fit methods supported}{
+ Several model fit functions are
+  supported explicitly (see tables), and some of their differences smoothed
+  out. Compatibility is checked late, based on the class of the returned
+  fitted model object. This makes it possible to use wrapper functions that
+  do model selection or other adjustments to the fit procedure on a per panel
+  or per group basis. Moreover, if the value returned as model fit object is
+  \code{NULL} no layer is added to the plot on a per group within panel
+  basis.
+
+  In the case of fitted model objects of classes not explicitly supported an
+  attempt is made to find the usual accessors and/or fitted object members,
+  and if found, either complete or partial support is frequently achieved.
+  In this case a message is issued encouraging users to check the valisdity
+  of the values extracted.
+
+  The argument to parameter \code{method} can be either the name of a
+  function object, possibly using double colon notation, or a character
+  string matching the function name. This approach makes it possible to
+  support model fit functions that are not dependencies of 'ggpmisc'. Either
+  by attaching the package where the function is defined and passing it by
+  name or as string, or using double colon notation when passing the name of
+  the function. User-defined functions can be passed as argument to parameter
+  \code{method} as long as they have parameters \code{formula}, \code{data}
+  \code{subset} and possibly \code{weights}. Additional arguments can be
+  passed to any method as a named list as an argument to parameter
+  \code{method.args}. As in \code{\link[ggplot2:geom_smooth]{stat_smooth}()}
+  prior \code{weights} are passed to the model fit functions' \code{weights}
+  (plural!) parameter by mapping a numeric variable to plot aesthetic
+  \code{weight} (singular!).
+
+  The table below lists natively supported model fit functions, with the
+  caveat that only some 'broom' methods' specializations have been actually
+  tested with statistics from 'ggpmisc'. In addition, the statistics based
+  on 'broom' methods require the user to tailor their behaviour by passing
+  additional arguments in the call.
+
+  \tabular{lcl}{
+  \strong{Statistic} \tab \eqn{f} \tab \strong{Supported model fit methods} \cr
+  \code{\link{stat_poly_line}()} \tab G \tab "lm", "rlm", "lts", "sma", "ma", "gls", \emph{others with methods} \code{\link[stats]{predict}()} or \code{\link[stats]{fitted}()} \cr
+  \code{\link{stat_poly_eq}()}   \tab G \tab "lm", "rlm", "lts", "sma", "ma", "gls",  \emph{others with needed accesors} \cr
+  \code{\link{stat_quant_line}()} \tab G \tab "rq", "rqss" \cr
+  \code{\link{stat_quant_band}()} \tab G \tab "rq", "rqss" \cr
+  \code{\link{stat_quant_eq}()} \tab G \tab "rq", "rqss" \cr
+  \code{\link{stat_ma_line}()} \tab G \tab "SMA", "MA", "RMA", "OLS" \cr
+  \code{\link{stat_ma_eq}()} \tab G \tab "SMA", "MA", "RMA", "OLS" \cr
+  \code{\link{stat_fit_residuals}()} \tab G \tab "lm", "rlm", "lts", "sma", "ma", "gls", "rq", "rqss" \emph{others with method} \code{\link[stats]{residuals}()} \cr
+  \code{\link{stat_fit_fitted}()} \tab G \tab "lm", "rlm", "lts", "gls", "rq", "rqss" \emph{others with method} \code{\link[stats]{fitted}()} \cr
+  \code{\link{stat_fit_deviations}()} \tab G \tab "lm", "rlm", "lts", "gls", "rq", "rqss" \emph{others with methods} \code{\link[stats]{fitted}()} and \code{\link[stats]{weights}()} \cr
+  \code{\link{stat_fit_augment}()} \tab G \tab \emph{any with 'broom' method} \code{\link[broom]{augment}()} \cr
+  \code{\link{stat_fit_glance}()} \tab G \tab \emph{any with 'broom' method} \code{\link[broom]{glance}()} \cr
+  \code{\link{stat_fit_tidy}()} \tab G \tab \emph{any with 'broom' method} \code{\link[broom]{tidy}()} \cr
+  \code{\link{stat_fit_tb}()} \tab P \tab \emph{any with 'broom' method} \code{\link[broom]{tidy}()} \cr
+  }
+
+  The table below lists the names for fit methods coded in the statistics
+  as given in the table above. The single colon notation is based on parsing
+  the name and is available whenever passing the name of the fit method as a
+  character string. In a string such as "head:tail" the "head" gives the name
+  of the model fit function and the "tail" gives the argument to pass it's
+  \code{method} parameter. In some cases the default \code{formula = y ~ x}
+  needs to be overridden with an explicit argument.
+
+  \tabular{llll}{
+  \strong{Predefined method names} \tab \strong{Model fit methods} \tab \strong{R package} \tab \strong{Object class} \cr
+  "lm", "lm:qr" \tab \code{\link[stats]{lm}()} \tab 'stats' \tab "lm" \cr
+  "rlm", "rlm:M", "rlm:MM" \tab \code{\link[MASS]{rlm}()} \tab 'MASS' \tab "rlm" ("lm") \cr
+  "lts", "ltsReg" \tab \code{\link[robustbase]{ltsReg}()} \tab 'robustbase' \tab "lts" \cr
+  "ma", "sma", "sma:SMA", "sma:MA", "sma:OLS" \tab \code{\link[smatr]{sma}()} \tab 'smatr' \tab "ma" or "sma" \cr
+  "gls", "gls:REML", "gls:ML" \tab \code{\link[nlme]{gls}()} \tab 'nlme' \tab "gls" \cr
+  "rq", "rq:sfn", "rq:sfnc", "rq:lasso" \tab \code{\link[quantreg]{rq}()} \tab 'quantreg' \tab "rq" \cr
+  "rqss", "rqss:sfn", "rqss:sfnc", "rqss:lasso" \tab \code{\link[quantreg]{rqss}()} \tab 'quantreg' \tab "rqss" \cr
+  "SMA", "MA", "RMA", "OLS" \tab \code{\link[lmodel2]{lmodel2}()} \tab 'lmodel2' \tab \cr
+  }
 }
 
 \examples{
@@ -186,7 +262,7 @@ ggplot(mpg, aes(displ, hwy)) +
   stat_quant_band(quantiles = c(0, 0.1, 0.2)) +
   geom_point()
 
-# Inspecting the returned data using geom_debug()
+# Inspecting the returned data using geom_debug_group()
 gginnards.installed <- requireNamespace("gginnards", quietly = TRUE)
 
 if (gginnards.installed)
@@ -194,16 +270,21 @@ if (gginnards.installed)
 
 if (gginnards.installed)
   ggplot(mpg, aes(displ, hwy)) +
-    stat_quant_band(geom = "debug")
+    stat_quant_band(geom = "debug_group")
 
 if (gginnards.installed)
   ggplot(mpg, aes(displ, hwy)) +
-    stat_quant_band(geom = "debug", fm.values = TRUE)
+    stat_quant_band(geom = "debug_group", fm.values = TRUE)
 
 }
-\seealso{
-Other ggplot statistics for quantile regression: 
-\code{\link{stat_quant_eq}()},
-\code{\link{stat_quant_line}()}
+\section{Aesthetics}{
+
+\code{stat_quant_band()} understands the following aesthetics. Required aesthetics are displayed in bold and defaults are displayed for optional aesthetics:
+\tabular{rll}{
+ • \tab \strong{\code{\link[ggplot2:aes_position]{x}}} \tab   \cr
+ • \tab \strong{\code{\link[ggplot2:aes_position]{y}}} \tab   \cr
+ • \tab \code{\link[ggplot2:aes_group_order]{group}} \tab → inferred \cr
 }
-\concept{ggplot statistics for quantile regression}
+
+Learn more about setting these aesthetics in \code{vignette("ggplot2-specs")}.
+}

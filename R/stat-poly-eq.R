@@ -42,18 +42,7 @@
 #'   Default is \code{TRUE} if \code{output.type = "expression"} and
 #'   \code{FALSE} otherwise.
 #'
-#' @note For backward compatibility a logical is accepted as argument for
-#'   \code{eq.with.lhs}. If \code{TRUE}, the default is used, either
-#'   \code{"x"} or \code{"y"}, depending on the argument passed to \code{formula}.
-#'   However, \code{"x"} or \code{"y"} can be substituted by providing a
-#'   suitable replacement character string through \code{eq.x.rhs}.
-#'   Parameter \code{orientation} is redundant as it only affects the default
-#'   for \code{formula} but is included for consistency with
-#'   \code{ggplot2::stat_smooth()}.
-#'
-#'   R option \code{OutDec} is obeyed based on its value at the time the plot
-#'   is rendered, i.e., displayed or printed. Set \code{options(OutDec = ",")}
-#'   for languages like Spanish or French.
+#' @aesthetics StatPolyEq
 #'
 #' @details This statistic can be used to automatically annotate a plot with
 #'   \eqn{R^2}, adjusted \eqn{R^2}, the fitted model equation, \eqn{P}, and
@@ -85,13 +74,12 @@
 #'   label is generated. Thus, as the value returned for \code{eq.label} can be
 #'   \code{NA}, the default aesthetic mapping to \emph{label} is \eqn{R^2}.
 #'
-#'   By default, the character strings are generated as suitable for parsing
-#'   into R's plotmath expressions. However, LaTeX (use TikZ device in R),
-#'   markdown (use package 'ggtext') and plain text are also supported, as well
-#'   as returning numeric values for user-generated text labels. The argument of
-#'   \code{parse} is set automatically based on \code{output-type}, but if you
-#'   assemble labels that need parsing from \code{numeric} output, the default
-#'   needs to be overridden.
+#'   The character strings mapped to the label aesthetic are encoded
+#'   differently depending on argument passed to \code{output.type}, or
+#'   if none passed based on the geom used. The argument of
+#'   \code{parse} is set automatically based on \code{output.type}. However,
+#'   if labels manually assembled from \code{numeric} output need parsing,
+#'   the default needs to be overridden.
 #'
 #'   This statistic only generates annotation labels, the predicted values/line
 #'   need to be added to the plot as a separate layer using
@@ -131,35 +119,28 @@
 #'   usually wise. This can be useful as when this threshold is not reached
 #'   an empty data frame is returned resulting in an empty plot layer.
 #'
-#' @section User-defined methods: User-defined functions can be passed as
-#'   argument to \code{method}. The requirements are 1) that the signature is
-#'   similar to that of function \code{lm()} (with parameters \code{formula},
-#'   \code{data}, \code{weights} and any other arguments passed by name through
-#'   \code{method.args}) and 2) that the value returned by the function is an
-#'   object of a class such as \code{"lm"} for which \code{coefs()} and similar
-#'   query methods are available or for empty plot layer output, an atomic
-#'   \code{NA} value.
+#'   R option \code{OutDec} is obeyed based on its value at the time the plot
+#'   is rendered, i.e., displayed or printed. Set \code{options(OutDec = ",")}
+#'   for languages like Spanish or French.
 #'
-#'   When possible, i.e., nearly allways, the \code{formula} used to build
-#'   the equation label is extracted from the returned fitted model object.
-#'   Most fitted model objects returned follow the example of \code{lm()} and
-#'   include the model formula fitted. Thus, this model formula can safely
-#'   differ from the argument passed to parameter \code{formula} in the call
-#'   to \code{stat_poly_eq()}.
-#'   Thus, user-defined methods can implement any or all of \code{method}
-#'   selection, model \code{formula} selection, dynamically adjusted
-#'   \code{method.args} and conditional skipping of labelling on a by group
-#'   basis.
+#'   When possible, i.e., nearly allways, the \code{formula} used to build the
+#'   equation label is extracted from the returned fitted model object. Most
+#'   fitted model objects follow the example of \code{lm()} and include the
+#'   model that has been formula fitted. Thus, this model formula can safely
+#'   differ from the argument passed to parameter \code{formula} in the call to
+#'   \code{stat_poly_eq()}. Consequently, user-defined methods can implement any
+#'   or all of \code{method} selection, model \code{formula} selection,
+#'   dynamically adjusted \code{method.args} and conditional skipping of
+#'   labelling on a by group basis.
 #'
-#' @references Originally written as an answer to question 7549694 at
-#'   Stackoverflow but enhanced based on suggestions from users and my own
-#'   needs.
+#' @inheritSection stat_poly_line Model fit methods supported
 #'
-#' @section Aesthetics: \code{stat_poly_eq()} understands \code{x} and \code{y},
+#' @inheritSection check_output_type Output types
+#'
+#' @note \code{stat_poly_eq()} understands \code{x} and \code{y},
 #'   to be referenced in the \code{formula} and \code{weight} passed as argument
 #'   to parameter \code{weights}. All three must be mapped to \code{numeric}
-#'   variables. In addition, the aesthetics understood by the geom
-#'   (\code{"text"} is the default) are understood and grouping respected.
+#'   variables.
 #'
 #'   If the model formula includes a transformation of \code{x}, a
 #'   matching argument should be passed to parameter \code{eq.x.rhs}
@@ -170,16 +151,24 @@
 #'   curve will not match. In this case it may be necessary to also pass
 #'   a matching argument to parameter \code{eq.with.lhs}.
 #'
+#'   For backward compatibility a logical is accepted as argument for
+#'   \code{eq.with.lhs}. If \code{TRUE}, the default is used, either
+#'   \code{"x"} or \code{"y"}, depending on the argument passed to \code{formula}.
+#'   However, \code{"x"} or \code{"y"} can be substituted by providing a
+#'   suitable replacement character string through \code{eq.x.rhs}.
+#'   Parameter \code{orientation} is redundant as it only affects the default
+#'   for \code{formula} but is included for consistency with
+#'   \code{ggplot2::stat_smooth()}.
+#'
 #' @return A data frame, with a single row per group and columns as described
 #'   under \strong{Computed variables}. In cases when the number of observations
 #'   is less than \code{n.min} a data frame with no rows or columns is returned,
 #'   and rendered as an empty/invisible plot layer.
 #'
-#' @section Computed variables:
-#' If the model fit function used does not returns \code{NA} or no value,
-#' the label is set to \code{character(0L)}. The position of the columns in
-#' the data frame can change between package versions, extract values always
-#' by name.
+#' @section Computed variables: If the model fit function used does not returns
+#'   \code{NA} or no value, the label is set to \code{character(0L)}. The
+#'   position of the columns in the data frame can change between package
+#'   versions, extract values always by name.
 #'
 #' For all \code{output.type} arguments the following values are returned.
 #' \describe{
@@ -221,6 +210,10 @@
 #' To explore the computed values returned for a given input we suggest the use
 #' of \code{\link[gginnards]{geom_debug}} as shown in the last examples below.
 #'
+#' @references Originally written as an answer to question 7549694 at
+#'   Stackoverflow but enhanced based on suggestions from users and my own
+#'   needs.
+#'
 #' @seealso This statistics fits a model with function \code{\link[stats]{lm}()}
 #'   as default, several other functions returning objects of class \code{"lm"}
 #'   or objects of classes for which the common R fitted-model-object
@@ -229,20 +222,9 @@
 #'   them by name through parameter \code{method.args}. User-defined
 #'   model-fitting functions are also supported.
 #'
-#'   Please, see the articles
-#'   \href{https://docs.r4photobiology.info/ggpmisc/}{online documentation}
+#'   Please, see the articles in
+#'   \href{https://docs.r4photobiology.info/ggpmisc/}{online-only documentation}
 #'   for additional use examples and guidance.
-#'
-#'   For quantile regression \code{\link{stat_quant_eq}()} should be used
-#'   instead of \code{stat_poly_eq()} while for model II or major axis
-#'   regression with package 'lmodel2' \code{\link{stat_ma_eq}()} should be
-#'   used. For methods not supportted by these three statistics, such as
-#'   non-linear models, statistics \code{\link{stat_fit_glance}()} and
-#'   \code{\link{stat_fit_tidy}()} can be used but require the user to create
-#'   character strings from numeric values and map them to aesthetic
-#'   \code{label}.
-#'
-#' @family ggplot statistics for linear and polynomial regression
 #'
 #' @examples
 #' # generate artificial data
@@ -389,7 +371,7 @@
 #'   stat_poly_eq(geom = "text", label.x = 100, label.y = 0, hjust = 1,
 #'                formula = formula)
 #'
-#' # Inspecting the returned data using geom_debug()
+#' # Inspecting the returned data using geom_debug_group()
 #' # This provides a quick way of finding out the names of the variables that
 #' # are available for mapping to aesthetics with after_stat().
 #'
@@ -403,14 +385,14 @@
 #'     geom_point() +
 #'     stat_poly_line(formula = formula) +
 #'     stat_poly_eq(formula = formula,
-#'                  geom = "debug")
+#'                  geom = "debug_group")
 #'
 #' if (gginnards.installed)
 #'   ggplot(my.data, aes(x, y)) +
 #'     geom_point() +
 #'     stat_poly_line(formula = formula) +
 #'     stat_poly_eq(formula = formula,
-#'                  geom = "debug",
+#'                  geom = "debug_group",
 #'                  output.type = "numeric")
 #'
 #' # names of the variables
@@ -419,7 +401,7 @@
 #'     geom_point() +
 #'     stat_poly_line(formula = formula) +
 #'     stat_poly_eq(formula = formula,
-#'                  geom = "debug",
+#'                  geom = "debug_group",
 #'                  dbgfun.data = colnames)
 #'
 #' # only data$eq.label
@@ -428,7 +410,7 @@
 #'     geom_point() +
 #'     stat_poly_line(formula = formula) +
 #'     stat_poly_eq(formula = formula,
-#'                  geom = "debug",
+#'                  geom = "debug_group",
 #'                  output.type = "expression",
 #'                  dbgfun.data = function(x) {x[["eq.label"]]})
 #'
@@ -438,7 +420,7 @@
 #'     geom_point() +
 #'     stat_poly_line(formula = formula) +
 #'     stat_poly_eq(formula = formula,
-#'                  geom = "debug",
+#'                  geom = "debug_group",
 #'                  output.type = "text",
 #'                  dbgfun.data = function(x) {x[["eq.label"]]})
 #'
@@ -449,6 +431,7 @@ stat_poly_eq <- function(mapping = NULL,
                          geom = "text_npc",
                          position = "identity",
                          ...,
+                         orientation = NA,
                          formula = NULL,
                          method = "lm",
                          method.args = list(),
@@ -472,7 +455,6 @@ stat_poly_eq <- function(mapping = NULL,
                          vstep = NULL,
                          output.type = NULL,
                          na.rm = FALSE,
-                         orientation = NA,
                          parse = NULL,
                          show.legend = FALSE,
                          inherit.aes = TRUE) {
@@ -503,17 +485,14 @@ stat_poly_eq <- function(mapping = NULL,
   }
 
   temp <- guess_orientation(orientation = orientation,
-                            formula = formula)
+                            default.formula = y ~ x,
+                            formula = formula,
+                            formula.on.x = FALSE)
   orientation <- temp[["orientation"]]
   formula <-  temp[["formula"]]
 
-  if (is.null(output.type)) {
-    if (geom %in% c("richtext", "textbox", "marquee")) {
-      output.type <- "markdown"
-    } else {
-      output.type <- "expression"
-    }
-  }
+  output.type <-
+    check_output_type(output.type = output.type, geom = geom)
 
   if (is.null(parse)) {
     parse <- output.type == "expression"
@@ -625,14 +604,6 @@ poly_eq_compute_group_fun <- function(data,
     return(data.frame())
   }
 
-  output.type <- if (!length(output.type)) {
-    "expression"
-  } else {
-    tolower(output.type)
-  }
-  stopifnot(output.type %in%
-              c("expression", "text", "markdown", "numeric", "latex", "tex", "tikz"))
-
   if (is.null(data$weight)) {
     data$weight <- 1
   }
@@ -671,72 +642,23 @@ poly_eq_compute_group_fun <- function(data,
   } else if (length(label.y) > 0) {
     label.y <- label.y[1]
   }
-  # If method was specified as a character string, replace with
-  # the corresponding function. Some model fit functions themselves have a
-  # method parameter accepting character strings as argument. We support
-  # these by splitting strings passed as argument at a colon.
-  if (is.character(method)) {
-    method <- switch(method,
-                     lm = "lm:qr",
-                     rlm = "rlm:M",
-                     lqs = "lqs:lqs",
-                     gls = "gls:REML",
-                     method)
-    method.name <- method
-    method <- strsplit(x = method, split = ":", fixed = TRUE)[[1]]
-    if (length(method) > 1L) {
-      fun.method <- method[2]
-      method <- method[1]
-    } else {
-      fun.method <- character()
-    }
-    method <- switch(method,
-                     lm = stats::lm,
-                     rlm = MASS::rlm,
-                     lqs = MASS::lqs,
-                     gls = nlme::gls,
-                     match.fun(method))
-  } else if (is.function(method)) {
-    fun.method <- character()
-  }
 
-  if (exists("weight", data) && !all(data[["weight"]] == 1)) {
-    stopifnot("A mapping to 'weight' and a named argument 'weights' cannot co-exist" =
-                !"weights" %in% method.args)
-    fun.args <- list(formula = quote(formula),
-                     data = quote(data),
-                     weights = data[["weight"]])
-  } else {
-    fun.args <- list(formula = quote(formula),
-                     data = quote(data))
-  }
-  fun.args <- c(fun.args, method.args)
-  if (length(fun.method)) {
-    fun.args[["method"]] <- fun.method
-  }
-
-  # gls() parameter for formula is called model
-  if (grepl("gls", method.name)) {
-    names(fun.args)[1] <- "model"
-  }
-
-  if (!is.na(fit.seed)) {
-    set.seed(fit.seed)
-  }
-  fm <- do.call(method, args = fun.args)
-  mk.eq.label <- mk.eq.label && class(fm)[1] != "segmented" # not segmented into a spline?
-
-  # allow skipping of output if returned value from model fit function is missing
-  if (!length(fm) || (is.atomic(fm) && is.na(fm))) {
+  temp.ls <- fit_models_internal(data = data,
+                                 method = method,
+                                 method.name = method.name,
+                                 method.args = method.args,
+                                 n.min = n.min,
+                                 formula = formula,
+                                 fit.seed = fit.seed,
+                                 orientation = orientation,
+                                 accept.rq = FALSE)
+  if (!length(temp.ls) || !length(temp.ls[["fm"]])) {
+    # An empty data.frame results in no plot layer when passed to geoms
     return(data.frame())
-  } else if (!(inherits(fm, "lm") || inherits(fm, "lmrob") ||
-               inherits(fm, "gls") || inherits(fm, "lqs") ||
-               inherits(fm, "lts") || inherits(fm, "sma"))) {
-    warning("Method \"", method.name,
-            "\" did not return a ",
-            "\"lm\", \"lmrob\", \"lqs\", \"lts\", \"gls\" or \"sma\" ",
-            "object, possible failure ahead.")
   }
+  fm <- temp.ls[["fm"]]
+  method.name <- temp.ls[["method.name"]] # argument or default which varies
+  method.args <- temp.ls[["method.args"]] # argument or default which varies
 
   fm.class <- class(fm)
   if (fm.class[1] == "sma") {
@@ -748,7 +670,7 @@ poly_eq_compute_group_fun <- function(data,
 
   # allow model formula selection by the model fit method
   # extract formula from fitted model if possible, but fall back on argument if needed
-  formula.ls <- fail_safe_formula(fm, fun.args, verbose = TRUE)
+  formula.ls <- fail_safe_formula(fm, method.args, verbose = TRUE)
 
   if ("fstatistic" %in% names(fm.summary)) {
     f.value <- fm.summary[["fstatistic"]]["value"]
@@ -1021,7 +943,7 @@ poly_eq_compute_group_fun <- function(data,
 #' @export
 StatPolyEq <-
   ggplot2::ggproto("StatPolyEq", ggplot2::Stat,
-                   extra_params = c("na.rm", "parse"),
+                   extra_params = c("na.rm", "parse", "orientation"),
                    compute_group = poly_eq_compute_group_fun,
                    default_aes =
                      ggplot2::aes(npcx = after_stat(npcx),

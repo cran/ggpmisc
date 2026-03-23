@@ -87,6 +87,8 @@
 #'   Default is \code{TRUE} if \code{output.type = "expression"} and
 #'   \code{FALSE} otherwise.
 #'
+#' @aesthetics StatMultcomp
+#'
 #' @note R option \code{OutDec} is obeyed based on its value at the time the plot
 #'   is rendered, i.e., displayed or printed. Set \code{options(OutDec = ",")}
 #'   for languages like Spanish or French.
@@ -124,7 +126,9 @@
 #'   compared factor levels, or letter labels that discriminate significantly
 #'   different groups.
 #'
-#' @section Aesthetics: \code{stat_multcomp()} understands \code{x} and
+#' @inheritSection check_output_type Output types
+#'
+#' @note \code{stat_multcomp()} understands \code{x} and
 #'   \code{y}, to be referenced in the \code{formula} and \code{weight} passed
 #'   as argument to parameter \code{weights}. A factor must be mapped to
 #'   \code{x} and \code{numeric} variables to \code{y}, and, if used, to
@@ -201,7 +205,7 @@
 #' @seealso This statistic uses the implementation of Tests of General Linear
 #'   Hypotheses in function \code{\link[multcomp]{glht}}. See
 #'   \code{\link[multcomp]{summary.glht}} and \code{\link[stats]{p.adjust}}
-#'   for the supported and tests and the references therein for the theory
+#'   for the supported tests and the references therein for the theory
 #'   behind them.
 #'
 #' @family ggplot statistics for multiple comparisons
@@ -299,7 +303,7 @@
 #'   stat_multcomp(label.type = "letters",
 #'                 mc.critical.p.value = 0.01)
 #'
-#' # Inspecting the returned data using geom_debug()
+#' # Inspecting the returned data using geom_debug_panel()
 #' # This provides a quick way of finding out the names of the variables that
 #' # are available for mapping to aesthetics with after_stat().
 #'
@@ -311,18 +315,18 @@
 #' if (gginnards.installed)
 #' p1 +
 #'   stat_multcomp(label.type = "bars",
-#'                 geom = "debug")
+#'                 geom = "debug_panel")
 #'
 #' if (gginnards.installed)
 #' p1 +
 #'   stat_multcomp(label.type = "letters",
-#'                 geom = "debug")
+#'                 geom = "debug_panel")
 #'
 #' if (gginnards.installed)
 #' p1 +
 #'   stat_multcomp(label.type = "bars",
 #'                 output.type = "numeric",
-#'                 geom = "debug")
+#'                 geom = "debug_panel")
 #'
 #' @export
 #'
@@ -331,6 +335,7 @@ stat_multcomp <- function(mapping = NULL,
                           geom = NULL,
                           position = "identity",
                           ...,
+                          orientation = "x",
                           formula = NULL,
                           method = "lm",
                           method.args = list(),
@@ -348,7 +353,6 @@ stat_multcomp <- function(mapping = NULL,
                           vstep = NULL,
                           output.type = NULL,
                           na.rm = FALSE,
-                          orientation = "x",
                           parse = NULL,
                           show.legend = FALSE,
                           inherit.aes = TRUE) {
@@ -382,13 +386,8 @@ stat_multcomp <- function(mapping = NULL,
     warning("\"npc\"-based geometries not supported, using\"", geom, "\" instead.")
   }
 
-  if (is.null(output.type)) {
-    if (geom %in% c("richtext", "textbox", "marquee")) {
-      output.type <- "markdown"
-    } else {
-      output.type <- "expression"
-    }
-  }
+  output.type <-
+    check_output_type(output.type = output.type, geom = geom)
 
   if (is.null(parse)) {
     parse <- output.type == "expression"
@@ -433,7 +432,7 @@ stat_multcomp <- function(mapping = NULL,
 #' @format NULL
 #' @usage NULL
 #'
-multcomp_compute_fun <-
+multcomp_compute_panel_fun <-
   function(data,
            scales,
            method = "lm",
@@ -456,6 +455,9 @@ multcomp_compute_fun <-
            na.rm = FALSE,
            orientation = "x") {
     force(data)
+
+    rlang::check_installed(c("multcomp", "multcompView"),
+                           reason = "to use stat_multcomp()")
 
     # parse obeys this option, but as for some labels or output types we do not
     # use parse() to avoid dropping of trailing zeros, we need to manage this in
@@ -564,7 +566,10 @@ multcomp_compute_fun <-
       method <- switch(method,
                        lm = stats::lm,
                        aov = stats::aov,
-                       rlm = MASS::rlm,
+                       rlm =
+                         {rlang::check_installed("MASS",
+                                                 reason = "to use method \"rlm\"");
+                           MASS::rlm},
                        match.fun(method))
     } else if (is.function(method)) {
       fun.method <- character()
@@ -882,6 +887,10 @@ multcomp_compute_fun <-
       }
     }
 
+    if (!"group" %in% colnames(z)) {
+      # The data frame returned by a panel function must have a "group" column
+      z[["group"]] <- -1L
+    }
     z
   }
 
@@ -892,7 +901,7 @@ multcomp_compute_fun <-
 StatMultcomp <-
   ggplot2::ggproto("StatMultcomp", ggplot2::Stat,
                    extra_params = c("na.rm", "parse"),
-                   compute_panel = multcomp_compute_fun,
+                   compute_panel = multcomp_compute_panel_fun,
                    default_aes = ggplot2::aes(xmin = after_stat(x.left.tip),
                                               xmax = after_stat(x.right.tip),
                                               label = after_stat(default.label),

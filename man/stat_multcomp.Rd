@@ -10,6 +10,7 @@ stat_multcomp(
   geom = NULL,
   position = "identity",
   ...,
+  orientation = "x",
   formula = NULL,
   method = "lm",
   method.args = list(),
@@ -27,7 +28,6 @@ stat_multcomp(
   vstep = NULL,
   output.type = NULL,
   na.rm = FALSE,
-  orientation = "x",
   parse = NULL,
   show.legend = FALSE,
   inherit.aes = TRUE
@@ -49,6 +49,10 @@ layer.}
 \item{...}{other arguments passed on to \code{\link[ggplot2]{layer}}. This
 can include aesthetics whose values you want to set, not map. See
 \code{\link[ggplot2]{layer}} for more details.}
+
+\item{orientation}{character Either "x" or "y" controlling the default for
+\code{formula}. \strong{Support for \code{orientation} is not yet
+implemented but is planned.}}
 
 \item{formula}{a formula object. Using aesthetic names \code{x} and \code{y}
 instead of original variable names.}
@@ -124,10 +128,6 @@ used between labels for different contrasts when \code{label.type = "bars"}.}
 \item{na.rm}{a logical indicating whether NA values should be stripped before
 the computation proceeds.}
 
-\item{orientation}{character Either "x" or "y" controlling the default for
-\code{formula}. \strong{Support for \code{orientation} is not yet
-implemented but is planned.}}
-
 \item{parse}{logical Passed to the geom. If \code{TRUE}, the labels will be
 parsed into expressions and displayed as described in \code{?plotmath}.
 Default is \code{TRUE} if \code{output.type = "expression"} and
@@ -191,9 +191,8 @@ This statistic can be used to automatically annotate a plot with
 R option \code{OutDec} is obeyed based on its value at the time the plot
   is rendered, i.e., displayed or printed. Set \code{options(OutDec = ",")}
   for languages like Spanish or French.
-}
-\section{Aesthetics}{
- \code{stat_multcomp()} understands \code{x} and
+
+\code{stat_multcomp()} understands \code{x} and
   \code{y}, to be referenced in the \code{formula} and \code{weight} passed
   as argument to parameter \code{weights}. A factor must be mapped to
   \code{x} and \code{numeric} variables to \code{y}, and, if used, to
@@ -203,7 +202,6 @@ R option \code{OutDec} is obeyed based on its value at the time the plot
   \code{label.type = "LETTERS"}) are understood and grouping
   respected.
 }
-
 \section{Computed variables}{
 
 If \code{output.type = "numeric"} and
@@ -265,6 +263,31 @@ addition the following labels:
 \section{Alternatives}{
  \code{stat_signif()} in package 'ggsignif' is
   an earlier and independent implementation of pairwise tests.
+}
+
+\section{Output types}{
+ The formatting of character strings to be displayed
+in plots are marked as mathematical equations. Depending on the geom used,
+the mark-up needs to be encoded differently, or in some cases mark-up not
+applied.
+\describe{
+  \item{\code{"expression"}}{The labels are encoded as character strings to be parsed into R's plotmath expressions.}
+  \item{\code{"LaTeX", "TeX", "tikz", "latex"}}{The labels are encoded as 'LaTeX' maths equations, without the "fences" for switching in math mode.}
+  \item{\code{"latex.eqn"}}{Same as \code{"latex"} but enclosed in single \code{$}, i.e., as in-line maths.}
+  \item{\code{"latex.deqn"}}{Same as \code{"latex"} but enclosed in double \code{$$}, i.e., as display maths.}
+  \item{\code{"markdown"}}{The labels are encoded as character strings using markdown syntax, with some embedded HTML.}
+  \item{\code{"marquee"}}{The labels are encoded as character strings using markdown syntax, with 'marquee' supported spans.}
+  \item{\code{"text"}}{The labels are plain ASCII character strings.}
+  \item{\code{"numeric"}}{No labels are generated. This value is accepted by the statistics, but not by the label formatting functions.}
+  \item{\code{NULL}}{The value used, \code{expression}, \code{latex.eqn} or \code{markup} depends on the argument passed to \code{geom}.}}
+
+If \code{geom = "latex"} (package 'xdvir') the output type used is
+\code{"latex.eqn"}. If \code{geom = "richtext"} (package 'ggtext') or
+\code{geom = "textbox"} (package 'ggtext') the output type used is
+\code{"markdown"}. If \code{geom = "marquee"} (package 'marquee') the output
+type used is \code{"marquee"}. For all other values of \code{geom} the default
+is \code{"expression"} unless the user passes an argument. Invalid values as
+argument trigger an Error.
 }
 
 \examples{
@@ -354,7 +377,7 @@ p1 +
   stat_multcomp(label.type = "letters",
                 mc.critical.p.value = 0.01)
 
-# Inspecting the returned data using geom_debug()
+# Inspecting the returned data using geom_debug_panel()
 # This provides a quick way of finding out the names of the variables that
 # are available for mapping to aesthetics with after_stat().
 
@@ -366,18 +389,18 @@ if (gginnards.installed)
 if (gginnards.installed)
 p1 +
   stat_multcomp(label.type = "bars",
-                geom = "debug")
+                geom = "debug_panel")
 
 if (gginnards.installed)
 p1 +
   stat_multcomp(label.type = "letters",
-                geom = "debug")
+                geom = "debug_panel")
 
 if (gginnards.installed)
 p1 +
   stat_multcomp(label.type = "bars",
                 output.type = "numeric",
-                geom = "debug")
+                geom = "debug_panel")
 
 }
 \references{
@@ -389,7 +412,24 @@ Chapman and Hall/CRC. ISBN: 9780367704209, \doi{10.1201/9781003146216}.
 This statistic uses the implementation of Tests of General Linear
   Hypotheses in function \code{\link[multcomp]{glht}}. See
   \code{\link[multcomp]{summary.glht}} and \code{\link[stats]{p.adjust}}
-  for the supported and tests and the references therein for the theory
+  for the supported tests and the references therein for the theory
   behind them.
 }
 \concept{ggplot statistics for multiple comparisons}
+\section{Aesthetics}{
+
+\code{stat_multcomp()} understands the following aesthetics. Required aesthetics are displayed in bold and defaults are displayed for optional aesthetics:
+\tabular{rll}{
+ • \tab \strong{\code{\link[ggplot2:aes_position]{x}}} \tab   \cr
+ • \tab \strong{\code{\link[ggplot2:aes_position]{y}}} \tab   \cr
+ • \tab \code{\link[ggplot2:aes_group_order]{group}} \tab → inferred \cr
+ • \tab \code{hjust} \tab → \code{after_stat(just)} \cr
+ • \tab \code{label} \tab → \code{after_stat(default.label)} \cr
+ • \tab \code{\link[ggplot2:aes_linetype_size_shape]{size}} \tab → \code{2.5} \cr
+ • \tab \code{weight} \tab → \code{1} \cr
+ • \tab \code{\link[ggplot2:aes_position]{xmax}} \tab → \code{after_stat(x.right.tip)} \cr
+ • \tab \code{\link[ggplot2:aes_position]{xmin}} \tab → \code{after_stat(x.left.tip)} \cr
+}
+
+Learn more about setting these aesthetics in \code{vignette("ggplot2-specs")}.
+}

@@ -4,20 +4,28 @@
 #' on x, while the reverse swap is done only if \code{backward = TRUE}.
 #'
 #' @param f formula An R model formula
-#' @param backwards logical
+#' @param backwards logical If \code{NULL} the swap is done irrespective of
+#'   the variable in the lhs.
 #'
-#' @details
+#' @details If \code{backwards = TRUE}, a formula with \code{x} in the lhs is
+#' always, returned. If \code{backwards = FALSE}, a formula with \code{y} in the
+#' lhs is always, returned. If \code{backwards = NULL} \code{x} and \code{y}
+#' are always swapped.
+#'
 #' This function is meant to be used only as a helper within 'ggplot2'
-#' statistics. Normally together with geometries supporting orientation when
-#' we want to automate the change in orientation based on a user-supplied
-#' formula. Only \code{x} and \code{y} are changed, and in other respects
-#' the formula is rebuilt copying the environment from \code{f}.
+#' statistics. Normally together with geometries supporting orientation when we
+#' want to automate the change in orientation based on a user-supplied formula.
+#' Only \code{x} and \code{y} are exchanged, and in other respects the formula
+#' is rebuilt copying the environment from \code{f}.
 #'
 #' @return A copy of \code{f} with \code{x} and \code{y} swapped by each other
 #'   in the lhs and rhs.
 #'
 swap_xy <- function(f, backwards = FALSE) {
   f.chr <- as.character(f)
+  if (is.null(backwards)) {
+    backwards <- grepl("y", f.chr[2])
+  }
   if (backwards) {
     # lhs
     f.chr[2] <- gsub("\\by\\b", "x", f.chr[2])
@@ -39,6 +47,8 @@ swap_xy <- function(f, backwards = FALSE) {
 #'
 #' @param orientation character \code{"x"} or \code{"y"}.
 #' @param formula model formula based on x and y.
+#' @param default.formula model formula to be used when argument passed to
+#'   \code{formula} is \code{NULL} or \code{NA}.
 #' @param formula.on.x logical Flip x and y in formula, used when the x
 #'   and y in data are not flipped in the compute function.
 #'
@@ -74,9 +84,7 @@ guess_orientation <- function(orientation = NULL,
           orientation <- "y"
         }
       }
-      if (!grepl("y", as.character(formula)[2])){
-        formula <- swap_xy(formula)
-      }
+      formula <- swap_xy(formula, backwards = FALSE)
     }
   } else {
     # if we do not flip x and y in data, the formula should match orientation
@@ -84,9 +92,9 @@ guess_orientation <- function(orientation = NULL,
     # we guess formula from orientation
     if (is.null(formula)) {
       if (is.null(orientation) || is.na(orientation) || orientation == "x") {
-        formula <- default.formula
+        formula <- swap_xy(default.formula, backwards = FALSE)
       } else if (orientation == "y") {
-        formula <- swap_xy(default.formula)
+        formula <- swap_xy(default.formula, backwards = TRUE)
       }
     }
     # we guess orientation from formula
@@ -148,4 +156,303 @@ fail_safe_formula <- function(fm,
   }, error = function(cond) {
     invokeRestart("handleError")
   })
+}
+
+# Internal function with shared code --------------------------------------
+
+#' Apply model fit methods to data
+#'
+#' Fit models using different methods translating some arguments
+#' to make possible use of consistent arguments across calls to
+#' stats.
+#'
+#' @inheritParams stat_fit_residuals
+#' @param accept.rq logical Accept quantile regression fits with 'quantreg' or
+#'   warn when encountered.
+#'
+#' @return A list with three named members: \code{fm} the fitted model object
+#'   and \code{method.args}, the arguments passed to the model fit function as a
+#'   nested named list, \code{fit.seed} the seed used and \code{method.name},
+#'   the name of the model fit function passed as arguemnt, which can differ
+#'   from the class of \code{fm}.
+#'
+#' @note Called by \code{\link{stat_fit_residuals}()},
+#'   \code{\link{stat_fit_deviations}()} and \code{\link{stat_fit_fitted}()}.
+#'
+#' @keywords internal
+#'
+fit_models_internal <- function(data,
+                                method,
+                                method.name,
+                                method.args,
+                                n.min,
+                                formula,
+                                fit.seed,
+                                orientation,
+                                level = 0.95,
+                                accept.rq = TRUE) {
+
+  stopifnot(!any(c("formula", "data") %in% names(method.args)))
+
+  if (is.null(data$weight)) {
+    data$weight <- 1
+  }
+
+  if (length(unique(data[[orientation]])) < n.min) {
+    return(list())
+  }
+
+  # If method was specified as a character string, replace with
+  # the corresponding function. Some model fit functions themselves have a
+  # method parameter accepting character strings as argument. We support
+  # these by splitting strings passed as argument at a colon.
+  if (is.character(method)) {
+    # we set default methods for fit functions
+    method <- switch(method,
+                     lm = "lm:qr",
+                     rlm = "rlm:M",
+                     lmrob = "lmrob:MM",
+                     rq = ifelse(nrow(data) < 5000L, "rq:br", "rq:fn"),
+                     lts = "ltsReg",
+                     gls = "gls:REML",
+                     sma = "sma:SMA",
+                     ma = "sma:MA",
+                     segreg = "segreg",
+                     method)
+    method.name <- method
+    method <- strsplit(x = method, split = ":", fixed = TRUE)[[1]]
+    if (length(method) > 1L) {
+      fun.method <- method[2]
+      method <- method[1]
+    } else {
+      fun.method <- character()
+    }
+    # get functions based on their name
+    method <- switch(method,
+                     lm = stats::lm,
+                     rlm =
+                       {rlang::check_installed("MASS",
+                                               reason = "to use method \"rlm\"");
+                         MASS::rlm},
+                     rq =
+                       {rlang::check_installed("quantreg",
+                                               reason = "to use method \"rq\"");
+                         quantreg::rq},
+                     lqs =
+                       {rlang::check_installed("MASS",
+                                               reason = "to use method \"lqs\"");
+                         MASS::lqs},
+                     ltsReg =
+                       {rlang::check_installed("robustbase",
+                                               reason = "to use method \"ltsReg\"");
+                         robustbase::ltsReg},
+                     lmrob =
+                       {rlang::check_installed("robustbase",
+                                               reason = "to use method \"lmrob\"");
+                         robustbase::lmrob},
+                     gls =
+                       {rlang::check_installed("nlme",
+                                               reason = "to use method \"gls\"");
+                         nlme::gls},
+                     sma =
+                       {rlang::check_installed("smatr",
+                                               reason = "to use method \"sma\"");
+                         smatr::sma},
+                     sma =
+                       {rlang::check_installed("smatr",
+                                               reason = "to use method \"sma\"");
+                         smatr::sma},
+                     segreg =
+                       {rlang::check_installed("segmented",
+                                               reason = "to use method \"segreg\"");
+                         segmented::segreg},
+                     match.fun(method))
+  } else if (is.function(method)) {
+    fun.method <- character()
+  }
+
+  if (exists("weight", data) && !all(data[["weight"]] == 1)) {
+    stopifnot("A mapping to 'weight' and a named argument 'weights' cannot co-exist" =
+                !"weights" %in% method.args)
+    fun.args <- list(formula = quote(formula),
+                     data = quote(data),
+                     weights = data[["weight"]])
+  } else {
+    fun.args <- list(formula = quote(formula),
+                     data = quote(data))
+  }
+  fun.args <- c(fun.args, method.args)
+
+  if (length(fun.method)) {
+    fun.args[["method"]] <- fun.method
+  }
+
+  if (grepl("^ma$|^sma$", method.name) && !"alpha" %in% names(fun.args)) {
+    fun.args <- c(fun.args, list(alpha = 1 - level))
+  }
+
+  # gls() parameter for formula is called model
+  if (grepl("gls", method.name)) {
+    names(fun.args)[1] <- "model"
+  }
+
+  if (!is.na(fit.seed)) {
+    set.seed(fit.seed)
+  }
+  # quantreg contains code with partial matching of names!
+  # so we silence selectively only these warnings
+  withCallingHandlers({
+    fm <- do.call(method, args = fun.args)
+  }, warning = function(w) {
+    if (startsWith(conditionMessage(w), "partial match of") ||
+        startsWith(conditionMessage(w), "partial argument match of")) {
+      invokeRestart("muffleWarning")
+    }
+  })
+
+  if (!length(fm) || (is.atomic(fm) && is.na(fm))) {
+    return(list())
+  } else if (!(inherits(fm, "lm") || inherits(fm, "lmrob") ||
+               inherits(fm, "gls") || inherits(fm, "lts") ||
+               inherits(fm, "lqs") || inherits(fm, "sma") ||
+               accept.rq && (inherits(fm, "rq") || inherits(fm, "rqs")))) {
+    message("Method \"", method.name,
+            "\" did not return a ",
+            "\"lm\", \"lmrob\", \"lqs\", \"lts\", \"gls\", \"sma\", ",
+            ifelse(accept.rq, "\"rq\", \"rqs\"", ""),
+            "object, possible failure ahead.")
+  }
+  list(fm = fm,
+       method.name = method.name,
+       method.args = fun.args,
+       fit.seed = fit.seed)
+}
+
+
+# extract_weights ---------------------------------------------------------
+
+#' Extract prior and fitted weights
+#'
+#' Extract the prior and fitted weights from a fitted model object.
+#'
+#' @param fm a fitted model object of a supported class.
+#' @param n.row interger The expected length of the weights vectors to extract.
+#'
+#' @return A list with two named members: \code{rob.weight.vals} the weights
+#'   actually used to weight residuals, either user supplied or computed, and
+#'   \code{weight.vals} the prior weights passed as argument. When not available
+#'   the vectors are filled with \code{NA_real_} values.
+#'
+#' @note Called by \code{\link{stat_fit_residuals}()} and
+#'   \code{\link{stat_fit_deviations}()}.
+#'
+#' @keywords internal
+#'
+extract_weights <- function(fm, n.row) {
+  if (inherits(fm, "lmrob")) {
+    rob.weight.vals <- stats::weights(fm, type = "robustness")
+    weight.vals <- stats::weights(fm, type = "prior")
+    if (!length(weight.vals)) {
+      weight.vals <- rep_len(1, n.row)
+    }
+  } else if (inherits(fm, "lts")) {
+    rob.weight.vals <- fm[["lts.wt"]]
+    weight.vals <- rep_len(1, n.row)
+  } else if (inherits(fm, "rlm")) {
+    rob.weight.vals <- fm[["w"]]
+    weight.vals <- stats::weights(fm)
+  } else if (inherits(fm, "lqs")) {
+    rob.weight.vals <- rep_len(NA_real_, n.row)
+    weight.vals <- rep_len(1, n.row)
+  } else if (inherits(fm, "gls")|| inherits(fm, "lme")) {
+    # "weights" have to be computed
+    # ordering <- order(order(nlme::getGroups(fm)))
+    # rob.weight.vals <-
+    #   1 / nlme::getCovariate(fm$modelStruct$varStruct)[ordering]
+    rob.weight.vals <- rep_len(NA_real_, n.row)
+    # weights' argument is a "variance model"
+    weight.vals <- rep_len(1, n.row)
+  } else if (inherits(fm, "lm")) { # order matters as e.g. "rlm" inherits "lm"
+    weight.vals <- stats::weights(fm)
+    if (!length(weight.vals)) {
+      weight.vals <- rep_len(1, n.row)
+    }
+    rob.weight.vals <- weight.vals # actually used are those input
+  } else {
+    rob.weight.vals <- rep(NA_real_, n.row)
+    try(weight.vals <- stats::weights(fm))
+    if (inherits(weight.vals, "try-error") ||
+        length(weight.vals) != n.row) {
+      if (exists("weights", fm) &&  # defensive
+          length(fm[["weights"]]) == n.row) {
+        weight.vals <- fm[["weights"]]
+      } else {
+        weight.vals <- rep_len(NA_real_, n.row)
+      }
+    }
+  }
+  list(rob.weight.vals = rob.weight.vals,
+       weight.vals = weight.vals)
+}
+
+
+# extract_fitted ----------------------------------------------------------
+
+extract_fitted <- function(fm, n.row) {
+  # As users may use model fit functions that we have not tested
+  # we try hard to extract the components from the model fit object
+  if (inherits(fm, "sma")) {
+    #    fitted.vals <- stats::fitted(fm, type = "fitted", centred = FALSE)
+    message("Fitted values could not be retrieved for \"sma\" object!")
+    fitted.vals <- rep(NA_real_, n.row)
+  } else {
+    try(fitted.vals <- stats::fitted(fm))
+    if (inherits(fitted.vals, "try-error") ||
+        length(fitted.vals) != n.row) {
+      if (exists("fitted.values", fm) &&  # defensive
+          length(fm[["fitted.values"]]) == n.row) {
+        fitted.vals <- fm[["fitted.values"]]
+      } else {
+        message("Fitted values could not be retrieved for \"",
+                class(fm)[1], "\" object!")
+        fitted.vals <- rep(NA_real_, n.row)
+      }
+    }
+  }
+  fitted.vals
+}
+
+
+# extract_residuals -------------------------------------------------------
+
+extract_residuals <- function(fm, resid.type, weighted) {
+  if (inherits(fm, "sma")) {
+    fit.residuals <- stats::fitted(fm, type = "residuals")
+  } else {
+    if (!is.null(resid.type)) {
+      if (weighted) {
+        if (resid.type != "deviance") {
+          warning("Ignoring supplied 'resid.type' as 'weighted = TRUE'")
+        }
+        resid.args <- list(obj = fm, drop0 = TRUE)
+      } else {
+        resid.args <- list(object = fm, type = resid.type)
+      }
+    } else {
+      if (weighted) {
+        resid.args <- list(obj = fm, drop0 = TRUE)
+      } else {
+        resid.args <- list(object = fm)
+      }
+    }
+    if (weighted) {
+      fit.residuals <-
+        do.call(stats::weighted.residuals, args = resid.args)
+    } else {
+      fit.residuals <-
+        do.call(stats::residuals, args = resid.args)
+    }
+  }
+
+  fit.residuals
 }

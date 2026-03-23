@@ -16,7 +16,7 @@
 #' passed to \code{formula}, it defaults to \code{y ~ x} but \code{x ~y} is also
 #' accepted, and equivalent to \code{y ~ x} plus \code{orientation = "y"}.
 #' Package 'ggpmisc' does not define a new geometry matching this statistic as
-#' it is enough for the statistic to return suitable `x` and `y` values.
+#' it is enough for the statistic to return suitable `data` for plotting.
 #'
 #' @inheritParams stat_quant_line
 #' @param quantiles A numeric vector of length 3, with unique values in
@@ -24,9 +24,13 @@
 #'   \code{ymax} and \code{ymin} aesthetics, and by default plotted as a line
 #'   and band.
 #'
+#' @aesthetics StatQuantBand
+#'
 #' @return The value returned by the statistic is a data frame, that will have
 #'   \code{n} rows of predicted values for three quantiles as \code{y},
 #'   \code{ymin} and \code{ymax}, plus \code{x}.
+#'
+#' @inheritSection stat_poly_line Model fit methods supported
 #'
 #' @section Aesthetics: \code{stat_quant_eq} expects \code{x} and \code{y},
 #'   aesthetics to be used in the \code{formula} rather than the names of the
@@ -36,8 +40,6 @@
 #'   variables. In addition, the aesthetics recognized by the geometry
 #'   (\code{"geom_smooth"} is the default) are obeyed and grouping
 #'   respected.
-#'
-#' @family ggplot statistics for quantile regression
 #'
 #' @export
 #'
@@ -102,7 +104,7 @@
 #'   stat_quant_band(quantiles = c(0, 0.1, 0.2)) +
 #'   geom_point()
 #'
-#' # Inspecting the returned data using geom_debug()
+#' # Inspecting the returned data using geom_debug_group()
 #' gginnards.installed <- requireNamespace("gginnards", quietly = TRUE)
 #'
 #' if (gginnards.installed)
@@ -110,11 +112,11 @@
 #'
 #' if (gginnards.installed)
 #'   ggplot(mpg, aes(displ, hwy)) +
-#'     stat_quant_band(geom = "debug")
+#'     stat_quant_band(geom = "debug_group")
 #'
 #' if (gginnards.installed)
 #'   ggplot(mpg, aes(displ, hwy)) +
-#'     stat_quant_band(geom = "debug", fm.values = TRUE)
+#'     stat_quant_band(geom = "debug_group", fm.values = TRUE)
 #'
 #' @export
 #'
@@ -123,6 +125,7 @@ stat_quant_band <- function(mapping = NULL,
                             geom = "smooth",
                             position = "identity",
                             ...,
+                            orientation = NA,
                             quantiles = c(0.25, 0.5, 0.75),
                             formula = NULL,
                             fit.seed = NA,
@@ -132,7 +135,6 @@ stat_quant_band <- function(mapping = NULL,
                             method.args = list(),
                             n.min = 3L,
                             na.rm = FALSE,
-                            orientation = NA,
                             show.legend = NA,
                             inherit.aes = TRUE) {
 
@@ -224,6 +226,8 @@ quant_band_compute_group_fun <- function(data,
                                          fm.values = FALSE,
                                          na.rm = FALSE,
                                          flipped_aes = NA) {
+
+  rlang::check_installed("quantreg", reason = "to use stat_quant_band()")
 
   data <- ggplot2::flip_data(data, flipped_aes)
   if (length(unique(data$x)) < n.min) {

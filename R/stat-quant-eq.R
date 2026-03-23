@@ -41,6 +41,8 @@
 #'   Default is \code{TRUE} if \code{output.type = "expression"} and
 #'   \code{FALSE} otherwise.
 #'
+#' @aesthetics StatQuantEq
+#'
 #' @note For backward compatibility a logical is accepted as argument for
 #'   \code{eq.with.lhs}. If \code{TRUE}, the default is used, either
 #'   \code{"x"} or \code{"y"}, depending on the argument passed to \code{formula}.
@@ -120,20 +122,9 @@
 #'   polynomial, in most cases a warning is issued. Failing to comply with this
 #'   requirement results in the return of \code{NA} as the formatted equation.
 #'
-#' @section Aesthetics: \code{stat_quant_eq()} understands \code{x} and \code{y},
-#'   to be referenced in the \code{formula} and \code{weight} passed as argument
-#'   to parameter \code{weights} of \code{rq()}. All three must be mapped to
-#'   \code{numeric} variables. In addition, the aesthetics understood by the
-#'   geom used (\code{"text"} by default) are understood and grouping respected.
+#' @inheritSection check_output_type Output types
 #'
-#'   \emph{If the model formula includes a transformation of \code{x}, a
-#'   matching argument should be passed to parameter \code{eq.x.rhs}
-#'   as its default value \code{"x"} will not reflect the applied
-#'   transformation. In plots, transformation should never be applied to the
-#'   left hand side of the model formula, but instead in the mapping of the
-#'   variable within \code{aes}, as otherwise plotted observations and fitted
-#'   curve will not match. In this case it may be necessary to also pass
-#'   a matching argument to parameter \code{eq.with.lhs}.}
+#' @inheritSection stat_poly_line Model fit methods supported
 #'
 #' @return A data frame, with one row per quantile and columns as described
 #'   under \strong{Computed variables}. In cases when the number of observations
@@ -188,8 +179,6 @@
 #' @note Support for the \code{angle} aesthetic is not automatic and requires
 #'   that the user passes as argument suitable numeric values to override the
 #'   defaults for label positions.
-#'
-#' @family ggplot statistics for quantile regression
 #'
 #' @import quantreg
 #'
@@ -265,7 +254,7 @@
 #'   geom_point() +
 #'   stat_quant_line(formula = formula, linewidth = 0.5) +
 #'   stat_quant_eq(formula = formula, angle = 90, hstep = 0.04, vstep = 0,
-#'                 label.y = 0.02, hjust = 0) +
+#'                 label.y = 0.02, hjust = 0, size = 3) +
 #'   expand_limits(x = -15) # make space for equations
 #'
 #' # user set quantiles
@@ -356,7 +345,7 @@
 #'                 formula = formula,
 #'                 quantiles = 0.5)
 #'
-#' # Inspecting the returned data using geom_debug()
+#' # Inspecting the returned data using geom_debug_group()
 #' # This provides a quick way of finding out the names of the variables that
 #' # are available for mapping to aesthetics using after_stat().
 #'
@@ -368,37 +357,37 @@
 #' if (gginnards.installed)
 #'   ggplot(my.data, aes(x, y)) +
 #'     geom_point() +
-#'     stat_quant_eq(formula = formula, geom = "debug")
+#'     stat_quant_eq(formula = formula, geom = "debug_group")
 #'
 #' \dontrun{
 #' if (gginnards.installed)
 #'   ggplot(my.data, aes(x, y)) +
 #'     geom_point() +
 #'     stat_quant_eq(mapping = aes(label = after_stat(eq.label)),
-#'                   formula = formula, geom = "debug",
+#'                   formula = formula, geom = "debug_group",
 #'                   output.type = "markdown")
 #'
 #' if (gginnards.installed)
 #'   ggplot(my.data, aes(x, y)) +
 #'     geom_point() +
-#'     stat_quant_eq(formula = formula, geom = "debug", output.type = "text")
+#'     stat_quant_eq(formula = formula, geom = "debug_group", output.type = "text")
 #'
 #' if (gginnards.installed)
 #'   ggplot(my.data, aes(x, y)) +
 #'     geom_point() +
-#'     stat_quant_eq(formula = formula, geom = "debug", output.type = "numeric")
-#'
-#' if (gginnards.installed)
-#'   ggplot(my.data, aes(x, y)) +
-#'     geom_point() +
-#'     stat_quant_eq(formula = formula, quantiles = c(0.25, 0.5, 0.75),
-#'                   geom = "debug", output.type = "text")
+#'     stat_quant_eq(formula = formula, geom = "debug_group", output.type = "numeric")
 #'
 #' if (gginnards.installed)
 #'   ggplot(my.data, aes(x, y)) +
 #'     geom_point() +
 #'     stat_quant_eq(formula = formula, quantiles = c(0.25, 0.5, 0.75),
-#'                   geom = "debug", output.type = "numeric")
+#'                   geom = "debug_group", output.type = "text")
+#'
+#' if (gginnards.installed)
+#'   ggplot(my.data, aes(x, y)) +
+#'     geom_point() +
+#'     stat_quant_eq(formula = formula, quantiles = c(0.25, 0.5, 0.75),
+#'                   geom = "debug_group", output.type = "numeric")
 #' }
 #'
 #' @export
@@ -408,6 +397,7 @@ stat_quant_eq <- function(mapping = NULL,
                           geom = "text_npc",
                           position = "identity",
                           ...,
+                          orientation = NA,
                           formula = NULL,
                           quantiles = c(0.25, 0.5, 0.75),
                           method = "rq:br",
@@ -425,7 +415,6 @@ stat_quant_eq <- function(mapping = NULL,
                           vstep = NULL,
                           output.type = NULL,
                           na.rm = FALSE,
-                          orientation = NA,
                           parse = NULL,
                           show.legend = FALSE,
                           inherit.aes = TRUE) {
@@ -464,13 +453,9 @@ stat_quant_eq <- function(mapping = NULL,
   orientation <- temp[["orientation"]]
   formula <-  temp[["formula"]]
 
-  if (is.null(output.type)) {
-    if (geom %in% c("richtext", "textbox", "marquee")) {
-      output.type <- "markdown"
-    } else {
-      output.type <- "expression"
-    }
-  }
+  output.type <-
+    check_output_type(output.type = output.type, geom = geom)
+
   if (is.null(parse)) {
     parse <- output.type == "expression"
   }
@@ -550,8 +535,8 @@ quant_eq_compute_group_fun <- function(data,
                                        output.type = "expression",
                                        na.rm = FALSE,
                                        orientation = "x") {
-  force(data)
-  force(method)
+
+  rlang::check_installed("quantreg", reason = "to use stat_quant_eq()")
 
   # parse obeys this option, but as for some labels or output types we do not
   # use parse() to avoid dropping of trailing zeros, we need to manage this in
@@ -561,14 +546,6 @@ quant_eq_compute_group_fun <- function(data,
     warning("Decimal mark must be one of '.' or ',', not: '", decimal.mark, "'")
     decimal.mark <- "."
   }
-
-  output.type <- if (!length(output.type)) {
-    "expression"
-  } else {
-    tolower(output.type)
-  }
-  stopifnot(output.type %in%
-              c("expression", "text", "markdown", "numeric", "latex", "tex", "tikz"))
 
   if (is.null(data[["weight"]])) {
     data[["weight"]] <- 1
@@ -897,7 +874,7 @@ quant_eq_compute_group_fun <- function(data,
 #' @export
 StatQuantEq <-
   ggplot2::ggproto("StatQuantEq", ggplot2::Stat,
-                   extra_params = c("na.rm", "parse"),
+                   extra_params = c("na.rm", "parse", "orientation"),
                    compute_group = quant_eq_compute_group_fun,
                    default_aes =
                      ggplot2::aes(npcx = after_stat(npcx),

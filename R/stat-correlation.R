@@ -65,6 +65,8 @@
 #'   Default is \code{TRUE} if \code{output.type = "expression"} and
 #'   \code{FALSE} otherwise.
 #'
+#' @aesthetics StatCorrelation
+#'
 #' @details This statistic can be used to annotate a plot with the correlation
 #'   coefficient and the outcome of its test of significance. It supports
 #'   Pearson, Kendall and Spearman methods to compute correlation. This
@@ -89,9 +91,7 @@
 #'   \code{x} and \code{y} should both be continuous scales rather than
 #'   discrete.
 #'
-#' @section Aesthetics: \code{stat_correaltion()} requires \code{x} and
-#'   \code{y}. In addition, the aesthetics understood by the geom
-#'   (\code{"text"} is the default) are understood and grouping respected.
+#' @inheritSection check_output_type Output types
 #'
 #' @section Computed variables: If output.type is \code{"numeric"} the returned
 #'   tibble contains the columns listed below with variations depending on the
@@ -126,8 +126,9 @@
 #' of \code{\link[gginnards]{geom_debug}} as shown in the last examples below.
 #'
 #' @note Currently \code{coef.keep.zeros} is ignored, with trailing zeros always
-#'   retained in the labels but not protected from being dropped by R when
-#'   character strings are parsed into expressions.
+#'   retained in the \code{character} labels returned but not protected from
+#'   being dropped by R when these \code{character} strings are parsed into
+#'   plotmath expressions (i.e., when \code{output.type = "expression"}).
 #'
 #' @seealso \code{\link[stats]{cor.test}} for details on the computations.
 #'
@@ -210,7 +211,7 @@
 #'                                        after_stat(p.value.label),
 #'                                        after_stat(t.value.label))))
 #'
-#' # Inspecting the returned data using geom_debug()
+#' # Inspecting the returned data using geom_debug_group()
 #' # This provides a quick way of finding out the names of the variables that
 #' # are available for mapping to aesthetics with after_stat().
 #'
@@ -223,37 +224,37 @@
 #' if (gginnards.installed)
 #'   ggplot(my.data, aes(x, y)) +
 #'     geom_point() +
-#'     stat_correlation(geom = "debug")
+#'     stat_correlation(geom = "debug_group")
 #'
 #' if (gginnards.installed)
 #'   ggplot(my.data, aes(x, y)) +
 #'     geom_point() +
-#'     stat_correlation(geom = "debug", method = "pearson")
+#'     stat_correlation(geom = "debug_group", method = "pearson")
 #'
 #' if (gginnards.installed)
 #'   ggplot(my.data, aes(x, y)) +
 #'     geom_point() +
-#'     stat_correlation(geom = "debug", method = "kendall")
+#'     stat_correlation(geom = "debug_group", method = "kendall")
 #'
 #' if (gginnards.installed)
 #'   ggplot(my.data, aes(x, y)) +
 #'     geom_point() +
-#'     stat_correlation(geom = "debug", method = "spearman")
+#'     stat_correlation(geom = "debug_group", method = "spearman")
 #'
 #' if (gginnards.installed)
 #'   ggplot(my.data, aes(x, y)) +
 #'     geom_point() +
-#'     stat_correlation(geom = "debug", output.type = "numeric")
+#'     stat_correlation(geom = "debug_group", output.type = "numeric")
 #'
 #' if (gginnards.installed)
 #'   ggplot(my.data, aes(x, y)) +
 #'     geom_point() +
-#'     stat_correlation(geom = "debug", output.type = "markdown")
+#'     stat_correlation(geom = "debug_group", output.type = "markdown")
 #'
 #' if (gginnards.installed)
 #'   ggplot(my.data, aes(x, y)) +
 #'     geom_point() +
-#'     stat_correlation(geom = "debug", output.type = "LaTeX")
+#'     stat_correlation(geom = "debug_group", output.type = "LaTeX")
 #'
 #' @family ggplot statistics for correlation.
 #'
@@ -291,13 +292,10 @@ stat_correlation <-
            parse = NULL,
            show.legend = FALSE,
            inherit.aes = TRUE) {
-    if (is.null(output.type)) {
-      if (geom %in% c("richtext", "textbox", "marquee")) {
-        output.type <- "markdown"
-      } else {
-        output.type <- "expression"
-      }
-    }
+
+    output.type <-
+      check_output_type(output.type = output.type, geom = geom)
+
     if (is.null(parse)) {
       parse <- output.type == "expression"
     }
@@ -308,7 +306,7 @@ stat_correlation <-
     ggplot2::layer(
       data = data,
       mapping = mapping,
-      stat = StatCorr,
+      stat = StatCorrelation,
       geom = geom,
       position = position,
       show.legend = show.legend,
@@ -400,10 +398,6 @@ cor_test_compute_fun <- function(data,
   range.sep <- c("." = ", ", "," = "; ")[decimal.mark]
 
   formula <- ~ y + x
-
-  output.type <- tolower(output.type)
-  stopifnot(output.type %in%
-    c("expression", "text", "markdown", "numeric", "latex", "tex", "tikz"))
 
   if (exists("grp.label", data)) {
     if (length(unique(data[["grp.label"]])) > 1L) {
@@ -629,8 +623,8 @@ cor_test_compute_fun <- function(data,
 #' @format NULL
 #' @usage NULL
 #' @export
-StatCorr <-
-  ggplot2::ggproto("StaCorr",
+StatCorrelation <-
+  ggplot2::ggproto("StatCorrelation",
                    ggplot2::Stat,
                    extra_params = c("na.rm", "parse"),
                    compute_group = cor_test_compute_fun,

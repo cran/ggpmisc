@@ -34,8 +34,17 @@ quant_helper_fun <- function(data,
                              na.rm = FALSE,
                              orientation = "x") {
 
-  if (length(unique(data[[orientation]])) >= n.min) {
+  rlang::check_installed(
+    "quantreg",
+    reason = "to use stat_quant_line(), stat_quant_band() and stat_quant_eq()")
 
+  if (length(unique(data[[orientation]])) >= n.min) {
+    if (is.null(weight)) {
+      weight <- 1
+    }
+    if (!exists("weight", data)) {
+      data[["weight"]] <- rep_len(weight, length.out = nrow(data))
+    }
     # If method was specified as a character string, replace with
     # the corresponding function. Some model fit functions themselves have a
     # method parameter accepting character strings as argument. We support

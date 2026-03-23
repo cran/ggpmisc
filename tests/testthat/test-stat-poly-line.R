@@ -162,14 +162,35 @@ test_that("poly_methods", {
                                                method = MASS::rlm)
   )
 
-  vdiffr::expect_doppelganger("stat_poly_line_lqs_chr",
+  vdiffr::expect_doppelganger("stat_poly_line_lts_chr",
                               ggplot(my.data, aes(x, y)) +
                                 geom_point() +
                                 stat_poly_line(formula = y ~ poly(x, 2),
-                                               method = "lqs")
+                                               method = "lts")
   )
 
-  vdiffr::expect_doppelganger("stat_poly_line_lqs_fun",
+  vdiffr::expect_doppelganger("stat_poly_line_ltsReg_chr",
+                              ggplot(my.data, aes(x, y)) +
+                                geom_point() +
+                                stat_poly_line(formula = y ~ poly(x, 2),
+                                               method = "ltsReg")
+  )
+
+  vdiffr::expect_doppelganger("stat_poly_line_ltsReg_fun",
+                              ggplot(my.data, aes(x, y)) +
+                                geom_point() +
+                                stat_poly_line(formula = y ~ poly(x, 2),
+                                               method = robustbase::ltsReg)
+  )
+
+  vdiffr::expect_doppelganger("stat_poly_line_lqslts_chr",
+                              ggplot(my.data, aes(x, y)) +
+                                geom_point() +
+                                stat_poly_line(formula = y ~ poly(x, 2),
+                                               method = "lqs:lts")
+  )
+
+  vdiffr::expect_doppelganger("stat_poly_line_lqslts_fun",
                               ggplot(my.data, aes(x, y)) +
                                 geom_point() +
                                 stat_poly_line(formula = y ~ poly(x, 2),
@@ -214,13 +235,6 @@ test_that("poly_methods", {
                                 geom_point() +
                                 stat_poly_line(formula = y ~ poly(x, 2),
                                                method = robustbase::lmrob)
-  )
-
-  vdiffr::expect_doppelganger("stat_poly_line_ltsReg_fun",
-                              ggplot(my.data, aes(x, y)) +
-                                geom_point() +
-                                stat_poly_line(formula = y ~ poly(x, 2),
-                                               method = robustbase::ltsReg)
   )
 
 })

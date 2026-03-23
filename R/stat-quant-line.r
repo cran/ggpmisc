@@ -57,6 +57,8 @@
 #' @param type character Passed to \code{quantreg::predict.rq()}.
 #' @param interval character Passed to \code{quantreg::predict.rq()}.
 #'
+#' @aesthetics StatQuantLine
+#'
 #' @return The value returned by the statistic is a data frame, that will have
 #'   \code{n} rows of predicted values and and their confidence limits
 #'   \emph{for each quantile}, with quantiles creating groups, or expanding
@@ -67,29 +69,22 @@
 #'   for each quantile. Is \code{se = TRUE}, a confidence band is computed and
 #'   values for it returned in \code{ymax} and \code{ymin}.
 #'
-#' @return The value returned by the statistic is a data frame, that with
-#'   \code{n} times the number of quantiles rows of predicted values and their
-#'   confidence limits. Optionally it also includes additional values related
-#'   to the model fit.
+#' @inheritSection stat_poly_line Model fit methods supported
 #'
 #' @section Computed variables: `stat_quant_line()` provides the following
-#'   variables, some of which depend on the orientation: \describe{ \item{y *or*
-#'   x}{predicted value} \item{ymin *or* xmin}{lower confidence
-#'   interval around the mean} \item{ymax *or* xmax}{upper confidence
-#'   interval around the mean}}
+#'   variables, some of which depend on the orientation:
+#'
+#'   \describe{
+#'   \item{y \strong{or} x}{predicted value}
+#'   \item{ymin \strong{or} xmin}{lower confidence limit around the fitted line}
+#'   \item{ymax \strong{or} xmax}{upper confidence limit around the fitted line}
+#'   }
 #'
 #'   If \code{fm.values = TRUE} is passed then one column with the number of
 #'   observations \code{n} used for each fit is also included, with the same
 #'   value in each row within a group. This is wasteful and disabled by default,
 #'   but provides a simple and robust approach to achieve effects like colouring
 #'   or hiding of the model fit line based on the number of observations.
-#'
-#' @section Aesthetics: \code{stat_quant_line} understands \code{x} and \code{y},
-#'   to be referenced in the \code{formula} and \code{weight} passed as argument
-#'   to parameter \code{weights}. All three must be mapped to \code{numeric}
-#'   variables. In addition, the aesthetics understood by the geom
-#'   (\code{"geom_smooth"} is the default) are understood and grouping
-#'   respected.
 #'
 #' @references
 #' Cardoso, G. C. (2019) Double quantile regression accurately assesses
@@ -99,14 +94,16 @@
 #' @seealso \code{\link[quantreg]{rq}}, \code{\link[quantreg]{rqss}} and
 #'   \code{\link[quantreg]{qss}}.
 #'
-#' @family ggplot statistics for quantile regression
-#'
 #' @export
 #'
 #' @examples
 #' ggplot(mpg, aes(displ, hwy)) +
 #'   geom_point() +
 #'   stat_quant_line()
+#'
+#' ggplot(mpg, aes(displ, hwy)) +
+#'   geom_point() +
+#'   stat_quant_line(quantiles = 0.5)
 #'
 #' ggplot(mpg, aes(displ, hwy)) +
 #'   geom_point() +
@@ -138,11 +135,13 @@
 #'   stat_quant_line(formula = x ~ poly(y, 3))
 #'
 #' # Instead of rq() we can use rqss() to fit an additive model:
+#' library(quantreg)
+#'
 #' ggplot(mpg, aes(displ, hwy)) +
 #'   geom_point() +
 #'   stat_quant_line(method = "rqss",
 #'                   formula = y ~ qss(x, constraint = "D"),
-#'                   quantiles = 0.5)
+#'                   quantiles = 0.5, se = FALSE)
 #'
 #' ggplot(mpg, aes(displ, hwy)) +
 #'   geom_point() +
@@ -173,7 +172,7 @@
 #'   stat_quant_line(formula = y ~ poly(x, 2)) +
 #'   facet_wrap(~drv)
 #'
-#' # Inspecting the returned data using geom_debug()
+#' # Inspecting the returned data using geom_debug_group()
 #' gginnards.installed <- requireNamespace("gginnards", quietly = TRUE)
 #'
 #' if (gginnards.installed)
@@ -181,11 +180,11 @@
 #'
 #' if (gginnards.installed)
 #'   ggplot(mpg, aes(displ, hwy)) +
-#'     stat_quant_line(geom = "debug")
+#'     stat_quant_line(geom = "debug_group")
 #'
 #' if (gginnards.installed)
 #'   ggplot(mpg, aes(displ, hwy)) +
-#'     stat_quant_line(geom = "debug", fm.values = TRUE)
+#'     stat_quant_line(geom = "debug_group", fm.values = TRUE)
 #'
 #' @export
 #'
@@ -194,6 +193,7 @@ stat_quant_line <- function(mapping = NULL,
                             geom = "smooth",
                             position = "identity",
                             ...,
+                            orientation = NA,
                             quantiles = c(0.25, 0.5, 0.75),
                             formula = NULL,
                             se = length(quantiles) == 1L,
@@ -207,12 +207,17 @@ stat_quant_line <- function(mapping = NULL,
                             type = "direct",
                             interval = "confidence",
                             na.rm = FALSE,
-                            orientation = NA,
                             show.legend = NA,
                             inherit.aes = TRUE) {
 
   stopifnot("Args 'formula' and/or 'data' in 'method.args'" =
               !any(c("formula", "data") %in% names(method.args)))
+
+  if (is.null(se) || is.na(se) || !se) {
+    # change defaults because computing confidence band is time consuming
+    interval <- "none"
+    type <- "none"
+  }
 
   # we make a character string name for the method
   if (is.character(method)) {
@@ -303,6 +308,8 @@ quant_line_compute_group_fun <- function(data,
                                          orientation = "x",
                                          make.groups = TRUE) {
 
+  rlang::check_installed("quantreg", reason = "to use stat_quant_line()")
+
   data <- ggplot2::flip_data(data, flipped_aes)
   if (length(unique(data$x)) < n.min) {
     # Not enough data to perform fit
@@ -347,11 +354,19 @@ quant_line_compute_group_fun <- function(data,
 
     if (is.matrix(pred)) {
       temp.grid[["y"]] <- pred[ , 1L]
-      temp.grid[["ymin"]] <- pred[ , 2L]
-      temp.grid[["ymax"]] <- pred[ , 3L]
+      if (ncol(pred) >= 3L) {
+        temp.grid[["ymin"]] <- pred[ , 2L]
+        temp.grid[["ymax"]] <- pred[ , 3L]
+      }
     } else {
       temp.grid[["y"]] <- pred
-      temp.grid[["ymin"]] <- z[["ymax"]] <- NA_real_
+    }
+    # if ymin and ymax exist and are not NA they affect scale limits
+    if (!exists("ymin", temp.grid)) {
+      temp.grid[["ymin"]] <- NA_real_
+    }
+    if (!exists("ymax", temp.grid)) {
+      temp.grid[["ymax"]] <- NA_real_
     }
 
     temp.grid[["quantile"]] <- fm[["tau"]]
@@ -401,45 +416,3 @@ StatQuantLine <-
                                               weight = 1),
                    required_aes = c("x", "y")
   )
-
-# modified from 'ggplot2'
-# !!!
-# !!! fitting and prediction should be split so that metadata from fm can be recovered
-# !!!
-quant_pred <- function(quantile, data, method, formula, weight, grid,
-                       method.args = method.args, orientation = "x",
-                       level = 0.95, type = "none", interval = "none",
-                       make.groups = TRUE) {
-  args <- c(list(quote(formula), data = quote(data), tau = quote(quantile),
-    weights = quote(weight)), method.args)
-  # quantreg contains code with partial matching of names!
-  # so we silence selectively only these warnings
-  withCallingHandlers({
-    fm <- do.call(method, args)
-  }, warning = function(w) {
-    if (startsWith(conditionMessage(w), "partial match of") ||
-        startsWith(conditionMessage(w), "partial argument match of")) {
-      invokeRestart("muffleWarning")
-    }
-  })
-
-  if (!length(fm) || (is.atomic(fm) && is.na(fm))) {
-    return(data.frame())
-  }
-
-  if (orientation == "x") {
-    grid[["y"]] <- stats::predict(fm, newdata = grid, level = level,
-                                  type = type, interval = interval)
-  } else {
-    grid[["x"]] <- stats::predict(fm, newdata = grid, level = level,
-                                  type = type, interval = interval)
-  }
-  grid[["quantile"]] <- quantile
-  if (make.groups) {
-    grid[["group"]] <- paste(data[["group"]][1], quantile, sep = "-")
-  } else {
-    grid[["group"]] <- data[["group"]][1]
-  }
-
-  grid
-}

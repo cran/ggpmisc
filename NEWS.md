@@ -4,6 +4,53 @@ editor_options:
     wrap: 72
 ---
 
+# ggpmisc 0.7.0
+
+The main changes in this version improve and expand the generation of labels,
+adding support for `geom_latex()` from package 'xdvir' and for `geom_marquee()`
+from package 'marquee', and enhance the maths rendering in labels generated
+with Markdown markup. Use of plotmath expressions remains the default for
+geoms from 'ggpp' and from 'ggplot2'.
+
+-   Automatic selection of `output.type = "latex.eqn"` when `"latex"` is passed
+as argument to parameter `geom` of statistics that generate labels, including
+fitted model equations.
+-   With new `output.type == "latex.eqn"` and `output.type == "latex.deqn"` 
+labels are fenced with `$` or `$$` to be readily formatted as $\LaTeX$ 
+in math mode. As earlier `output.type == "latex"` outputs the same labels without
+the fences in case they are to be combined into a complex math mode equation.
+-   Bugs in the $\LaTeX$ encodings of a couple of labels have been fixed.
+-   Automatic selection of `output.type = "marquee"` when `"marquee"` is passed
+as argument to parameter `geom` of statistics that generate labels, including
+fitted model equations.
+-   With new `output.type == "marquee"` sub- and superscripts are encoded using
+the span definitions used be 'marquee' instead of the embedded HTML used with
+`output.type == "mardown"`.
+-   With both `output.type == "markdown"` and `output.type == "marquee"`, use
+formatting that results in typeset equations that better match those encoded as
+plotmath expressions.
+-   Track changes in 'gginnards' (>= 0.2.0) in examples and docs.
+-   In all model fitting _stats_ add support for method `"lts"` passed as a
+character string for a trimmed regression fitted with `robustbase::ltsReg()`.
+-   Breaking: In all model fitting _stats_ remove support for method `"lqs"`
+passed as a character string, as `lts` is preferred.
+-   Support `smatr::ma()` and `smatr::sma()` in `stat_fit_residuals()`.
+-   Non-standard packages hosting model fit functions recognized by their names
+passed as character strings are now installed only when the methods are used for
+the first time.
+-   A new on-line-only article gives examples of the use of 'ggpmisc' together
+with R package 'xdvir' and another one compares plot annotations created with
+the different output types and matching geometries.
+-   Update documentation for all statistics to include an automatically 
+generated _Aesthetics_ section.
+-   Model fitting, extraction of fitted and other values, argument-decoding and
+label formatting and label assembly code refactored to avoid duplication and 
+ensure consistency.
+-   Bug in the handling of `orientation` fixed.
+
+**Note:** When 'ggpmisc' >= 0.7.0 is used together with 'ggpp' >= 0.6.0 and 
+'ggplot2' >= 4.0.0 the geom element of 'ggplot2' themes is obeyed.
+
 # ggpmisc 0.6.3
 
 This version adds support for additional model fitting approaches
@@ -730,7 +777,7 @@ CRAN version
 
 -   Revise `stat_fit_tidy()` so that it returns *p*-values for
     parameters, in addition to estimates and their standard errors.
--   BUG FIX: Revise `geom_debug()` adding missing default arguments.
+-   BUG FIX: Revise `geom_debug_group()` adding missing default arguments.
 -   Add functions for manipulation of layers in ggplot objects:
     `delete_layers()`, `append_layers()`, `move_layers()`,
     `shift_layers()`, `which_layers()`, `extract_layers()`,
@@ -796,7 +843,7 @@ expressions.
 
 -   Add support for *tikz* in `stat_poly_eq()`.
 -   Fix bug in `stat_poly_eq()`.
--   Fix bug in `geom_debug()`.
+-   Fix bug in `geom_debug_group()`.
 -   Fix bug in `stat_fit_augment()`.
 
 # ggpmisc 0.2.8
@@ -842,7 +889,7 @@ expressions.
 -   Improve `stat_debug_panel()` and stat_debug_group() so that they can
     optionally print to the console a summary of the data received as
     input.
--   Add `geom_debug()`, a geom that summarizes its data input to the
+-   Add `geom_debug_group()`, a geom that summarizes its data input to the
     console, and produces no visible graphical output.
 
 # ggpmisc 0.2.6

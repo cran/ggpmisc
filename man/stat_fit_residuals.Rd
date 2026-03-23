@@ -10,6 +10,7 @@ stat_fit_residuals(
   geom = "point",
   position = "identity",
   ...,
+  orientation = NA,
   method = "lm",
   method.args = list(),
   n.min = 2L,
@@ -18,7 +19,6 @@ stat_fit_residuals(
   resid.type = NULL,
   weighted = FALSE,
   na.rm = FALSE,
-  orientation = NA,
   show.legend = FALSE,
   inherit.aes = TRUE
 )
@@ -39,6 +39,9 @@ layer}
 \item{...}{other arguments passed on to \code{\link[ggplot2]{layer}}. This
 can include aesthetics whose values you want to set, not map. See
 \code{\link[ggplot2]{layer}} for more details.}
+
+\item{orientation}{character Either "x" or "y" controlling the default for
+\code{formula}.}
 
 \item{method}{function or character If character, "lm", "rlm", "rq" and the
 name of a function to be matched, possibly followed by the fit function's
@@ -68,9 +71,6 @@ when it is forced to \code{"deviance"}).}
 
 \item{na.rm}{a logical indicating whether NA values should be stripped
 before the computation proceeds.}
-
-\item{orientation}{character Either "x" or "y" controlling the default for
-\code{formula}.}
 
 \item{show.legend}{logical. Should this layer be included in the legends?
 \code{NA}, the default, includes if any aesthetics are mapped. \code{FALSE}
@@ -211,12 +211,12 @@ if (gginnards.installed)
 if (gginnards.installed)
   ggplot(my.data, aes(x, y)) +
    stat_fit_residuals(formula = my.formula, resid.type = "working",
-                      geom = "debug")
+                      geom = "debug_group")
 
 if (gginnards.installed)
   ggplot(my.data, aes(x, y)) +
     stat_fit_residuals(formula = my.formula, method = "rlm",
-                       geom = "debug")
+                       geom = "debug_group")
 
 }
 \seealso{
@@ -228,3 +228,14 @@ Other ggplot statistics for model fits:
 \code{\link{stat_fit_tidy}()}
 }
 \concept{ggplot statistics for model fits}
+\section{Aesthetics}{
+
+\code{stat_fit_residuals()} understands the following aesthetics. Required aesthetics are displayed in bold and defaults are displayed for optional aesthetics:
+\tabular{rll}{
+ • \tab \strong{\code{\link[ggplot2:aes_position]{x}}} \tab   \cr
+ • \tab \strong{\code{\link[ggplot2:aes_position]{y}}} \tab   \cr
+ • \tab \code{\link[ggplot2:aes_group_order]{group}} \tab → inferred \cr
+}
+
+Learn more about setting these aesthetics in \code{vignette("ggplot2-specs")}.
+}

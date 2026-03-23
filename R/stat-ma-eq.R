@@ -35,6 +35,8 @@
 #'   Default is \code{TRUE} if \code{output.type = "expression"} and
 #'   \code{FALSE} otherwise.
 #'
+#' @aesthetics StatMaEq
+#'
 #' @note For backward compatibility a logical is accepted as argument for
 #'   \code{eq.with.lhs}. If \code{TRUE}, the default is used, either
 #'   \code{"x"} or \code{"y"}, depending on the argument passed to \code{formula}.
@@ -94,7 +96,9 @@
 #'   \code{NA} value. Thus, user-defined methods can implement conditional
 #'   skipping of labelling.
 #'
-#' @section Aesthetics: \code{stat_ma_eq} understands \code{x} and \code{y}, to
+#' @inheritSection check_output_type Output types
+#'
+#' @note \code{stat_ma_eq} understands \code{x} and \code{y}, to
 #'   be referenced in the \code{formula} while the \code{weight} aesthetic is
 #'   ignored. Both \code{x} and \code{y} must be mapped to \code{numeric}
 #'   variables. In addition, the aesthetics understood by the geom
@@ -141,17 +145,12 @@
 #' To explore the computed values returned for a given input we suggest the use
 #' of \code{\link[gginnards]{geom_debug}} as shown in the last examples below.
 #'
+#' @inheritSection stat_poly_line Model fit methods supported
+#'
 #' @seealso The major axis regression model is fitted with function
 #'   \code{\link[lmodel2]{lmodel2}}, please consult its documentation. Statistic
 #'   \code{stat_ma_eq()} can return different ready formatted labels depending
-#'   on the argument passed to \code{output.type}. If ordinary least squares
-#'   polynomial regression is desired, then \code{\link{stat_poly_eq}}. If
-#'   quantile-fitted polynomial regression is desired,
-#'   \code{\link{stat_quant_eq}} should be used. For other types of models such
-#'   as non-linear models, statistics \code{\link{stat_fit_glance}} and
-#'   \code{\link{stat_fit_tidy}} should be used and the code for construction of
-#'   character strings from numeric values and their mapping to aesthetic
-#'   \code{label} explicitly supplied in the call.
+#'   on the argument passed to \code{output.type}.
 #'
 #' @family ggplot statistics for major axis regression
 #'
@@ -237,7 +236,7 @@
 #'   stat_ma_eq(mapping = use_label("grp", "eq", "R2")) +
 #'   theme_classic()
 #'
-#' # Inspecting the returned data using geom_debug()
+#' # Inspecting the returned data using geom_debug_group()
 #' # This provides a quick way of finding out the names of the variables that
 #' # are available for mapping to aesthetics with after_stat().
 #'
@@ -250,25 +249,25 @@
 #' if (gginnards.installed)
 #'   ggplot(my.data, aes(x, y)) +
 #'     geom_point() +
-#'     stat_ma_eq(geom = "debug")
+#'     stat_ma_eq(geom = "debug_group")
 #'
 #' \dontrun{
 #' if (gginnards.installed)
 #'   ggplot(my.data, aes(x, y)) +
 #'     geom_point() +
 #'     stat_ma_eq(mapping = aes(label = after_stat(eq.label)),
-#'                geom = "debug",
+#'                geom = "debug_group",
 #'                output.type = "markdown")
 #'
 #' if (gginnards.installed)
 #'   ggplot(my.data, aes(x, y)) +
 #'     geom_point() +
-#'     stat_ma_eq(geom = "debug", output.type = "text")
+#'     stat_ma_eq(geom = "debug_group", output.type = "text")
 #'
 #' if (gginnards.installed)
 #'   ggplot(my.data, aes(x, y)) +
 #'     geom_point() +
-#'     stat_ma_eq(geom = "debug", output.type = "numeric")
+#'     stat_ma_eq(geom = "debug_group", output.type = "numeric")
 #' }
 #'
 #' @export
@@ -278,6 +277,7 @@ stat_ma_eq <- function(mapping = NULL,
                        geom = "text_npc",
                        position = "identity",
                        ...,
+                       orientation = NA,
                        formula = NULL,
                        method = "lmodel2:MA",
                        method.args = list(),
@@ -302,7 +302,6 @@ stat_ma_eq <- function(mapping = NULL,
                        vstep = NULL,
                        output.type = NULL,
                        na.rm = FALSE,
-                       orientation = NA,
                        parse = NULL,
                        show.legend = FALSE,
                        inherit.aes = TRUE) {
@@ -323,10 +322,10 @@ stat_ma_eq <- function(mapping = NULL,
     method.name <- "missing"
   }
 
-  if (grepl("^lm$|^lm[:]|^rlm$|^rlm[:]|^gls$|^gls[:]", method.name)) {
-    stop("Methods 'lm', 'rlm' and 'gls' not supported, please use 'stat_poly_eq()'.")
+  if (grepl("^lm$|^lm[:]|^rlm$|^rlm[:]|^gls$|^gls[:]|^lqs$|^lqs[:]", method.name)) {
+    stop("Methods \"l\", \"rlm\", \"lq\" and \"gls\" not supported, please use 'stat_poly_eq()'.")
   } else if (grepl("^rq$|^rq[:]", method.name)) {
-      stop("Method 'rq' not supported, please use 'stat_quant_eq()'.")
+      stop("Method \"rq\" not supported, please use 'stat_quant_eq()'.")
   }
 
   temp <- guess_orientation(orientation = orientation,
@@ -336,13 +335,9 @@ stat_ma_eq <- function(mapping = NULL,
   orientation <- temp[["orientation"]]
   formula <-  temp[["formula"]]
 
-  if (is.null(output.type)) {
-    if (geom %in% c("richtext", "textbox", "marquee")) {
-      output.type <- "markdown"
-    } else {
-      output.type <- "expression"
-    }
-  }
+  output.type <-
+    check_output_type(output.type = output.type, geom = geom)
+
   if (is.null(parse)) {
     parse <- output.type == "expression"
   }
@@ -426,7 +421,9 @@ ma_eq_compute_group_fun <- function(data,
                                     output.type = "expression",
                                     na.rm = FALSE,
                                     orientation = "x") {
-  force(data)
+
+
+  rlang::check_installed("lmodel2", reason = "to use stat_ma_eq()")
 
   if (length(unique(data$x)) < n.min ||
       length(unique(data$y)) < n.min) {
@@ -441,14 +438,6 @@ ma_eq_compute_group_fun <- function(data,
     warning("Decimal mark must be one of '.' or ',', not: '", decimal.mark, "'")
     decimal.mark <- "."
   }
-
-  output.type <- if (!length(output.type)) {
-    "expression"
-  } else {
-    tolower(output.type)
-  }
-  stopifnot(output.type %in%
-              c("expression", "text", "markdown", "numeric", "latex", "tex", "tikz"))
 
   if (exists("grp.label", data)) {
     if (length(unique(data[["grp.label"]])) > 1L) {
@@ -637,8 +626,8 @@ ma_eq_compute_group_fun <- function(data,
                                                   output.type = output.type,
                                                   decimal.mark = decimal.mark),
                     theta.label = italic_label(value = theta,
-                                               value.name = ifelse(output.type %in% c("latex", "text", "tikz"),
-                                                                   "\theta{}",
+                                               value.name = ifelse(grepl("^latex", output.type),
+                                                                   "\\theta{}",
                                                                    ifelse(output.type == "markdown",
                                                                           "&theta;",
                                                                           "theta")),
@@ -719,7 +708,7 @@ ma_eq_compute_group_fun <- function(data,
 #' @export
 StatMaEq <-
   ggplot2::ggproto("StatMaEq", ggplot2::Stat,
-                   extra_params = c("na.rm", "parse"),
+                   extra_params = c("na.rm", "parse", "orientation"),
                    compute_group = ma_eq_compute_group_fun,
                    default_aes =
                      ggplot2::aes(npcx = after_stat(npcx),

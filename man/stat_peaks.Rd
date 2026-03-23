@@ -11,6 +11,7 @@ stat_peaks(
   geom = "point",
   position = "identity",
   ...,
+  orientation = "x",
   span = 5,
   global.threshold = 0,
   local.threshold = 0,
@@ -20,7 +21,6 @@ stat_peaks(
   x.label.fmt = NULL,
   y.label.fmt = NULL,
   extract.peaks = NULL,
-  orientation = "x",
   na.rm = FALSE,
   show.legend = FALSE,
   inherit.aes = TRUE
@@ -32,6 +32,7 @@ stat_valleys(
   geom = "point",
   position = "identity",
   ...,
+  orientation = "x",
   span = 5,
   global.threshold = 0.01,
   local.threshold = NULL,
@@ -41,7 +42,6 @@ stat_valleys(
   x.label.fmt = NULL,
   y.label.fmt = NULL,
   extract.valleys = NULL,
-  orientation = "x",
   na.rm = FALSE,
   show.legend = FALSE,
   inherit.aes = TRUE
@@ -63,6 +63,9 @@ layer}
 \item{...}{other arguments passed on to \code{\link[ggplot2]{layer}}. This
 can include aesthetics whose values you want to set, not map. See
 \code{\link[ggplot2]{layer}} for more details.}
+
+\item{orientation}{character The orientation of the layer can be set to
+either \code{"x"}, the default, or \code{"y"}.}
 
 \item{span}{odd positive integer A peak is defined as an element in a
 sequence which is greater than all other elements within a moving window of
@@ -108,9 +111,6 @@ peaks or valleys are returned. If \code{FALSE} the whole of \code{data} is
 returned but with labels set to \code{NA} in rows not containing peaks or
 valleys. If \code{NULL}, the default, \code{TRUE}, is used unless the geom
 name passed as argument is \code{"text_repel"} or \code{"label_repel"}.}
-
-\item{orientation}{character The orientation of the layer can be set to
-either \code{"x"}, the default, or \code{"y"}.}
 
 \item{na.rm}{a logical value indicating whether NA values should be stripped
 before the computation proceeds.}
@@ -190,6 +190,12 @@ As \code{find_valleys}, \code{stat_peaks} and \code{stat_valleys}
   with a suitable \code{label.fmt} labels suitable for parsing by the geoms
   (e.g. into expressions containing Greek letters or super or subscripts) can
   be also easily obtained.
+
+  These stats use \code{geom_point} by default as
+  it is the geom most likely to work well in almost any situation.
+  The default aesthetics set by these stats allow their direct use with
+  \code{geom_text}, \code{geom_label}, \code{geom_line}, \code{geom_rug},
+  \code{geom_hline} and \code{geom_vline}.
 }
 \section{Computed and copied variables in the returned data frame}{
 
@@ -198,34 +204,6 @@ As \code{find_valleys}, \code{stat_peaks} and \code{stat_valleys}
   \item{y}{y-value at the peak (or valley) as numeric}
   \item{x.label}{x-value at the peak (or valley) formatted as character}
   \item{y.label}{y-value at the peak (or valley) formatted as character}
-}
-}
-
-\section{Default aesthetics}{
- These stats use \code{geom_point} by default as
-  it is the geom most likely to work well in almost any situation without.
-  The default aesthetics set by these stats allow their direct use with
-  \code{geom_text}, \code{geom_label}, \code{geom_line}, \code{geom_rug},
-  \code{geom_hline} and \code{geom_vline}. The formatting of the labels
-  returned can be controlled by the user.
-
-  Default aesthetics mapped by the statistic and available to geoms, in
-  addtion to the automatically set required aesthetics.
-\describe{
-  \item{label}{stat(x.label)}
-  \item{xintercept}{stat(x)}
-  \item{yintercept}{stat(y)}
-}
-}
-
-\section{Required aesthetics}{
- Required by the statistic and need to be set
-  with \code{aes()}. Date time scales are recognized and labels
-  formatted accordingly.
-
-\describe{
-  \item{x}{numeric or date time, independent variable}
-  \item{y}{numeric, response variable where peaks or valleys are searched}
 }
 }
 
@@ -345,8 +323,30 @@ ggplot(lynx, as.numeric = FALSE) +
 
 }
 \seealso{
-\code{\link{find_peaks}}, which is used internally.
-
 \code{\link{find_peaks}}, for the functions used to located the
   peaks and valleys.
+}
+\section{Aesthetics}{
+
+\code{stat_peaks()} understands the following aesthetics. Required aesthetics are displayed in bold and defaults are displayed for optional aesthetics:
+\tabular{rll}{
+ • \tab \strong{\code{\link[ggplot2:aes_position]{x}}} \tab   \cr
+ • \tab \strong{\code{\link[ggplot2:aes_position]{y}}} \tab   \cr
+ • \tab \code{\link[ggplot2:aes_group_order]{group}} \tab → inferred \cr
+ • \tab \code{label} \tab → \code{after_stat(x.label)} \cr
+ • \tab \code{xintercept} \tab → \code{after_stat(x)} \cr
+ • \tab \code{yintercept} \tab → \code{after_stat(y)} \cr
+}
+
+\code{stat_valleys()} understands the following aesthetics. Required aesthetics are displayed in bold and defaults are displayed for optional aesthetics:
+\tabular{rll}{
+ • \tab \strong{\code{\link[ggplot2:aes_position]{x}}} \tab   \cr
+ • \tab \strong{\code{\link[ggplot2:aes_position]{y}}} \tab   \cr
+ • \tab \code{\link[ggplot2:aes_group_order]{group}} \tab → inferred \cr
+ • \tab \code{label} \tab → \code{after_stat(x.label)} \cr
+ • \tab \code{xintercept} \tab → \code{after_stat(x)} \cr
+ • \tab \code{yintercept} \tab → \code{after_stat(y)} \cr
+}
+
+Learn more about setting these aesthetics in \code{vignette("ggplot2-specs")}.
 }

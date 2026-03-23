@@ -2,7 +2,7 @@
 % Please edit documentation in R/stat-fit-broom-tb.R
 \name{stat_fit_tb}
 \alias{stat_fit_tb}
-\title{Model-fit summary or ANOVA}
+\title{Fitted-model summary and ANOVA tables}
 \usage{
 stat_fit_tb(
   mapping = NULL,
@@ -34,7 +34,7 @@ stat_fit_tb(
 }
 \arguments{
 \item{mapping}{The aesthetic mapping, usually constructed with
-\code{\link[ggplot2]{aes}}. Only needs to be
+\code{\link[ggplot2]{aes}()}. Only needs to be
 set at the layer level if you are overriding the plot defaults.}
 
 \item{data}{A layer specific dataset, only needed if you want to override the
@@ -57,11 +57,12 @@ to \code{tidy()}.}
 \item{n.min}{integer Minimum number of distinct values in the explanatory
 variable (on the rhs of formula) for fitting to the attempted.}
 
-\item{fit.seed}{RNG seed argument passed to \code{\link[base:Random]{set.seed}()}.
-Defaults to \code{NA}, which means that \code{set.seed()} will not be
-called.}
+\item{fit.seed}{RNG seed argument passed to
+\code{\link[base:Random]{set.seed}()}. Defaults to \code{NA}, which means
+that \code{set.seed()} will not be called.}
 
-\item{tb.type}{character One of "fit.summary", "fit.anova" or "fit.coefs".}
+\item{tb.type}{character One of \code{"fit.summary"}, \code{"fit.anova"} or
+\code{"fit.coefs"}.}
 
 \item{tb.vars, tb.params}{character or numeric vectors, optionally named, used
 to select and/or rename the columns or the parameters in the table
@@ -90,7 +91,7 @@ printing of row names and column names.}
 headings of the table.}
 
 \item{parse}{If TRUE, the labels will be parsed into expressions and
-displayed as described in \code{?plotmath}.}
+displayed as described in \code{\link[grDevices]{plotmath}}.}
 
 \item{na.rm}{a logical indicating whether NA values should be stripped before
 the computation proceeds.}
@@ -117,7 +118,7 @@ A tibble with columns named \code{fm.tb} (a tibble returned by
   \code{\link[gginnards]{geom_debug}}.
 }
 \description{
-\code{stat_fit_tb} fits a model and returns a "tidy" version of
+\code{stat_fit_tb()} fits a model and returns a "tidy" version of
   the model's summary or ANOVA table, using '\code{tidy()} methods from
   packages 'broom', 'broom.mixed', or other 'broom' extensions. The
   annotation is added to the plots in tabular form.
@@ -177,13 +178,13 @@ if (broom.installed)
     stat_fit_tb() +
     expand_limits(y = 70)
 
-# we can use geom_debug() and str() to inspect the returned value
+# we can use geom_debug_panel() and str() to inspect the returned value
 # and discover the variables that can be mapped to aesthetics with
 # after_stat()
 if (broom.installed && gginnards.installed)
   ggplot(my.df, aes(covariate, x)) +
     geom_point() +
-    stat_fit_tb(geom = "debug", dbgfun.data = str) +
+    stat_fit_tb(geom = "debug_panel", dbgfun.data = str) +
     expand_limits(y = 70)
 
 # Linear regression fit summary, with default formatting
@@ -369,11 +370,11 @@ if (broom.installed)
 
 }
 \seealso{
-\code{\link[broom]{broom}}, \code{broom.mixed}, and
-  \code{\link[broom]{tidy}} for details on how the tidying of the result of
-  model fits is done. See \code{\link[ggpp]{geom_table}} for details on how
-  inset tables respond to mapped aesthetics and table themes. For details on
-  predefined table themes see \code{\link[ggpp]{ttheme_gtdefault}}.
+Package \code{\link[broom]{broom}} for details on how the tidying of
+  the result of model fits is done. See \code{\link[ggpp]{geom_table}} for
+  details on how inset tables respond to mapped aesthetics and table themes.
+  For details on predefined table themes see
+  \code{\link[ggpp]{ttheme_gtdefault}}.
 
 Other ggplot statistics for model fits: 
 \code{\link{stat_fit_augment}()},
@@ -383,3 +384,17 @@ Other ggplot statistics for model fits:
 \code{\link{stat_fit_tidy}()}
 }
 \concept{ggplot statistics for model fits}
+\section{Aesthetics}{
+
+\code{stat_fit_tb()} understands the following aesthetics. Required aesthetics are displayed in bold and defaults are displayed for optional aesthetics:
+\tabular{rll}{
+ • \tab \strong{\code{\link[ggplot2:aes_position]{x}}} \tab   \cr
+ • \tab \strong{\code{\link[ggplot2:aes_position]{y}}} \tab   \cr
+ • \tab \code{\link[ggplot2:aes_group_order]{group}} \tab → inferred \cr
+ • \tab \code{hjust} \tab → \code{"inward"} \cr
+ • \tab \code{label} \tab → \code{after_stat(fm.tb)} \cr
+ • \tab \code{vjust} \tab → \code{"inward"} \cr
+}
+
+Learn more about setting these aesthetics in \code{vignette("ggplot2-specs")}.
+}

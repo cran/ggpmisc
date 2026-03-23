@@ -85,38 +85,39 @@ The output of the \code{glance()} methods is returned almost as is in
   \code{\link[gginnards]{geom_debug}}. An example is shown below.
 }
 \description{
-\code{stat_fit_glance} fits a model and returns a "tidy" version
-  of the model's fit, using '\code{glance()} methods from packages 'broom',
-  'broom.mixed', or other sources.
+\code{stat_fit_glance()} fits a model and returns a "tidy"
+  version of the model's fit, using '\code{glance()} methods from packages
+  'broom', 'broom.mixed', or other sources.
 }
 \details{
-\code{stat_fit_glance} together with \code{\link{stat_fit_tidy}} and
-  \code{\link{stat_fit_augment}}, based on package 'broom' can be used with a
-  broad range of model fitting functions as supported at any given time by
-  package 'broom'. In contrast to \code{\link{stat_poly_eq}} which can
-  generate text or expression labels automatically, for these functions the
-  mapping of aesthetic \code{label} needs to be explicitly supplied in the
-  call, and labels built on the fly.
+\code{stat_fit_glance()} together with \code{\link{stat_fit_tidy}()}
+  and \code{\link{stat_fit_augment}()}, based on package 'broom' can be used
+  with a broad range of model fitting functions as supported at any given
+  time by package 'broom'. In contrast to \code{\link{stat_poly_eq}()} which
+  can generate text or expression labels automatically, for these functions
+  the mapping of aesthetic \code{label} needs to be explicitly supplied in
+  the call, and labels built on the fly in the mapping to geom aesthetics.
 
   A ggplot statistic receives as data a data frame that is not the one passed
   as argument by the user, but instead a data frame with the variables mapped
   to aesthetics. In other words, it respects the grammar of graphics and
   consequently within arguments passed through \code{method.args} names of
-  aesthetics like $x$ and $y$ should be used instead of the original variable
+  aesthetics like _x_ and _y_ should be used instead of the original variable
   names, while data is automatically passed the data frame. This helps ensure
   that the model is fitted to the same data as plotted in other layers.
 }
 \note{
 Although arguments passed to parameter \code{glance.args} will be
-  passed to [generics::glance()] whether they are silently ignored or obeyed
-  depends on each specialization of [glance()], so do carefully read the
-  documentation for the version of [glance()] corresponding to the `method`
-  used to fit the model.
+  passed to \code{\link[generics]{glance}()} whether they are silently
+  ignored or obeyed depends on each specialization of \code{glance()}, so do
+  carefully read the documentation for the version of \code{glance()}
+  corresponding to the \code{method} used to fit the model.
 }
 \section{Warning!}{
- Not all `glance()` methods are defined in package 'broom'.
-  `glance()` specializations for mixed models fits of classes `lme`, `nlme`,
-  `lme4`, and many others are defined in package 'broom.mixed'.
+ Not all \code{glance()} methods are defined in package
+  'broom'. \code{glance()} specializations for mixed models fits of classes
+  \code{"lme"}, \code{"nlme"}, \code{"lme4"} and many others are defined in
+  package 'broom.mixed'.
 }
 
 \section{Handling of grouping}{
@@ -150,21 +151,20 @@ gginnards.installed <- requireNamespace("gginnards", quietly = TRUE)
 
 if (broom.installed) {
   library(broom)
-  library(quantreg)
 }
 
 if (gginnards.installed) {
     library(gginnards)
 }
 
-# Inspecting the returned data using geom_debug()
+# Inspecting the returned data using geom_debug_group()
   if (broom.installed && gginnards.installed) {
     ggplot(mtcars, aes(x = disp, y = mpg)) +
       stat_smooth(method = "lm") +
       geom_point(aes(colour = factor(cyl))) +
       stat_fit_glance(method = "lm",
                       method.args = list(formula = y ~ x),
-                      geom = "debug")
+                      geom = "debug_group")
 }
 
 if (broom.installed)
@@ -224,21 +224,10 @@ if (broom.installed)
                                   after_stat(estimate), after_stat(p.value))),
                     parse = TRUE)
 
-# Quantile regression by group example
-if (broom.installed)
-  ggplot(mtcars, aes(x = disp, y = mpg)) +
-    stat_smooth(method = "lm") +
-    geom_point() +
-    stat_fit_glance(method = "rq",
-                    label.y = "bottom",
-                    method.args = list(formula = y ~ x),
-                    mapping = aes(label = sprintf('AIC = \%.3g, BIC = \%.3g',
-                                  after_stat(AIC), after_stat(BIC))))
-
 }
 \seealso{
-\code{\link[broom]{broom}} and \code{broom.mixed} for details on how
-  the tidying of the result of model fits is done.
+Package \code{\link[broom]{broom}} for details on how the tidying of
+  the result of model fits is done.
 
 Other ggplot statistics for model fits: 
 \code{\link{stat_fit_augment}()},
@@ -248,3 +237,18 @@ Other ggplot statistics for model fits:
 \code{\link{stat_fit_tidy}()}
 }
 \concept{ggplot statistics for model fits}
+\section{Aesthetics}{
+
+\code{stat_fit_glance()} understands the following aesthetics. Required aesthetics are displayed in bold and defaults are displayed for optional aesthetics:
+\tabular{rll}{
+ • \tab \strong{\code{\link[ggplot2:aes_position]{x}}} \tab   \cr
+ • \tab \strong{\code{\link[ggplot2:aes_position]{y}}} \tab   \cr
+ • \tab \code{\link[ggplot2:aes_group_order]{group}} \tab → inferred \cr
+ • \tab \code{hjust} \tab → \code{"inward"} \cr
+ • \tab \code{npcx} \tab → \code{after_stat(npcx)} \cr
+ • \tab \code{npcy} \tab → \code{after_stat(npcy)} \cr
+ • \tab \code{vjust} \tab → \code{"inward"} \cr
+}
+
+Learn more about setting these aesthetics in \code{vignette("ggplot2-specs")}.
+}

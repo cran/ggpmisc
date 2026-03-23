@@ -27,6 +27,8 @@
 #'   Default is \code{TRUE} if \code{output.type = "expression"} and
 #'   \code{FALSE} otherwise.
 #'
+#' @aesthetics StatDistrmixEq
+#'
 #' @return The value returned by the statistic is a data frame, with \code{n}
 #'   rows of predicted density for each component of the mixture plus their
 #'   sum and the corresponding vector of \code{x} values. Optionally it will
@@ -34,14 +36,22 @@
 #'
 #' @inherit stat_distrmix_line details
 #'
+#' @inheritSection check_output_type Output types
+#'
+#' @section Aesthetics: \code{stat_distrmix_eq} expects observations mapped to
+#'   \code{x} from a \code{numeric} variable. A new grouping is added by mapping
+#'   as default \code{component} to the \code{group} aesthetic and
+#'   \code{eq.label} to the label aesthetic. Additional aesthetics as
+#'   understood by the geom (\code{"text_npc"} by default) can be set.
+#'
 #' @section Computed variables: \code{stat_distrmix_eq()} provides the
 #'   following
 #'   variables, some of which depend on the orientation:
 #'   \describe{\item{x}{the location of text labels}
 #'   \item{y}{the location of text labels}
 #'   \item{eq.label}{\code{character} string for equations}
-#'   \item{eq.label}{\code{character} string for number of observations}
-#'   \item{eq.label}{\code{character} string for model fit method}
+#'   \item{n.label}{\code{character} string for number of observations}
+#'   \item{method.label}{\code{character} string for model fit method}
 #'   \item{lambda}{\code{numeric} the estimate of the contribution of the
 #'  component of the mixture towards the joint density}
 #'   \item{mu}{\code{numeric} the estimate of the mean}
@@ -70,12 +80,6 @@
 #'   This is wasteful and disabled by default, but provides a simple and robust
 #'   approach to achieve effects like colouring or hiding of the model fit line
 #'   by group depending on the outcome of model fitting.
-#'
-#' @section Aesthetics: \code{stat_distrmix_eq} expects observations mapped to
-#'   \code{x} from a \code{numeric} variable. A new grouping is added by mapping
-#'   as default \code{component} to the \code{group} aesthetic and
-#'   \code{eq.label} to the label aesthetic. Additional aesthetics as
-#'   understood by the geom (\code{"text_npc"} by default) can be set.
 #'
 #' @family ggplot statistics for mixture model fits.
 #'
@@ -141,7 +145,7 @@
 #'   stat_distrmix_line(k = 1) +
 #'   stat_distrmix_eq(k = 1, se = TRUE)
 #'
-#' # Inspecting the returned data using geom_debug()
+#' # Inspecting the returned data using geom_debug_group()
 #' gginnards.installed <- requireNamespace("gginnards", quietly = TRUE)
 #'
 #' if (gginnards.installed)
@@ -149,20 +153,20 @@
 #'
 #' if (gginnards.installed)
 #'   ggplot(faithful, aes(x = waiting)) +
-#'     stat_distrmix_line(geom = "debug", components = "all")
-#'     stat_distrmix_eq(geom = "debug", components = "all")
+#'     stat_distrmix_line(geom = "debug_group", components = "all")
+#'     stat_distrmix_eq(geom = "debug_group", components = "all")
 #'
 #' if (gginnards.installed)
 #'   ggplot(faithful, aes(x = waiting)) +
-#'     stat_distrmix_eq(geom = "debug", components = "sum")
+#'     stat_distrmix_eq(geom = "debug_group", components = "sum")
 #'
 #' if (gginnards.installed)
 #'   ggplot(faithful, aes(x = waiting)) +
-#'     stat_distrmix_eq(geom = "debug", components = "members")
+#'     stat_distrmix_eq(geom = "debug_group", components = "members")
 #'
 #' if (gginnards.installed)
 #'   ggplot(faithful, aes(x = waiting)) +
-#'     stat_distrmix_eq(geom = "debug",
+#'     stat_distrmix_eq(geom = "debug_group",
 #'                       components = "members",
 #'                       fm.values = TRUE)
 #'
@@ -173,6 +177,7 @@ stat_distrmix_eq <- function(mapping = NULL,
                              geom = "text_npc",
                              position = "identity",
                              ...,
+                             orientation = "x",
                              method = "normalmixEM",
                              method.args = list(),
                              n.min = 10L * k,
@@ -192,7 +197,6 @@ stat_distrmix_eq <- function(mapping = NULL,
                              vstep = NULL,
                              output.type = NULL,
                              na.rm = FALSE,
-                             orientation = "x",
                              parse = NULL,
                              show.legend = NA,
                              inherit.aes = TRUE) {
@@ -227,13 +231,8 @@ stat_distrmix_eq <- function(mapping = NULL,
     stop("Expected k >= 1, but k = ", k)
   }
 
-  if (is.null(output.type)) {
-    if (geom %in% c("richtext", "textbox", "marquee")) {
-      output.type <- "markdown"
-    } else {
-      output.type <- "expression"
-    }
-  }
+  output.type <-
+    check_output_type(output.type = output.type, geom = geom)
 
   if (is.null(components)) {
     components <- ifelse(output.type == "numeric", "members", "sum")
@@ -312,7 +311,7 @@ distrmix_eq_compute_group_fun <-
            na.rm = FALSE,
            orientation = "x") {
 
-    force(data)
+    rlang::check_installed("mixtools", reason = "to use stat_distrmix_eq()")
 
     if (length(unique(data[[orientation]])) < n.min) {
       message("Skipping! Fewer than 'n.min = ", n.min,
@@ -441,7 +440,7 @@ distrmix_eq_compute_group_fun <-
 StatDistrmixEq <-
   ggplot2::ggproto("StatDistrmixEq", ggplot2::Stat,
 
-                   extra_params = c("na.rm", "orientation"),
+                   extra_params = c("na.rm", "parse", "orientation"),
 
                    setup_params = function(data, params) {
                      params[["flipped_aes"]] <-

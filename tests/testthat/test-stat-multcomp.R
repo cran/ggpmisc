@@ -48,6 +48,7 @@ test_that("multcomp_noload", {
   )
 
   skip_on_os(c("mac", "linux", "solaris"))
+
   vdiffr::expect_doppelganger("smltc_noload_more",
                               ggplot2::ggplot(my.data, ggplot2::aes(group, y2)) +
                                 ggplot2::stat_summary(fun.data = "mean_se") +
@@ -105,8 +106,7 @@ test_that("smltc_contrast_type", {
   testthat::expect_error(ggplot(my.data, aes(group.mixed, y2)) +
                               stat_boxplot() +
                               stat_multcomp(contrasts = "Dunnet",
-                                            label.type = "letters"),
-                         variant = snap_version
+                                            label.type = "letters")
                           )
 })
 

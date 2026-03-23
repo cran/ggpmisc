@@ -49,6 +49,8 @@
 #' @param orientation character Either "x" or "y", the mapping of the values
 #'   to which the mixture model is to be fitetd. NOT YET IMPLEMENTED!
 #'
+#' @aesthetics StatDistrmixLine
+#'
 #' @details This statistic is similar to \code{\link[ggplot2]{stat_density}} but
 #'   instead of fitting a single distribution it can fit a mixture of two or
 #'   more Normal distributions, using an approach related to clustering.
@@ -90,11 +92,6 @@
 #'   approach to achieve effects like colouring or hiding of the model fit line
 #'   by group depending on the outcome of model fitting.
 #'
-#' @section Aesthetics: \code{stat_distrmix_eq} expects observations mapped to
-#'   \code{x} from a \code{numeric} variable. A new grouping is added by mapping
-#'   \code{component} to the \code{group} aesthetic. Additional aesthetics as
-#'   understood by the geom (\code{"geom_line"} by default) can be set.
-#'
 #' @family ggplot statistics for mixture model fits.
 #'
 #' @examples
@@ -131,7 +128,7 @@
 #' ggplot(subset(faithful, waiting > 66), aes(x = waiting)) +
 #'   stat_distrmix_line(k = 1)
 #'
-#' # Inspecting the returned data using geom_debug()
+#' # Inspecting the returned data using geom_debug_group()
 #' gginnards.installed <- requireNamespace("gginnards", quietly = TRUE)
 #'
 #' if (gginnards.installed)
@@ -139,19 +136,19 @@
 #'
 #' if (gginnards.installed)
 #'   ggplot(faithful, aes(x = waiting)) +
-#'     stat_distrmix_line(geom = "debug", components = "all")
+#'     stat_distrmix_line(geom = "debug_group", components = "all")
 #'
 #' if (gginnards.installed)
 #'   ggplot(faithful, aes(x = waiting)) +
-#'     stat_distrmix_line(geom = "debug", components = "sum")
+#'     stat_distrmix_line(geom = "debug_group", components = "sum")
 #'
 #' if (gginnards.installed)
 #'   ggplot(faithful, aes(x = waiting)) +
-#'     stat_distrmix_line(geom = "debug", components = "members")
+#'     stat_distrmix_line(geom = "debug_group", components = "members")
 #'
 #' if (gginnards.installed)
 #'   ggplot(faithful, aes(x = waiting)) +
-#'     stat_distrmix_line(geom = "debug", fm.values = TRUE)
+#'     stat_distrmix_line(geom = "debug_group", fm.values = TRUE)
 #'
 #' @export
 #'
@@ -160,6 +157,7 @@ stat_distrmix_line <- function(mapping = NULL,
                                 geom = "line",
                                 position = "identity",
                                 ...,
+                                orientation = "x",
                                 method = "normalmixEM",
                                 se = NULL,
                                 fit.seed = NA,
@@ -174,7 +172,6 @@ stat_distrmix_line <- function(mapping = NULL,
                                 components = "all",
                                 n.min = 10L * k,
                                 na.rm = FALSE,
-                                orientation = "x",
                                 show.legend = NA,
                                 inherit.aes = TRUE) {
 
@@ -254,6 +251,8 @@ distrmix_compute_group_fun <-
            na.rm = FALSE,
            flipped_aes = NA,
            orientation = "x") {
+
+    rlang::check_installed("mixtools", reason = "to use stat_distrmix_line()")
 
     data <- ggplot2::flip_data(data, flipped_aes)
 

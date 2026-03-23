@@ -10,6 +10,7 @@ stat_quant_eq(
   geom = "text_npc",
   position = "identity",
   ...,
+  orientation = NA,
   formula = NULL,
   quantiles = c(0.25, 0.5, 0.75),
   method = "rq:br",
@@ -28,7 +29,6 @@ stat_quant_eq(
   vstep = NULL,
   output.type = NULL,
   na.rm = FALSE,
-  orientation = NA,
   parse = NULL,
   show.legend = FALSE,
   inherit.aes = TRUE
@@ -50,6 +50,10 @@ layer.}
 \item{...}{other arguments passed on to \code{\link[ggplot2]{layer}}. This
 can include aesthetics whose values you want to set, not map. See
 \code{\link[ggplot2]{layer}} for more details.}
+
+\item{orientation}{character Either "x" or "y" controlling the default for
+\code{formula}. The letter indicates the aesthetic considered the
+explanatory variable in the model fit.}
 
 \item{formula}{a formula object. Using aesthetic names \code{x} and \code{y}
 instead of original variable names.}
@@ -106,10 +110,6 @@ use \code{stat_fit_tidy()}.}
 
 \item{na.rm}{a logical indicating whether NA values should be stripped before
 the computation proceeds.}
-
-\item{orientation}{character Either "x" or "y" controlling the default for
-\code{formula}. The letter indicates the aesthetic considered the
-explanatory variable in the model fit.}
 
 \item{parse}{logical Passed to the geom. If \code{TRUE}, the labels will be
 parsed into expressions and displayed as described in \code{?plotmath}.
@@ -231,23 +231,6 @@ Support for the \code{angle} aesthetic is not automatic and requires
   requirement results in the return of \code{NA} as the formatted equation.
 }
 
-\section{Aesthetics}{
- \code{stat_quant_eq()} understands \code{x} and \code{y},
-  to be referenced in the \code{formula} and \code{weight} passed as argument
-  to parameter \code{weights} of \code{rq()}. All three must be mapped to
-  \code{numeric} variables. In addition, the aesthetics understood by the
-  geom used (\code{"text"} by default) are understood and grouping respected.
-
-  \emph{If the model formula includes a transformation of \code{x}, a
-  matching argument should be passed to parameter \code{eq.x.rhs}
-  as its default value \code{"x"} will not reflect the applied
-  transformation. In plots, transformation should never be applied to the
-  left hand side of the model formula, but instead in the mapping of the
-  variable within \code{aes}, as otherwise plotted observations and fitted
-  curve will not match. In this case it may be necessary to also pass
-  a matching argument to parameter \code{eq.with.lhs}.}
-}
-
 \section{Computed variables}{
 
 If output.type different from \code{"numeric"} the returned tibble contains
@@ -283,6 +266,107 @@ If output.type is \code{"numeric"} the returned tibble contains columns
 
 To explore the computed values returned for a given input we suggest the use
 of \code{\link[gginnards]{geom_debug}} as shown in the example below.
+}
+
+\section{Output types}{
+ The formatting of character strings to be displayed
+in plots are marked as mathematical equations. Depending on the geom used,
+the mark-up needs to be encoded differently, or in some cases mark-up not
+applied.
+\describe{
+  \item{\code{"expression"}}{The labels are encoded as character strings to be parsed into R's plotmath expressions.}
+  \item{\code{"LaTeX", "TeX", "tikz", "latex"}}{The labels are encoded as 'LaTeX' maths equations, without the "fences" for switching in math mode.}
+  \item{\code{"latex.eqn"}}{Same as \code{"latex"} but enclosed in single \code{$}, i.e., as in-line maths.}
+  \item{\code{"latex.deqn"}}{Same as \code{"latex"} but enclosed in double \code{$$}, i.e., as display maths.}
+  \item{\code{"markdown"}}{The labels are encoded as character strings using markdown syntax, with some embedded HTML.}
+  \item{\code{"marquee"}}{The labels are encoded as character strings using markdown syntax, with 'marquee' supported spans.}
+  \item{\code{"text"}}{The labels are plain ASCII character strings.}
+  \item{\code{"numeric"}}{No labels are generated. This value is accepted by the statistics, but not by the label formatting functions.}
+  \item{\code{NULL}}{The value used, \code{expression}, \code{latex.eqn} or \code{markup} depends on the argument passed to \code{geom}.}}
+
+If \code{geom = "latex"} (package 'xdvir') the output type used is
+\code{"latex.eqn"}. If \code{geom = "richtext"} (package 'ggtext') or
+\code{geom = "textbox"} (package 'ggtext') the output type used is
+\code{"markdown"}. If \code{geom = "marquee"} (package 'marquee') the output
+type used is \code{"marquee"}. For all other values of \code{geom} the default
+is \code{"expression"} unless the user passes an argument. Invalid values as
+argument trigger an Error.
+}
+
+\section{Model fit methods supported}{
+ Several model fit functions are
+  supported explicitly (see tables), and some of their differences smoothed
+  out. Compatibility is checked late, based on the class of the returned
+  fitted model object. This makes it possible to use wrapper functions that
+  do model selection or other adjustments to the fit procedure on a per panel
+  or per group basis. Moreover, if the value returned as model fit object is
+  \code{NULL} no layer is added to the plot on a per group within panel
+  basis.
+
+  In the case of fitted model objects of classes not explicitly supported an
+  attempt is made to find the usual accessors and/or fitted object members,
+  and if found, either complete or partial support is frequently achieved.
+  In this case a message is issued encouraging users to check the valisdity
+  of the values extracted.
+
+  The argument to parameter \code{method} can be either the name of a
+  function object, possibly using double colon notation, or a character
+  string matching the function name. This approach makes it possible to
+  support model fit functions that are not dependencies of 'ggpmisc'. Either
+  by attaching the package where the function is defined and passing it by
+  name or as string, or using double colon notation when passing the name of
+  the function. User-defined functions can be passed as argument to parameter
+  \code{method} as long as they have parameters \code{formula}, \code{data}
+  \code{subset} and possibly \code{weights}. Additional arguments can be
+  passed to any method as a named list as an argument to parameter
+  \code{method.args}. As in \code{\link[ggplot2:geom_smooth]{stat_smooth}()}
+  prior \code{weights} are passed to the model fit functions' \code{weights}
+  (plural!) parameter by mapping a numeric variable to plot aesthetic
+  \code{weight} (singular!).
+
+  The table below lists natively supported model fit functions, with the
+  caveat that only some 'broom' methods' specializations have been actually
+  tested with statistics from 'ggpmisc'. In addition, the statistics based
+  on 'broom' methods require the user to tailor their behaviour by passing
+  additional arguments in the call.
+
+  \tabular{lcl}{
+  \strong{Statistic} \tab \eqn{f} \tab \strong{Supported model fit methods} \cr
+  \code{\link{stat_poly_line}()} \tab G \tab "lm", "rlm", "lts", "sma", "ma", "gls", \emph{others with methods} \code{\link[stats]{predict}()} or \code{\link[stats]{fitted}()} \cr
+  \code{\link{stat_poly_eq}()}   \tab G \tab "lm", "rlm", "lts", "sma", "ma", "gls",  \emph{others with needed accesors} \cr
+  \code{\link{stat_quant_line}()} \tab G \tab "rq", "rqss" \cr
+  \code{\link{stat_quant_band}()} \tab G \tab "rq", "rqss" \cr
+  \code{\link{stat_quant_eq}()} \tab G \tab "rq", "rqss" \cr
+  \code{\link{stat_ma_line}()} \tab G \tab "SMA", "MA", "RMA", "OLS" \cr
+  \code{\link{stat_ma_eq}()} \tab G \tab "SMA", "MA", "RMA", "OLS" \cr
+  \code{\link{stat_fit_residuals}()} \tab G \tab "lm", "rlm", "lts", "sma", "ma", "gls", "rq", "rqss" \emph{others with method} \code{\link[stats]{residuals}()} \cr
+  \code{\link{stat_fit_fitted}()} \tab G \tab "lm", "rlm", "lts", "gls", "rq", "rqss" \emph{others with method} \code{\link[stats]{fitted}()} \cr
+  \code{\link{stat_fit_deviations}()} \tab G \tab "lm", "rlm", "lts", "gls", "rq", "rqss" \emph{others with methods} \code{\link[stats]{fitted}()} and \code{\link[stats]{weights}()} \cr
+  \code{\link{stat_fit_augment}()} \tab G \tab \emph{any with 'broom' method} \code{\link[broom]{augment}()} \cr
+  \code{\link{stat_fit_glance}()} \tab G \tab \emph{any with 'broom' method} \code{\link[broom]{glance}()} \cr
+  \code{\link{stat_fit_tidy}()} \tab G \tab \emph{any with 'broom' method} \code{\link[broom]{tidy}()} \cr
+  \code{\link{stat_fit_tb}()} \tab P \tab \emph{any with 'broom' method} \code{\link[broom]{tidy}()} \cr
+  }
+
+  The table below lists the names for fit methods coded in the statistics
+  as given in the table above. The single colon notation is based on parsing
+  the name and is available whenever passing the name of the fit method as a
+  character string. In a string such as "head:tail" the "head" gives the name
+  of the model fit function and the "tail" gives the argument to pass it's
+  \code{method} parameter. In some cases the default \code{formula = y ~ x}
+  needs to be overridden with an explicit argument.
+
+  \tabular{llll}{
+  \strong{Predefined method names} \tab \strong{Model fit methods} \tab \strong{R package} \tab \strong{Object class} \cr
+  "lm", "lm:qr" \tab \code{\link[stats]{lm}()} \tab 'stats' \tab "lm" \cr
+  "rlm", "rlm:M", "rlm:MM" \tab \code{\link[MASS]{rlm}()} \tab 'MASS' \tab "rlm" ("lm") \cr
+  "lts", "ltsReg" \tab \code{\link[robustbase]{ltsReg}()} \tab 'robustbase' \tab "lts" \cr
+  "ma", "sma", "sma:SMA", "sma:MA", "sma:OLS" \tab \code{\link[smatr]{sma}()} \tab 'smatr' \tab "ma" or "sma" \cr
+  "gls", "gls:REML", "gls:ML" \tab \code{\link[nlme]{gls}()} \tab 'nlme' \tab "gls" \cr
+  "rq", "rq:sfn", "rq:sfnc", "rq:lasso" \tab \code{\link[quantreg]{rq}()} \tab 'quantreg' \tab "rq" \cr
+  "rqss", "rqss:sfn", "rqss:sfnc", "rqss:lasso" \tab \code{\link[quantreg]{rqss}()} \tab 'quantreg' \tab "rqss" \cr
+  "SMA", "MA", "RMA", "OLS" \tab \code{\link[lmodel2]{lmodel2}()} \tab 'lmodel2' \tab \cr
+  }
 }
 
 \examples{
@@ -357,7 +441,7 @@ ggplot(my.data, aes(x, y)) +
   geom_point() +
   stat_quant_line(formula = formula, linewidth = 0.5) +
   stat_quant_eq(formula = formula, angle = 90, hstep = 0.04, vstep = 0,
-                label.y = 0.02, hjust = 0) +
+                label.y = 0.02, hjust = 0, size = 3) +
   expand_limits(x = -15) # make space for equations
 
 # user set quantiles
@@ -448,7 +532,7 @@ ggplot(my.data, aes(x, y)) +
                 formula = formula,
                 quantiles = 0.5)
 
-# Inspecting the returned data using geom_debug()
+# Inspecting the returned data using geom_debug_group()
 # This provides a quick way of finding out the names of the variables that
 # are available for mapping to aesthetics using after_stat().
 
@@ -460,37 +544,37 @@ if (gginnards.installed)
 if (gginnards.installed)
   ggplot(my.data, aes(x, y)) +
     geom_point() +
-    stat_quant_eq(formula = formula, geom = "debug")
+    stat_quant_eq(formula = formula, geom = "debug_group")
 
 \dontrun{
 if (gginnards.installed)
   ggplot(my.data, aes(x, y)) +
     geom_point() +
     stat_quant_eq(mapping = aes(label = after_stat(eq.label)),
-                  formula = formula, geom = "debug",
+                  formula = formula, geom = "debug_group",
                   output.type = "markdown")
 
 if (gginnards.installed)
   ggplot(my.data, aes(x, y)) +
     geom_point() +
-    stat_quant_eq(formula = formula, geom = "debug", output.type = "text")
+    stat_quant_eq(formula = formula, geom = "debug_group", output.type = "text")
 
 if (gginnards.installed)
   ggplot(my.data, aes(x, y)) +
     geom_point() +
-    stat_quant_eq(formula = formula, geom = "debug", output.type = "numeric")
-
-if (gginnards.installed)
-  ggplot(my.data, aes(x, y)) +
-    geom_point() +
-    stat_quant_eq(formula = formula, quantiles = c(0.25, 0.5, 0.75),
-                  geom = "debug", output.type = "text")
+    stat_quant_eq(formula = formula, geom = "debug_group", output.type = "numeric")
 
 if (gginnards.installed)
   ggplot(my.data, aes(x, y)) +
     geom_point() +
     stat_quant_eq(formula = formula, quantiles = c(0.25, 0.5, 0.75),
-                  geom = "debug", output.type = "numeric")
+                  geom = "debug_group", output.type = "text")
+
+if (gginnards.installed)
+  ggplot(my.data, aes(x, y)) +
+    geom_point() +
+    stat_quant_eq(formula = formula, quantiles = c(0.25, 0.5, 0.75),
+                  geom = "debug_group", output.type = "numeric")
 }
 
 }
@@ -508,9 +592,21 @@ The quantile fit is done with function \code{\link[quantreg]{rq}},
   \code{\link{stat_fit_glance}} should be used instead and the code for
   construction of character strings from numeric values and their mapping to
   aesthetic \code{label} needs to be explicitly supplied in the call.
-
-Other ggplot statistics for quantile regression: 
-\code{\link{stat_quant_band}()},
-\code{\link{stat_quant_line}()}
 }
-\concept{ggplot statistics for quantile regression}
+\section{Aesthetics}{
+
+\code{stat_quant_eq()} understands the following aesthetics. Required aesthetics are displayed in bold and defaults are displayed for optional aesthetics:
+\tabular{rll}{
+ • \tab \strong{\code{\link[ggplot2:aes_position]{x}}} \tab   \cr
+ • \tab \strong{\code{\link[ggplot2:aes_position]{y}}} \tab   \cr
+ • \tab \code{\link[ggplot2:aes_group_order]{group}} \tab → inferred \cr
+ • \tab \code{grp.label} \tab   \cr
+ • \tab \code{hjust} \tab → \code{"inward"} \cr
+ • \tab \code{label} \tab → \code{after_stat(eq.label)} \cr
+ • \tab \code{npcx} \tab → \code{after_stat(npcx)} \cr
+ • \tab \code{npcy} \tab → \code{after_stat(npcy)} \cr
+ • \tab \code{vjust} \tab → \code{"inward"} \cr
+}
+
+Learn more about setting these aesthetics in \code{vignette("ggplot2-specs")}.
+}

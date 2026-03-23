@@ -38,6 +38,9 @@
 #' @param orientation character The orientation of the layer can be set to
 #'   either \code{"x"}, the default, or \code{"y"}.
 #'
+#' @aesthetics StatPeaks
+#' @aesthetics StatValleys
+#'
 #' @return A data frame with one row for each peak (or valley) found in the data
 #'   extracted from the input \code{data} or all rows in data. Added columns
 #'   contain the labels.
@@ -49,32 +52,6 @@
 #'   \item{x.label}{x-value at the peak (or valley) formatted as character}
 #'   \item{y.label}{y-value at the peak (or valley) formatted as character}
 #' }
-#'
-#' @section Default aesthetics: These stats use \code{geom_point} by default as
-#'   it is the geom most likely to work well in almost any situation without.
-#'   The default aesthetics set by these stats allow their direct use with
-#'   \code{geom_text}, \code{geom_label}, \code{geom_line}, \code{geom_rug},
-#'   \code{geom_hline} and \code{geom_vline}. The formatting of the labels
-#'   returned can be controlled by the user.
-#'
-#'   Default aesthetics mapped by the statistic and available to geoms, in
-#'   addtion to the automatically set required aesthetics.
-#' \describe{
-#'   \item{label}{stat(x.label)}
-#'   \item{xintercept}{stat(x)}
-#'   \item{yintercept}{stat(y)}
-#' }
-#'
-#' @section Required aesthetics: Required by the statistic and need to be set
-#'   with \code{aes()}. Date time scales are recognized and labels
-#'   formatted accordingly.
-#'
-#' \describe{
-#'   \item{x}{numeric or date time, independent variable}
-#'   \item{y}{numeric, response variable where peaks or valleys are searched}
-#' }
-#'
-#' @seealso \code{\link{find_peaks}}, which is used internally.
 #'
 #' @inherit find_peaks details
 #'
@@ -88,6 +65,12 @@
 #'   with a suitable \code{label.fmt} labels suitable for parsing by the geoms
 #'   (e.g. into expressions containing Greek letters or super or subscripts) can
 #'   be also easily obtained.
+#'
+#'   These stats use \code{geom_point} by default as
+#'   it is the geom most likely to work well in almost any situation.
+#'   The default aesthetics set by these stats allow their direct use with
+#'   \code{geom_text}, \code{geom_label}, \code{geom_line}, \code{geom_rug},
+#'   \code{geom_hline} and \code{geom_vline}.
 #'
 #' @seealso \code{\link{find_peaks}}, for the functions used to located the
 #'   peaks and valleys.
@@ -213,6 +196,7 @@ stat_peaks <- function(mapping = NULL,
                        geom = "point",
                        position = "identity",
                        ...,
+                       orientation = "x",
                        span = 5,
                        global.threshold = 0,
                        local.threshold = 0,
@@ -222,7 +206,6 @@ stat_peaks <- function(mapping = NULL,
                        x.label.fmt = NULL,
                        y.label.fmt = NULL,
                        extract.peaks = NULL,
-                       orientation = "x",
                        na.rm = FALSE,
                        show.legend = FALSE,
                        inherit.aes = TRUE) {
@@ -504,6 +487,7 @@ stat_valleys <- function(mapping = NULL,
                          geom = "point",
                          position = "identity",
                          ...,
+                         orientation = "x",
                          span = 5,
                          global.threshold = 0.01,
                          local.threshold = NULL,
@@ -513,7 +497,6 @@ stat_valleys <- function(mapping = NULL,
                          x.label.fmt = NULL,
                          y.label.fmt = NULL,
                          extract.valleys = NULL,
-                         orientation = "x",
                          na.rm = FALSE,
                          show.legend = FALSE,
                          inherit.aes = TRUE) {
