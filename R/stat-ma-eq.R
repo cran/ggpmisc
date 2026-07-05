@@ -1,120 +1,125 @@
-#' Equation, p-value, R^2 of major axis regression
+#' Model II prediction and annotations
 #'
-#' \code{stat_ma_eq} fits model II regressions. From the fitted model it
-#' generates several labels including the equation, p-value,
-#' coefficient of determination (R^2), and number of observations.
+#' Statistics \code{stat_ma_line()} and \code{stat_ma_eq()} fit model II
+#' regressions. While \code{stat_ma_line()} adds a prediction line and band,
+#' \code{stat_ma_eq()} adds textual labels to a plot.
 #'
-#' @inheritParams stat_ma_line
+#' @inheritParams stat_poly_eq
+#' @param range.y,range.x character Pass "relative" or "interval" if method
+#'   "RMA" is to be computed.
+#' @param method function or character If character, "MA", "SMA" , "RMA" or
+#'   "OLS", alternatively "lmodel2" or the name of a model fit function are
+#'   accepted, possibly followed by the fit function's \code{method} argument
+#'   separated by a colon (e.g. \code{"lmodel2:MA"}). If a function different to
+#'   \code{lmodel2()}, it must accept arguments named \code{formula},
+#'   \code{data}, \code{range.y}, \code{range.x} and \code{nperm} and return a
+#'   model fit object of class \code{lmodel2}.
+#' @param nperm integer Number of permutation used to estimate significance.
+#' @param se logical Return confidence interval around smooth? (`TRUE` by
+#'   default, see `level` to control.)
+#' @param level Level of confidence interval to use (only 0.95 currently).
 #'
-#' @param eq.with.lhs If \code{character} the string is pasted to the front of
-#'   the equation label before parsing or a \code{logical} (see note).
-#' @param eq.x.rhs \code{character} this string will be used as replacement for
-#'   \code{"x"} in the model equation when generating the label before parsing
-#'   it.
-#' @param small.r,small.p logical Flags to switch use of lower case r and p for
-#'   coefficient of determination and p-value.
-#' @param coef.digits integer Number of significant digits to use for
-#'   the fitted coefficients.
-#' @param coef.keep.zeros logical Keep or drop trailing zeros when formatting
-#'   the fitted coefficients and F-value.
-#' @param decreasing logical It specifies the order of the terms in the
-#'   returned character string; in increasing (default) or decreasing powers.
 #' @param rr.digits,theta.digits,p.digits integer Number of digits after the
 #'   decimal point to use for R^2, theta and P-value in labels. If \code{Inf},
 #'   use exponential notation with three decimal places.
-#' @param label.x,label.y \code{numeric} with range 0..1 "normalized parent
-#'   coordinates" (npc units) or character if using \code{geom_text_npc()} or
-#'   \code{geom_label_npc()}. If using \code{geom_text()} or \code{geom_label()}
-#'   numeric in native data units. If too short they will be recycled.
-#' @param hstep,vstep numeric in npc units, the horizontal and vertical step
-#'   used between labels for different groups.
-#' @param output.type character One of "expression", "LaTeX", "text",
-#'   "markdown" or "numeric".
-#' @param parse logical Passed to the geom. If \code{TRUE}, the labels will be
-#'   parsed into expressions and displayed as described in \code{?plotmath}.
-#'   Default is \code{TRUE} if \code{output.type = "expression"} and
-#'   \code{FALSE} otherwise.
+#' @param coef.digits integer Number of significant digits to use for
+#'   the fitted coefficients in the equation label.
 #'
+#' @aesthetics StatMaLine
 #' @aesthetics StatMaEq
 #'
-#' @note For backward compatibility a logical is accepted as argument for
-#'   \code{eq.with.lhs}. If \code{TRUE}, the default is used, either
-#'   \code{"x"} or \code{"y"}, depending on the argument passed to \code{formula}.
-#'   However, \code{"x"} or \code{"y"} can be substituted by providing a
-#'   suitable replacement character string through \code{eq.x.rhs}.
-#'   Parameter \code{orientation} is redundant as it only affects the default
-#'   for \code{formula} but is included for consistency with
-#'   \code{ggplot2::stat_smooth()}.
+#' @details Statistics \code{stat_ma_line()} and \code{stat_ma_eq} fit major
+#'   axis (\code{"MA"}) and other model II regressions with function
+#'   \code{\link[lmodel2]{lmodel2}} from package 'lmodel2'. They support linear major axis (MA),
+#'   standard major axis (SMA) and ranged major axis (RMA) regression.
+#'   MA and SMA regressions are supported also by \code{stat_poly_line()} and
+#'   \code{stat_poly_eq()} using package 'smatr' instead of 'lmodel2'.
 #'
-#'   Methods in \code{\link[lmodel2]{lmodel2}} are all computed always except
-#'   for RMA that requires a numeric argument to at least one of \code{range.y}
-#'   or \code{range.x}. The results for specific methods are extracted a
-#'   posteriori from the model fit object. When a function is passed as argument
-#'   to \code{method}, the method can be passed in a list to \code{method.args}
-#'   as member \code{method}. More easily, the name of the function can be
-#'   passed as a character string together with the \code{lmodel2}-supported
-#'   method.
+#'   \code{stat_ma_line()} adds the predicted line and confidence band based on
+#'   the uncertainty of the slope estimate.\code{stat_ma_eq()}
+#'   adds textual annotations with the fitted model equation and other parameter
+#'   estimates.
 #'
-#'   R option \code{OutDec} is obeyed based on its value at the time the plot
-#'   is rendered, i.e., displayed or printed. Set \code{options(OutDec = ",")}
-#'   for languages like Spanish or French.
+#'   Model II regression is called for when both \code{x} and \code{y} are
+#'   subject to random variation and the intention is not to predict \code{y}
+#'   from \code{x} by means of the model but rather to study the relationship
+#'   between two independent variables. A frequent case in biology are
+#'   allometric relationships among body parts.
 #'
-#' @details This stat can be used to automatically annotate a plot with
-#'   \eqn{R^2}, \eqn{P}-value, \eqn{n} and/or the fitted model equation. It
-#'   supports linear major axis (MA), standard major axis (SMA) and ranged major
-#'   axis (RMA) regression by means of function \code{\link[lmodel2]{lmodel2}}.
-#'   Formulas describing a straight line and including an intercept are the
-#'   only ones currently supported. Please see the documentation, including the
-#'   vignette of package 'lmodel2' for details. The parameters in
-#'   \code{stat_ma_eq()} follow the same naming as in function \code{lmodel2()}.
-#'
-#'   It is important to keep in mind that although the fitted line does not
-#'   depend on whether the \eqn{x} or \eqn{y} appears on the rhs of the model
-#'   formula, the numeric estimates for the parameters do depend on this.
-#'
-#'   A ggplot statistic receives as \code{data} a data frame that is not the one
-#'   passed as argument by the user, but instead a data frame with the variables
-#'   mapped to aesthetics. \code{stat_ma_eq()} mimics how \code{stat_smooth()}
-#'   works, except that Model II regressions can be fitted. Similarly to
-#'   \code{stat_smooth()} the model is fitted separately to data from each
-#'   group, so the variables mapped to \code{x} and \code{y} should both be
-#'   continuous rather than discrete as well as the corresponding scales.
+#'   As the fitted line is the same whether \code{x} or \code{y} is on the rhs
+#'   of the model equation, \code{orientation} even if accepted does not have an
+#'   effect on the fitted line. It does, however, have an effect on the
+#'   formulation of the equation displayed in the label.
 #'
 #'   The minimum number of observations with distinct values can be set through
-#'   parameter \code{n.min}. The default \code{n.min = 2L} is the smallest
+#'   parameter \code{n.min}. The default \code{n.min = 3L} is the smallest
 #'   possible value. However, model fits with very few observations are of
 #'   little interest and using a larger number for \code{n.min} than the default
-#'   is usually wise. As model fitting functions can depend on
-#'   the RNG, \code{fit.seed} if different to \code{NA} is used as argument in a
-#'   call to \code{\link[base:Random]{set.seed}()} immediately ahead of model
-#'   fitting.
+#'   is wise. As model fitting functions could depend on the RNG,
+#'   \code{fit.seed} if different to \code{NA} is used as argument in a call to
+#'   \code{\link[base:Random]{set.seed}()} immediately ahead of model fitting.
 #'
-#' @section User-defined methods: User-defined functions can be passed as
-#'   argument to \code{method}. The requirements are 1) that the signature is
-#'   similar to that of function \code{lmodel2()} and 2) that the value returned
-#'   by the function is an object as returned by \code{lmodel2()} or an atomic
-#'   \code{NA} value. Thus, user-defined methods can implement conditional
-#'   skipping of labelling.
+#'   In \code{\link[lmodel2]{lmodel2}()} MA, SMA and OLS fits always computed
+#'   while RMA requires a numeric argument to at least one of \code{range.y}
+#'   or \code{range.x}. The statistics extract estimates for one of the methods
+#'   based on the argument for \code{method}.
+#'
+#'   Package 'lmodel2' implements a model fit function and fitted model object
+#'   that differ from the usual approach of R. Thus, their use was implemented
+#'   as a separate pair of statistics.
 #'
 #' @inheritSection check_output_type Output types
 #'
-#' @note \code{stat_ma_eq} understands \code{x} and \code{y}, to
-#'   be referenced in the \code{formula} while the \code{weight} aesthetic is
-#'   ignored. Both \code{x} and \code{y} must be mapped to \code{numeric}
-#'   variables. In addition, the aesthetics understood by the geom
-#'   (\code{"text"} is the default) are understood and grouping respected.
+#' @inheritSection stat_poly_eq Model formula and model fitting
 #'
-#'   \emph{Transformation of \code{x} or \code{y} within the model formula
-#'   is not supported by \code{stat_ma_eq()}. In this case, transformations
-#'   should not be applied in the model formula, but instead in the mapping
-#'   of the variables within \code{aes} or in the scales.}
+#' @inheritSection stat_poly_eq Model equation label
 #'
-#' @return A data frame, with a single row and columns as described under
-#'   \strong{Computed variables}. In cases when the number of observations is
-#'   less than \code{n.min} a data frame with no rows or columns is returned
-#'   rendered as an empty/invisible plot layer.
+#' @inheritSection stat_poly_eq Position of labels
 #'
-#' @section Computed variables:
+#' @inheritSection stat_poly_eq Range of the prediction line
+#'
+#' @inheritSection stat_poly_eq Model fit methods supported
+#'
+#' @return \code{stat_ma_eq()} returns data frame with a single row and columns
+#'   as described below. \code{stat_ma_line()} returns a data frame with
+#'   \code{n} rows. In cases when the number of observations is less than
+#'   \code{n.min} or when the model fit \code{method} returns \code{NA} or
+#'   \code{NULL}, a data frame with no rows or columns is returned and rendered
+#'   as an empty/invisible plot layer.
+#'
+#' @inheritSection stat_poly_eq Which variables are available for mapping?
+#'
+#' @section Variables returned by `stat_ma_line()`:
+#'
+#'   Some of the variables can have missing values or depend on
+#'   \code{orientation} and/or \code{method}.
+#'
+#'   \describe{ \item{y \strong{or} x}{predicted value}
+#'   \item{ymin \strong{or} xmin}{lower pointwise confidence interval around the mean}
+#'   \item{ymax \strong{or} xmax}{upper pointwise confidence interval around the mean}
+#'   \item{se}{standard error}
+#'   }
+#'
+#'   If \code{fm.values = TRUE} is passed then columns based on the summary of
+#'   the model fit are added, with the same value in each row within a group.
+#'   This is wasteful and disabled by default, but provides a simple and robust
+#'   approach to achieve effects like colouring or hiding of the model fit line
+#'   based on P-values, r-squared or the number of observations.
+#'
+#' @section Variables returned by `stat_ma_eq()`:
+#'
+#' If \code{output.type} is \code{"numeric"} the returned tibble contains columns
+#' listed below. If the model fit function used does not return a value,
+#' the variable is set to \code{NA_real_}.
+#' \describe{
+#'   \item{x,npcx}{x position}
+#'   \item{y,npcy}{y position}
+#'   \item{coef.ls}{list containing the "coefficients" matrix from the summary of the fit object}
+#'   \item{r.squared, theta, p.value, n}{numeric values, from the model fit object}
+#'   \item{grp.label}{Set according to mapping in \code{aes}.}
+#'   \item{b_0.constant}{TRUE is polynomial is forced through the origin}
+#'   \item{b_i}{One or two columns with the coefficient estimates}}
+#'
 #' If \code{output.type} is different from \code{"numeric"} the returned tibble
 #' contains columns listed below. If the fitted model does not contain a given
 #' value, the label is set to \code{character(0L)}.
@@ -130,29 +135,24 @@
 #'   \item{method.label}{Set according \code{method} used.}
 #'   \item{r.squared, theta, p.value, n}{numeric values, from the model fit object}}
 #'
-#' If output.type is \code{"numeric"} the returned tibble contains columns
-#' listed below. If the model fit function used does not return a value,
-#' the variable is set to \code{NA_real_}.
-#' \describe{
-#'   \item{x,npcx}{x position}
-#'   \item{y,npcy}{y position}
-#'   \item{coef.ls}{list containing the "coefficients" matrix from the summary of the fit object}
-#'   \item{r.squared, theta, p.value, n}{numeric values, from the model fit object}
-#'   \item{grp.label}{Set according to mapping in \code{aes}.}
-#'   \item{b_0.constant}{TRUE is polynomial is forced through the origin}
-#'   \item{b_i}{One or two columns with the coefficient estimates}}
-#'
 #' To explore the computed values returned for a given input we suggest the use
-#' of \code{\link[gginnards]{geom_debug}} as shown in the last examples below.
+#' of \code{\link[gginnards]{geom_debug}()} as shown in the last examples below.
 #'
-#' @inheritSection stat_poly_line Model fit methods supported
+#' @inheritSection stat_poly_eq Model fit methods supported
 #'
 #' @seealso The major axis regression model is fitted with function
-#'   \code{\link[lmodel2]{lmodel2}}, please consult its documentation. Statistic
-#'   \code{stat_ma_eq()} can return different ready formatted labels depending
-#'   on the argument passed to \code{output.type}.
+#'   \code{\link[lmodel2]{lmodel2}()}, please consult its documentation.
 #'
-#' @family ggplot statistics for major axis regression
+#'   Please, see the articles in
+#'   \href{https://docs.r4photobiology.info/ggpmisc/}{online-only documentation}
+#'   for additional use examples and guidance.
+#'
+#' \emph{statistics} from 'ggpmisc' for model fit annotations:
+#' \code{\link{stat_poly_eq}()}, \code{\link{stat_quant_eq}()},
+#' \code{\link{stat_ma_eq}()} and \code{\link{stat_distrmix_eq}()}, and for
+#' model fit predictions: \code{\link{stat_poly_line}()},
+#' \code{\link{stat_quant_line}()}, \code{\link{stat_quant_band}()},
+#' \code{\link{stat_ma_line}()} and \code{\link{stat_distrmix_line}()}.
 #'
 #' @examples
 #' # generate artificial data
@@ -214,14 +214,6 @@
 #'   stat_ma_eq(formula = x ~ y,
 #'              mapping = use_label("eq", "R2", "P"))
 #'
-#' # modifying both variables within aes()
-#' ggplot(my.data, aes(log(x + 10), log(y + 10))) +
-#'   geom_point() +
-#'   stat_poly_line() +
-#'   stat_poly_eq(mapping = use_label("eq"),
-#'                eq.x.rhs = "~~log(x+10)",
-#'                eq.with.lhs = "log(y+10)~~`=`~~")
-#'
 #' # grouping
 #' ggplot(my.data, aes(x, y, color = group)) +
 #'   geom_point() +
@@ -235,40 +227,6 @@
 #'   stat_ma_line(color = "black") +
 #'   stat_ma_eq(mapping = use_label("grp", "eq", "R2")) +
 #'   theme_classic()
-#'
-#' # Inspecting the returned data using geom_debug_group()
-#' # This provides a quick way of finding out the names of the variables that
-#' # are available for mapping to aesthetics with after_stat().
-#'
-#' gginnards.installed <- requireNamespace("gginnards", quietly = TRUE)
-#'
-#' if (gginnards.installed)
-#'   library(gginnards)
-#'
-#' # default is output.type = "expression"
-#' if (gginnards.installed)
-#'   ggplot(my.data, aes(x, y)) +
-#'     geom_point() +
-#'     stat_ma_eq(geom = "debug_group")
-#'
-#' \dontrun{
-#' if (gginnards.installed)
-#'   ggplot(my.data, aes(x, y)) +
-#'     geom_point() +
-#'     stat_ma_eq(mapping = aes(label = after_stat(eq.label)),
-#'                geom = "debug_group",
-#'                output.type = "markdown")
-#'
-#' if (gginnards.installed)
-#'   ggplot(my.data, aes(x, y)) +
-#'     geom_point() +
-#'     stat_ma_eq(geom = "debug_group", output.type = "text")
-#'
-#' if (gginnards.installed)
-#'   ggplot(my.data, aes(x, y)) +
-#'     geom_point() +
-#'     stat_ma_eq(geom = "debug_group", output.type = "numeric")
-#' }
 #'
 #' @export
 #'
@@ -323,7 +281,7 @@ stat_ma_eq <- function(mapping = NULL,
   }
 
   if (grepl("^lm$|^lm[:]|^rlm$|^rlm[:]|^gls$|^gls[:]|^lqs$|^lqs[:]", method.name)) {
-    stop("Methods \"l\", \"rlm\", \"lq\" and \"gls\" not supported, please use 'stat_poly_eq()'.")
+    stop("Methods \"lm\", \"rlm\", \"lq\" and \"gls\" not supported, please use 'stat_poly_eq()'.")
   } else if (grepl("^rq$|^rq[:]", method.name)) {
       stop("Method \"rq\" not supported, please use 'stat_quant_eq()'.")
   }
@@ -474,92 +432,30 @@ ma_eq_compute_group_fun <- function(data,
     label.y <- label.y[1]
   }
 
-  # If method was specified as a character string, replace with
-  # the corresponding function. Some model fit functions themselves have a
-  # method parameter accepting character strings as argument. We support
-  # these by splitting strings passed as argument at a colon.
-  if (is.character(method)) {
-    if (method %in% c("MA", "SMA", "RMA", "OLS")) {
-      method <- paste("lmodel2", method, sep = ":")
-    }
-    if (method == "lmodel2") {
-      method <- "lmodel2:MA"
-    }
-    method.name <- method
-    method <- strsplit(x = method, split = ":", fixed = TRUE)[[1]]
-    if (length(method) > 1L) {
-      fun.method <- method[2]
-      method <- method[1]
-    } else {
-      fun.method <- character()
-    }
-    if (method == "lmodel2") {
-      method <- lmodel2::lmodel2
-    } else {
-      method <- match.fun(method)
-    }
-  } else if (is.function(method)) {
-    fun.method <- method.args[["method"]]
-    if (!length(fun.method)) {
-      fun.method <- "MA"
-    } else {
-      method.args[["method"]] <- NULL
-    }
-    if (is.name(quote(method))) {
-      method.name <- as.character(quote(method))
-    } else {
-      method.name <- "function"
-    }
-    method.name <- paste(method.name, fun.method, sep = ":")
-  }
+  temp.ls <- fit_lmodel2_internal(data = data,
+                                  method = method,
+                                  method.args = method.args,
+                                  n.min = n.min,
+                                  formula = formula,
+                                  range.y = range.y,
+                                  range.x = range.x,
+                                  fit.seed = fit.seed,
+                                  orientation = orientation,
+                                  nperm = nperm)
 
-  if (! fun.method %in% c("MA", "SMA", "RMA", "OLS")) {
-    warning("Method \"", method, "\" unknown, using \"MA\" instead.")
-    method <- "MA"
-  }
-
-  if (fun.method == "RMA") {
-    fit.args <-
-      list(formula = formula,
-           data = data,
-           range.y = range.y,
-           range.x = range.x,
-           nperm = nperm
-      )
-  } else {
-    fit.args <-
-      list(formula = formula,
-           data = data,
-           nperm = nperm
-      )
-  }
-
-  if (!grepl("^lmodel2", method.name)) {
-    fit.args <- c(fit.args, method.args)
-  }
-
-  if (!is.na(fit.seed)) {
-    set.seed(fit.seed)
-  }
-  # lmodel2 issues a warning that is irrelevant here
-  # so we silence it selectively
-  withCallingHandlers({
-    fm <- do.call(what = method, args = fit.args)
-  }, message = function(w) {
-    if (grepl("RMA was not requested", conditionMessage(w), fixed = TRUE)) {
-      invokeRestart("muffleMessage")
-    }
-  })
-
-  if (!length(fm) || (is.atomic(fm) && is.na(fm))) {
+  if (!length(temp.ls) || !length(temp.ls[["fm"]])) {
+    # An empty data.frame results in no plot layer when passed to geoms
     return(data.frame())
-  } else if (!inherits(fm, "lmodel2")) {
-    stop("Method \"", method.name, "\" did not return a \"lmodel2\" object")
   }
+  fm <- temp.ls[["fm"]]
+  method.name <- temp.ls[["method.name"]] # argument or default which varies
+  fun.method <- temp.ls[["fun.method"]]
+  method.args <- temp.ls[["method.args"]] # argument or default which varies
   fm.class <- class(fm)
+
   # allow model formula selection by the model fit method
   # extract formula from fitted model if possible, but fall back on argument if needed
-  formula.ls <- fail_safe_formula(fm, fit.args, verbose = TRUE)
+  formula.ls <- fail_safe_formula(fm, method.args, verbose = TRUE)
 
   n <- fm[["n"]]
   coefs <- stats::coefficients(fm, method = fun.method)
@@ -697,6 +593,12 @@ ma_eq_compute_group_fun <- function(data,
     z$npcx <- NA_real_
     z$y <- label.y
     z$npcy <- NA_real_
+  }
+
+  if (output.type == "numeric") {
+    show_colnames(z, stat.name = "stat_ma_eq")
+  } else {
+    show_labels(z, stat.name = "stat_ma_eq")
   }
 
   z

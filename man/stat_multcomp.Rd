@@ -10,8 +10,8 @@ stat_multcomp(
   geom = NULL,
   position = "identity",
   ...,
-  orientation = "x",
-  formula = NULL,
+  orientation = NA,
+  formula = y ~ factor(x),
   method = "lm",
   method.args = list(),
   contrasts = "Tukey",
@@ -22,8 +22,9 @@ stat_multcomp(
   mc.critical.p.value = 0.05,
   small.p = getOption("ggpmisc.small.p", default = FALSE),
   adj.method.tag = 4,
-  p.digits = 3,
+  p.digits = NULL,
   label.type = "bars",
+  bjust = 0.5,
   label.y = NULL,
   vstep = NULL,
   output.type = NULL,
@@ -35,13 +36,13 @@ stat_multcomp(
 }
 \arguments{
 \item{mapping}{The aesthetic mapping, usually constructed with
-\code{\link[ggplot2]{aes}}. Only needs to be
-set at the layer level if you are overriding the plot defaults.}
+\code{\link[ggplot2]{aes}()}. Only needs to be set at the layer level if you
+are overriding the plot defaults.}
 
-\item{data}{A layer specific dataset, only needed if you want to override
-the plot defaults.}
+\item{data}{A layer specific dataset, only needed if you want to override the
+plot defaults.}
 
-\item{geom}{The geometric object to use to display the data.}
+\item{geom}{The geometric object to use display the data}
 
 \item{position}{The position adjustment to use for overlapping points on this
 layer.}
@@ -50,22 +51,27 @@ layer.}
 can include aesthetics whose values you want to set, not map. See
 \code{\link[ggplot2]{layer}} for more details.}
 
-\item{orientation}{character Either "x" or "y" controlling the default for
-\code{formula}. \strong{Support for \code{orientation} is not yet
-implemented but is planned.}}
+\item{orientation}{character The orientation of the layer. The default
+(\code{NA}) automatically determines the orientation from the aesthetic
+mapping. In the rare event that this fails it can be given explicitly by
+setting orientation to either "x" or "y".}
 
 \item{formula}{a formula object. Using aesthetic names \code{x} and \code{y}
-instead of original variable names.}
+instead of original variable names. The rhs must include a call to
+\code{factor()} even if the variable mapped to the \code{x} aesthetic is
+a factor! \emph{In both flipped and not flipped plots, \code{x} should be
+in the rhs}.}
 
-\item{method}{function or character If character, "lm" (or its equivalent
-"aov"), "rlm" or the name of a model fit function are accepted, possibly
-followed by the fit function's \code{method} argument separated by a colon
-(e.g. \code{"rlm:M"}). If a function different to \code{lm()}, it must
-accept as a minimum a model formula through its first parameter, and have
-formal parameters named \code{data}, \code{weights}, and \code{method}, and
-return a model fit object accepted by function \code{glht()}.}
+\item{method}{function or character If character, "lm", "rlm", "lmrob",
+"lts", "gls", "ma", "sma", "segreg", "rq" or the name of a model fit
+function are accepted, possibly followed by the fit function's
+\code{method} argument separated by a colon (e.g. \code{"rlm:M"}). If a
+function is different to \code{lm()}, \code{rlm()}, \code{ltsReg()},
+\code{gls()}, \code{ma}, \code{sma}, it must have formal parameters named
+\code{formula}, \code{data}, and \code{weights}. See Details.}
 
-\item{method.args}{named list with additional arguments.}
+\item{method.args}{named list with additional arguments. Not \code{data}
+or \code{weights} which are always passed through aesthetic mappings.}
 
 \item{contrasts}{character vector of length one or a numeric matrix. If
 character, one of "Tukey" or "Dunnet". If a matrix, one column per level
@@ -78,9 +84,9 @@ function \code{adjusted()} passed as argument to parameter \code{test} of
 "Shaffer", "Westfall", "free", "holm", "hochberg", "hommel", "bonferroni",
 "BH", "BY", "fdr", "none".}
 
-\item{fit.seed}{RNG seed argument passed to \code{\link[base:Random]{set.seed}()}.
-Defaults to \code{NA}, which means that \code{set.seed()} will not be
-called.}
+\item{fit.seed}{RNG seed argument passed to
+\code{\link[base:Random]{set.seed}()}. Defaults to \code{NA}, indicating
+that \code{set.seed()} should not be called.}
 
 \item{fm.cutoff.p.value}{numeric [0..1] The \emph{P}-value for the main
 effect of factor \code{x} in the ANOVA test for the fitted model above
@@ -97,8 +103,7 @@ labelling all pairwise contrasts tested.}
 \item{mc.critical.p.value}{numeric The critical \emph{P}-value used for tests
 when encoded as letters.}
 
-\item{small.p}{logical If true, use of lower case \emph{p} instead of capital
-\emph{P} as the symbol for \emph{P}-value in labels.}
+\item{small.p}{logical Flag to switch use of lower case p for \emph{p}-value.}
 
 \item{adj.method.tag}{numeric, character or function If \code{numeric}, the
 length in characters of the abbreviation of the method used to adjust
@@ -108,42 +113,52 @@ as starting point for the abbreviation the word "adjusted". If
 value used is the value returned by the function when passed
 \code{p.adjust.method} as its only argument.}
 
-\item{p.digits}{integer Number of digits after the decimal point to
-use for \eqn{R^2} and \emph{P}-value in labels.}
+\item{p.digits}{integer Number of digits after the decimal point to use for
+\emph{P}-value in labels. If \code{Inf}, use exponential notation with
+three decimal places.}
 
 \item{label.type}{character One of "bars", "letters" or "LETTERS", selects
 how the results of the multiple comparisons are displayed. Only "bars" can
 be used together with \code{contrasts = "Dunnet"}.}
 
-\item{label.y}{numeric vector Values in native data units or if
-\code{character}, one of "top" or "bottom". Recycled if too short and
-truncated if too long.}
+\item{bjust}{numeric usually with range 0..1, the justification of the labels
+relative to the bars.}
 
-\item{vstep}{numeric in npc units, the vertical displacement step-size
-used between labels for different contrasts when \code{label.type = "bars"}.}
+\item{label.y}{numeric with range 0..1 "normalized parent
+coordinates" (npc units) or character if using \code{geom_text_npc()} or
+\code{geom_label_npc()}. If using \code{geom_text()} or \code{geom_label()}
+numeric in native data units. \emph{In flipped plots, it refers to \code{x}
+rather than \code{y} position}.}
 
-\item{output.type}{character One of "expression", "LaTeX", "text",
-"markdown" or "numeric".}
+\item{vstep}{numeric in npc units, the vertical displacement step-size used
+between labels for different contrasts when
+\code{label.type = "bars"}. \emph{In flipped plots, it increases the
+\code{x} rather than \code{y} position}.}
+
+\item{output.type}{character One of "expression", "text", "markdown",
+"marquee", "latex", "latex.eqn", "latex.deqn" or "numeric".}
 
 \item{na.rm}{a logical indicating whether NA values should be stripped before
 the computation proceeds.}
 
 \item{parse}{logical Passed to the geom. If \code{TRUE}, the labels will be
-parsed into expressions and displayed as described in \code{?plotmath}.
-Default is \code{TRUE} if \code{output.type = "expression"} and
-\code{FALSE} otherwise.}
+parsed into expressions and displayed as described in
+\code{\link[grDevices]{plotmath}}. Default is \code{TRUE} if
+\code{output.type = "expression"} and \code{FALSE} otherwise.}
 
 \item{show.legend}{logical. Should this layer be included in the legends?
 \code{NA}, the default, includes if any aesthetics are mapped. \code{FALSE}
 never includes, and \code{TRUE} always includes.}
 
 \item{inherit.aes}{If \code{FALSE}, overrides the default aesthetics, rather
-than combining with them.}
+than combining with them. This is most useful for helper functions that
+define both data and aesthetics and shouldn't inherit behaviour from the
+default plot specification, e.g. \code{\link[ggplot2]{borders}}.}
 }
 \value{
 A data frame with one row per comparison for \code{label.type =
-  "bars"}, or a data frame with one row per factor \code{x} level for
-  \code{label.type = "letters"} and for \code{label.type = "LETTERS"}.
+  "bars"}, or a data frame with one row per factor level for
+  \code{label.type = "letters"} and \code{label.type = "LETTERS"}.
   Variables (= columns) as described under \strong{Computed variables}.
 }
 \description{
@@ -160,22 +175,31 @@ This statistic can be used to automatically annotate a plot with
   first one) or a subset of all possible pairwise contrasts. See Meier (2022,
   Chapter 3) for an accessible explanation of multiple comparisons and
   contrasts with package 'multcomp', of which \code{stat_multcomp()} is
-  mostly a wrapper.
+  mostly a wrapper. It supports most model fit methods supported by function
+  \code{\link[multcomp]{glht}()}. The requirement is that the necessary query
+  functions for the class of the fitted model object are available. If not
+  supported, an error will be triggered by \code{glht()}. The computations
+  are done in two stages. First a model is fitted to all the data in a plot
+  panel, followed by the pairwise contrasts. A threshold \eqn{P}-value can
+  the set for the main effect of "treatments" as a condition to apply the
+  pairwise tests.
 
-  The explanatory variable mapped to the \emph{x} aesthetic must be a factor
-  as this creates the required grouping. Currently, contrasts that involve
-  more than two levels of a factor, such as the average of two treatment
-  levels against a control level are not supported, mainly because they
-  require a new geometry that I need to design, implement and add to package
-  'ggpp'.
+  One variable mapped to either \emph{x} or \emph{y} aesthetic must be a
+  factor, and the other variable a continuous one. Mapping a factor creates
+  the required grouping and determines the default orientation, i.e.,
+  similarly as in \code{\link[ggplot2:geom_boxplot]{stat_boxplot}()}.
 
   Two ways of displaying the outcomes are implemented, and are selected by
-  `"bars"`, `"letters"` or `"LETTERS"` as argument to parameter
-  `label.type`. `"letters"` and `"LETTERS"` can be used only with Tukey
-  contrasts, as otherwise the encoding is ambiguous. As too many bars clutter
-  a plot, the maximum number of factor levels supported for `"bars"` together
-  with Tukey contrasts is five, while together with Dunnet contrasts or
-  contrasts defined by a numeric matrix, no limit is imposed.
+  `"bars"`, `"letters"` or `"LETTERS"` as argument to parameter `label.type`.
+  `"letters"` and `"LETTERS"` can be used only with Tukey contrasts, as
+  otherwise the encoding is ambiguous. As too many bars clutter a plot, the
+  maximum number of factor levels supported for `"bars"` together with Tukey
+  contrasts is five, while together with Dunnet contrasts or contrasts
+  defined by a numeric matrix, no limit is imposed. \code{label.y} determines
+  the location of the \emph{letters} labels or the position of the first
+  \emph{pairwise label}. If \code{label.y} is numeric and has length > 1,
+  values are taken as positions for successive bar labels, and recycled if
+  the vector is too short, ignoring \code{vstep}.
 
   \code{stat_multcomp()} by default generates character labels ready to be
   parsed as R expressions but LaTeX (use TikZ device), markdown (use package
@@ -186,35 +210,36 @@ This statistic can be used to automatically annotate a plot with
   statistic only generates annotation labels and segments connecting the
   compared factor levels, or letter labels that discriminate significantly
   different groups.
+
+  \emph{Currently, contrasts that involve more than two levels of a factor,
+  such as the average of two treatment levels against a control level are not
+  supported. Similarly, flipping is not yet functional with bar labels
+  because of the lack of a working geom.}
 }
 \note{
 R option \code{OutDec} is obeyed based on its value at the time the plot
   is rendered, i.e., displayed or printed. Set \code{options(OutDec = ",")}
   for languages like Spanish or French.
-
-\code{stat_multcomp()} understands \code{x} and
-  \code{y}, to be referenced in the \code{formula} and \code{weight} passed
-  as argument to parameter \code{weights}. A factor must be mapped to
-  \code{x} and \code{numeric} variables to \code{y}, and, if used, to
-  \code{weight}. In addition, the aesthetics understood by the geom
-  (\code{"label_pairwise"} is the default for \code{label.type = "bars"},
-  \code{"text"} is the default for \code{label.type = "letters"} and for
-  \code{label.type = "LETTERS"}) are understood and grouping
-  respected.
 }
 \section{Computed variables}{
+
+
+  Computed variables and their names vary depending on the \code{method} used
+  to fit a model or the \code{output.type} in use. They can also depend for a
+  given \code{method} on the \code{contrasts}.
 
 If \code{output.type = "numeric"} and
 \code{label.type = "bars"} the returned tibble contains
 columns listed below. In all cases if the model fit function used does not return a value,
 the label is set to \code{character(0L)} and the numeric value to \code{NA}.
 \describe{
-  \item{x,x.left.tip,x.right.tip}{x position, numeric.}
-  \item{y}{y position, numeric.}
+  \item{x,xmin,xmax}{x position, numeric.}
+  \item{y,ymin,ymax}{y position, numeric.}
   \item{coefficients}{Delta estimate from pairwise contrasts, numeric.}
   \item{contrasts}{Contrasts as two levels' ordinal "numbers" separated by a dash, character.}
   \item{tstat}{\emph{t}-statistic estimates for the pairwise contrasts, numeric.}
   \item{p.value}{\emph{P}-value for the pairwise contrasts.}
+  \item{p.signif}{logical for the pairwise contrasts significance.}
   \item{fm.method}{Set according \code{method} used.}
   \item{fm.class}{Most derived class of the fitted model object.}
   \item{fm.formula}{Formula extracted from the fitted model object if available, or the formula argument.}
@@ -235,12 +260,13 @@ addition the following labels:
   \item{t.value.label}{\emph{t}-statistic estimates for the pairwise contrasts, character.}
   }
 
-If \code{label.type = "letters"} or \code{label.type = "LETTERS"} the returned tibble contains
-columns listed below.
+If \code{output.type = "numeric"} and \code{label.type = "letters"} or
+\code{label.type = "LETTERS"} the returned tibble contains columns listed
+below.
 
 \describe{
-  \item{x,x.left.tip,x.right.tip}{x position, numeric.}
-  \item{y}{y position, numeric.}
+  \item{x,xmin,xmax}{x position, numeric.}
+  \item{y,ymin,ymax}{y position, numeric.}
   \item{critical.p.value}{\emph{P}-value used in pairwise tests, numeric.}
   \item{fm.method}{Set according \code{method} used.}
   \item{fm.class}{Most derived class of the fitted model object.}
@@ -279,15 +305,40 @@ applied.
   \item{\code{"marquee"}}{The labels are encoded as character strings using markdown syntax, with 'marquee' supported spans.}
   \item{\code{"text"}}{The labels are plain ASCII character strings.}
   \item{\code{"numeric"}}{No labels are generated. This value is accepted by the statistics, but not by the label formatting functions.}
-  \item{\code{NULL}}{The value used, \code{expression}, \code{latex.eqn} or \code{markup} depends on the argument passed to \code{geom}.}}
+  \item{\code{NULL}}{The value used depends on the argument passed to \code{geom}.}}
 
 If \code{geom = "latex"} (package 'xdvir') the output type used is
 \code{"latex.eqn"}. If \code{geom = "richtext"} (package 'ggtext') or
 \code{geom = "textbox"} (package 'ggtext') the output type used is
 \code{"markdown"}. If \code{geom = "marquee"} (package 'marquee') the output
 type used is \code{"marquee"}. For all other values of \code{geom} the default
-is \code{"expression"} unless the user passes an argument. Invalid values as
-argument trigger an Error.
+is \code{"expression"}. Invalid values as argument trigger an error.
+}
+
+\section{Which variables are available for mapping?}{
+
+  Computed variables and their names can vary depending on the \code{method}
+  used to fit a model or the \code{output.type} in use. They can also depend
+  for a given \code{method} on other arguments passed when fitting a model or
+  extracting estimates and other computed values. In many cases, when values
+  are not available, the variables are filled with \code{NA} values.
+
+  In the statistics returning formatted strings for use as annotations, a
+  message is issued by default in interactive R sessions, listing the short
+  names for available formatted labels as recognized by functions
+  \code{\link{use_label}()} and \code{\link{f_use_label}()}, except when
+  \code{output.type = "numeric"} is passed, in which case the names of all
+  variables accessible by \code{after_stat()} within a call to \code{aes()}
+  are listed. This default (\code{"nicknames"}) can be changed by setting R option
+  \code{"ggpmisc.stat.vars.message"} to one of \code{"names"},
+  \code{"colnames"} or \code{"none"}.
+
+  In the statistics that plot a prediction or more generally mainly return
+  numeric variables, a message is issued by default in interactive R
+  sessions, listing the names of all variables accessible by
+  \code{after_stat()} within a call to \code{aes()} with at least some
+  non-missing values. This default (\code{"colnames"}) can be changed by
+  setting R option \code{"ggpmisc.stat.vars.message"} to \code{"none"}.
 }
 
 \examples{
@@ -301,7 +352,7 @@ p1 +
   stat_multcomp()
 
 p1 +
-  stat_multcomp(adj.method.tag = 0)
+  stat_multcomp(adj.method.tag = FALSE)
 
 # test against a control, with first level being the control
 # change order of factor levels in data to set the control group
@@ -316,22 +367,10 @@ p1 +
 
 # different methods to adjust the contrasts
 p1 +
-  stat_multcomp(p.adjust.method = "bonferroni")
-
-p1 +
   stat_multcomp(p.adjust.method = "holm")
 
 p1 +
   stat_multcomp(p.adjust.method = "fdr")
-
-# no correction, useful only for comparison
-p1 +
-  stat_multcomp(p.adjust.method = "none")
-
-# sometimes we need to expand the plotting area
-p1 +
-  stat_multcomp(geom = "text_pairwise") +
-  scale_y_continuous(expand = expansion(mult = c(0.05, 0.10)))
 
 # position of contrasts' bars (based on scale limits)
 p1 +
@@ -349,6 +388,12 @@ p1 +
 p1 +
   stat_multcomp(p.digits = 4)
 
+# highlight significant differences
+p1 +
+  stat_multcomp(aes(alpha = after_stat(p.signif)),
+                alpha.target = c("text", "segment", "box.line")) +
+  scale_alpha_manual(values =  c(0.33, 1))
+
 # label only significant differences
 # but test and correct for all pairwise contrasts!
 p1 +
@@ -359,48 +404,38 @@ p1 +
 p1 +
   stat_multcomp(label.type = "letters")
 
-# use capital letters
-p1 +
-  stat_multcomp(label.type = "LETTERS")
-
-# location
-p1 +
-  stat_multcomp(label.type = "letters",
-                label.y = "top")
-
-p1 +
-  stat_multcomp(label.type = "letters",
-                label.y = 0)
-
 # stricter critical p-value than default used for test
 p1 +
   stat_multcomp(label.type = "letters",
                 mc.critical.p.value = 0.01)
 
-# Inspecting the returned data using geom_debug_panel()
-# This provides a quick way of finding out the names of the variables that
-# are available for mapping to aesthetics with after_stat().
+# justification of label in bar, and text anchor point
+# for a compact display
 
-gginnards.installed <- requireNamespace("gginnards", quietly = TRUE)
-
-if (gginnards.installed)
-  library(gginnards)
-
-if (gginnards.installed)
 p1 +
+  stat_multcomp(geom = "text_pairwise",
+                arrow = grid::arrow(ends = "both",
+                                    length = unit(1.5, "mm")),
+                bjust = 0,
+                hjust = 1.05,
+                vjust = 0.5,
+                vstep = 0.05,
+                label.y = 14,
+                adj.method.tag = 0) +
+  expand_limits(y = 0)
+
+## Flipping is supported
+p2 <- ggplot(mpg, aes(hwy, factor(cyl))) +
+  geom_boxplot(width = 0.33)
+
+p2 +
+  stat_multcomp(label.type = "letters") +
+  scale_y_discrete(expand = expansion(add = c(1.2, 0.5)))
+
+p2 +
   stat_multcomp(label.type = "bars",
-                geom = "debug_panel")
-
-if (gginnards.installed)
-p1 +
-  stat_multcomp(label.type = "letters",
-                geom = "debug_panel")
-
-if (gginnards.installed)
-p1 +
-  stat_multcomp(label.type = "bars",
-                output.type = "numeric",
-                geom = "debug_panel")
+                geom = "text_pairwise",
+                size = 3)
 
 }
 \references{
@@ -414,8 +449,12 @@ This statistic uses the implementation of Tests of General Linear
   \code{\link[multcomp]{summary.glht}} and \code{\link[stats]{p.adjust}}
   for the supported tests and the references therein for the theory
   behind them.
+
+  Please, see the articles at
+  \href{https://docs.r4photobiology.info/ggpmisc/}{online-only documentation}
+  for additional use examples and guidance.
 }
-\concept{ggplot statistics for multiple comparisons}
+\concept{statistics for multiple comparison annotations}
 \section{Aesthetics}{
 
 \code{stat_multcomp()} understands the following aesthetics. Required aesthetics are displayed in bold and defaults are displayed for optional aesthetics:
@@ -427,8 +466,10 @@ This statistic uses the implementation of Tests of General Linear
  • \tab \code{label} \tab → \code{after_stat(default.label)} \cr
  • \tab \code{\link[ggplot2:aes_linetype_size_shape]{size}} \tab → \code{2.5} \cr
  • \tab \code{weight} \tab → \code{1} \cr
- • \tab \code{\link[ggplot2:aes_position]{xmax}} \tab → \code{after_stat(x.right.tip)} \cr
- • \tab \code{\link[ggplot2:aes_position]{xmin}} \tab → \code{after_stat(x.left.tip)} \cr
+ • \tab \code{\link[ggplot2:aes_position]{xmax}} \tab → \code{after_stat(ifelse(flipped_aes, NA_real_, xmax))} \cr
+ • \tab \code{\link[ggplot2:aes_position]{xmin}} \tab → \code{after_stat(ifelse(flipped_aes, NA_real_, xmin))} \cr
+ • \tab \code{\link[ggplot2:aes_position]{ymax}} \tab → \code{after_stat(ifelse(flipped_aes, ymax, NA_real_))} \cr
+ • \tab \code{\link[ggplot2:aes_position]{ymin}} \tab → \code{after_stat(ifelse(flipped_aes, ymin, NA_real_))} \cr
 }
 
 Learn more about setting these aesthetics in \code{vignette("ggplot2-specs")}.

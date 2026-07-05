@@ -1,122 +1,4 @@
-#' Predicted band from quantile regression fits
-#'
-#' Predicted values are computed and, by default, plotted as a band plus an
-#' optional line within. \code{stat_quant_band()} supports the use of both
-#' \code{x} and \code{y} as explanatory variable in the model formula.
-#'
-#' This statistic is similar to \code{\link{stat_quant_line}} but plots the
-#' quantiles differently with the band representing a region between two
-#' quantiles, while in \code{stat_quant_line()} the bands plotted when
-#' \code{se = TRUE} represent confidence intervals for the fitted quantile
-#' lines.
-#'
-#' @details
-#' \code{\link[ggplot2]{geom_smooth}}, which is used by default, treats each
-#' axis differently and thus is dependent on orientation. If no argument is
-#' passed to \code{formula}, it defaults to \code{y ~ x} but \code{x ~y} is also
-#' accepted, and equivalent to \code{y ~ x} plus \code{orientation = "y"}.
-#' Package 'ggpmisc' does not define a new geometry matching this statistic as
-#' it is enough for the statistic to return suitable `data` for plotting.
-#'
-#' @inheritParams stat_quant_line
-#' @param quantiles A numeric vector of length 3, with unique values in
-#'   \eqn{0\ldots 1}. The three quantile regressions are mapped to \code{y},
-#'   \code{ymax} and \code{ymin} aesthetics, and by default plotted as a line
-#'   and band.
-#'
-#' @aesthetics StatQuantBand
-#'
-#' @return The value returned by the statistic is a data frame, that will have
-#'   \code{n} rows of predicted values for three quantiles as \code{y},
-#'   \code{ymin} and \code{ymax}, plus \code{x}.
-#'
-#' @inheritSection stat_poly_line Model fit methods supported
-#'
-#' @section Aesthetics: \code{stat_quant_eq} expects \code{x} and \code{y},
-#'   aesthetics to be used in the \code{formula} rather than the names of the
-#'   variables mapped to them. If present, the variable mapped to the
-#'   \code{weight} aesthetics is passed as argument to parameter \code{weights}
-#'   of the fitting function. All three must be mapped to \code{numeric}
-#'   variables. In addition, the aesthetics recognized by the geometry
-#'   (\code{"geom_smooth"} is the default) are obeyed and grouping
-#'   respected.
-#'
-#' @export
-#'
-#' @examples
-#' ggplot(mpg, aes(displ, hwy)) +
-#'   geom_point() +
-#'   stat_quant_band()
-#'
-#' # If you need the fitting to be done along the y-axis set the orientation
-#' ggplot(mpg, aes(displ, hwy)) +
-#'   geom_point() +
-#'   stat_quant_band(orientation = "y")
-#'
-#' ggplot(mpg, aes(displ, hwy)) +
-#'   geom_point() +
-#'   stat_quant_band(formula = y ~ x)
-#'
-#' ggplot(mpg, aes(displ, hwy)) +
-#'   geom_point() +
-#'   stat_quant_band(formula = x ~ y)
-#'
-#' ggplot(mpg, aes(displ, hwy)) +
-#'   geom_point() +
-#'   stat_quant_band(formula = y ~ poly(x, 3))
-#'
-#' ggplot(mpg, aes(displ, hwy)) +
-#'   geom_point() +
-#'   stat_quant_band(formula = x ~ poly(y, 3))
-#'
-#' # Instead of rq() we can use rqss() to fit an additive model:
-#' ggplot(mpg, aes(displ, hwy)) +
-#'   geom_point() +
-#'   stat_quant_band(method = "rqss",
-#'                   formula = y ~ qss(x))
-#'
-#' ggplot(mpg, aes(displ, hwy)) +
-#'   geom_point() +
-#'   stat_quant_band(method = "rqss",
-#'                   formula = x ~ qss(y, constraint = "D"))
-#'
-#' # Regressions are automatically fit to each group (defined by categorical
-#' # aesthetics or the group aesthetic) and for each facet.
-#'
-#' ggplot(mpg, aes(displ, hwy, colour = class)) +
-#'   geom_point() +
-#'   stat_quant_band(formula = y ~ x)
-#'
-#' ggplot(mpg, aes(displ, hwy)) +
-#'   geom_point() +
-#'   stat_quant_band(formula = y ~ poly(x, 2)) +
-#'   facet_wrap(~drv)
-#'
-#' ggplot(mpg, aes(displ, hwy)) +
-#'   geom_point() +
-#'   stat_quant_band(linetype = "dashed", color = "darkred", fill = "red")
-#'
-#' ggplot(mpg, aes(displ, hwy)) +
-#'   stat_quant_band(color = NA, alpha = 1) +
-#'   geom_point()
-#'
-#' ggplot(mpg, aes(displ, hwy)) +
-#'   stat_quant_band(quantiles = c(0, 0.1, 0.2)) +
-#'   geom_point()
-#'
-#' # Inspecting the returned data using geom_debug_group()
-#' gginnards.installed <- requireNamespace("gginnards", quietly = TRUE)
-#'
-#' if (gginnards.installed)
-#'   library(gginnards)
-#'
-#' if (gginnards.installed)
-#'   ggplot(mpg, aes(displ, hwy)) +
-#'     stat_quant_band(geom = "debug_group")
-#'
-#' if (gginnards.installed)
-#'   ggplot(mpg, aes(displ, hwy)) +
-#'     stat_quant_band(geom = "debug_group", fm.values = TRUE)
+#' @rdname stat_quant_eq
 #'
 #' @export
 #'
@@ -131,6 +13,8 @@ stat_quant_band <- function(mapping = NULL,
                             fit.seed = NA,
                             fm.values = FALSE,
                             n = 80,
+                            fullrange = FALSE,
+                            limit.to = NULL,
                             method = "rq",
                             method.args = list(),
                             n.min = 3L,
@@ -172,10 +56,35 @@ stat_quant_band <- function(mapping = NULL,
   orientation <- temp[["orientation"]]
   formula <-  temp[["formula"]]
 
+  limit.to <- check_limit_to(fullrange = fullrange,
+                             limit.to = limit.to,
+                             orientation = orientation)
+
   quantiles <- unique(quantiles)
   if (length(quantiles) != 3) {
     stop("'quantiles' should be a vector of 3 unique quantiles, not ",
          length(quantiles), " quantiles. See 'stat_quant_line()'")
+  }
+
+  temp.pars <- rlang::list2(
+    quantiles = quantiles,
+    formula = formula,
+    fit.seed = fit.seed,
+    fm.values = fm.values,
+    n = n,
+    limit.to = limit.to,
+    method = method,
+    method.name = method.name,
+    method.args = method.args,
+    n.min = n.min,
+    na.rm = na.rm,
+    orientation = orientation,
+    ...
+  )
+
+  # avoid warning from other geoms such as "pointrange"
+  if (geom == "smooth") {
+    temp.pars$se <- TRUE
   }
 
   ggplot2::layer(
@@ -186,22 +95,7 @@ stat_quant_band <- function(mapping = NULL,
     position = position,
     show.legend = show.legend,
     inherit.aes = inherit.aes,
-    params =
-      rlang::list2(
-        quantiles = quantiles,
-        formula = formula,
-        fit.seed = fit.seed,
-        fm.values = fm.values,
-        n = n,
-        method = method,
-        method.name = method.name,
-        method.args = method.args,
-        n.min = n.min,
-        na.rm = na.rm,
-        orientation = orientation,
-        se = TRUE, # passed to geom_smooth
-        ...
-      )
+    params = temp.pars
   )
 }
 
@@ -217,6 +111,8 @@ quant_band_compute_group_fun <- function(data,
                                          quantiles = c(0.25, 0.5, 0.75),
                                          formula = NULL,
                                          n = 80,
+                                         limit.to = "x",
+                                         xseq = NULL,
                                          method,
                                          method.name,
                                          method.args = list(),
@@ -225,7 +121,8 @@ quant_band_compute_group_fun <- function(data,
                                          fit.seed = NA,
                                          fm.values = FALSE,
                                          na.rm = FALSE,
-                                         flipped_aes = NA) {
+                                         flipped_aes = NA,
+                                         orientation = "x") {
 
   rlang::check_installed("quantreg", reason = "to use stat_quant_band()")
 
@@ -254,10 +151,25 @@ quant_band_compute_group_fun <- function(data,
                               na.rm = na.rm,
                               orientation = "x")
 
-  seq.indep <- seq(from = min(data[["x"]], na.rm = TRUE),
-                   to   = max(data[["x"]], na.rm = TRUE),
-                   length.out = n)
-  newdata <- data.frame(x = seq.indep)
+  if (is.numeric(limit.to)) {
+    xseq <- limit.to
+    limit.to <- "none"
+  }
+
+  if (is.null(xseq)) {
+    if (grepl("x", limit.to)) {
+      xrange <- range(data[[orientation]], na.rm = TRUE)
+    } else {
+      xrange <- scales[[orientation]]$dimension()
+    }
+    if (grepl("y", limit.to)) {
+      yrange <- range(data[[c(x = "y", y = "x")[orientation]]], na.rm = TRUE)
+    } else {
+      yrange <- scales[[c(x = "y", y = "x")[orientation]]]$dimension()
+    }
+    xseq <- seq(from = xrange[1], to = xrange[2], length.out = n)
+  }
+  newdata <- data.frame(x = xseq)
 
   preds.ls <- list()
   preds.names <- c("ymin", "y", "ymax")
@@ -289,6 +201,14 @@ quant_band_compute_group_fun <- function(data,
   if (!"y" %in% colnames(newdata)) {
     # y in required_aes
     newdata[["y"]] <- NA_real_
+  } else {
+    if (grepl("y", limit.to)) {
+      # with steep slopes trimming on the response range can be needed
+      selector <-
+        which(newdata[[c(x = "y", y = "x")[orientation]]] >= yrange[1] &
+                newdata[[c(x = "y", y = "x")[orientation]]] <= yrange[2])
+      newdata <- newdata[selector, ]
+    }
   }
 
   if (fm.values) {
@@ -297,7 +217,11 @@ quant_band_compute_group_fun <- function(data,
   }
 
   newdata[["flipped_aes"]] <- flipped_aes
-  ggplot2::flip_data(newdata, flipped_aes)
+  z <- ggplot2::flip_data(newdata, flipped_aes)
+
+  show_colnames(z, stat.name = "stat_quant_band")
+
+  z
 }
 
 #' @rdname ggpmisc-ggproto

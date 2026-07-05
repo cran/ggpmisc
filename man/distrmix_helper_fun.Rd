@@ -24,26 +24,28 @@ distrmix_helper_fun(
 \item{data}{A layer specific dataset, only needed if you want to override the
 plot defaults.}
 
-\item{method}{function or character If character, "normalmixEM"
-or the name of a model fit function are accepted, possibly followed by the
-fit function's \code{method} argument separated by a colon. The function
-must return a model fit object of class \code{mixEM}.}
+\item{method}{function or character If character, \code{"normalmixEM"} or the
+name of a model fit function are accepted, possibly followed by the fit
+function's method argument separated by a colon. The function must return a
+model fit object of class \code{"mixEM"}.}
 
-\item{se}{Currently ignored.}
+\item{se}{logical If \code{TRUE} standard errors for the parameter estimates
+are returned in addition to the parameter estimates.}
 
-\item{method.args}{named list with additional arguments.}
+\item{method.args}{named list with additional arguments. Not \code{data}
+or \code{weights} which are always passed through aesthetic mappings.}
 
 \item{k}{integer Number of mixture components to fit.}
 
 \item{free.mean, free.sd}{logical If TRUE, allow the fitted \code{mean} and/or
 fitted \code{sd} to vary among the component Normal distributions.}
 
-\item{n.min}{integer Minimum number of distinct values in the mapped
-variable for fitting to the attempted.}
+\item{n.min}{integer Minimum number of distinct values in the variable for
+fitting to the attempted. The default depends on \code{k}.}
 
-\item{fit.seed}{RNG seed argument passed to \code{\link[base:Random]{set.seed}()}.
-Defaults to \code{NA}, which means that \code{set.seed()} will not be
-called.}
+\item{fit.seed}{RNG seed argument passed to
+\code{\link[base:Random]{set.seed}()}. Defaults to \code{NA}, indicating
+that \code{set.seed()} should not be called.}
 
 \item{fm.values}{logical Add parameter estimates and their standard errors
 to the returned values (`FALSE` by default.)}
@@ -59,4 +61,9 @@ This function does the model fitting and returns a data frame with the
 estimates for the parameters. It is a wrapper on functions from package
 'mixtools'.
 }
+\seealso{
+Other model-fitting helper functions:
+\code{\link[=quant_helper_fun]{quant_helper_fun()}}
+}
+\concept{model-fitting helper functions}
 \keyword{internal}

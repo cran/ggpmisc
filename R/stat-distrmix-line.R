@@ -1,179 +1,30 @@
-#' Predicted line from distribution mixture model fit
-#'
-#' \code{stat_distrmix_line()} fits a Normal mixture model, by default with
-#' \code{\link[mixtools]{normalmixEM}()}. Predicted values are
-#' computed and, by default, plotted.
-#'
-#' @param mapping The aesthetic mapping, usually constructed with
-#'   \code{\link[ggplot2]{aes}}. Only needs to be set at the layer level if you
-#'   are overriding the plot defaults.
-#' @param data A layer specific dataset, only needed if you want to override the
-#'   plot defaults.
-#' @param geom The geometric object to use display the data
-#' @param position The position adjustment to use for overlapping points on this
-#'   layer.
-#' @param show.legend logical. Should this layer be included in the legends?
-#'   \code{NA}, the default, includes if any aesthetics are mapped. \code{FALSE}
-#'   never includes, and \code{TRUE} always includes.
-#' @param inherit.aes If \code{FALSE}, overrides the default aesthetics, rather
-#'   than combining with them. This is most useful for helper functions that
-#'   define both data and aesthetics and shouldn't inherit behaviour from the
-#'   default plot specification, e.g. \code{\link[ggplot2]{borders}}.
-#' @param ... other arguments passed on to \code{\link[ggplot2]{layer}}. This
-#'   can include aesthetics whose values you want to set, not map. See
-#'   \code{\link[ggplot2]{layer}} for more details.
-#' @param na.rm	a logical indicating whether NA values should be stripped before
-#'   the computation proceeds.
-#' @param method function or character If character, "normalmixEM"
-#'   or the name of a model fit function are accepted, possibly followed by the
-#'   fit function's \code{method} argument separated by a colon. The function
-#'   must return a model fit object of class \code{mixEM}.
-#' @param method.args named list with additional arguments.
-#' @param k integer Number of mixture components to fit.
-#' @param free.mean,free.sd logical If TRUE, allow the fitted \code{mean} and/or
-#'   fitted \code{sd} to vary among the component Normal distributions.
-#' @param components character One of \code{"all"}, \code{"sum"}, or
-#'   \code{"members"} select which densities are returned.
-#' @param n.min integer Minimum number of distinct values in the mapped
-#'   variable for fitting to the attempted.
-#' @param se Currently ignored.
-#' @param fit.seed RNG seed argument passed to \code{\link[base:Random]{set.seed}()}.
-#'   Defaults to \code{NA}, which means that \code{set.seed()} will not be
-#'   called.
-#' @param fm.values logical Add parameter estimates and their standard errors
-#'   to the returned values (`FALSE` by default.)
-#' @param fullrange Should the prediction span the combined range of the scale
-#'   and of the fitted distributions, or just span the range of the data?
-#' @param level Level of confidence interval to use (0.95 by default).
-#' @param n Number of points at which to evaluate the model prediction.
-#' @param orientation character Either "x" or "y", the mapping of the values
-#'   to which the mixture model is to be fitetd. NOT YET IMPLEMENTED!
-#'
-#' @aesthetics StatDistrmixLine
-#'
-#' @details This statistic is similar to \code{\link[ggplot2]{stat_density}} but
-#'   instead of fitting a single distribution it can fit a mixture of two or
-#'   more Normal distributions, using an approach related to clustering.
-#'   Defaults are consistent between \code{stat_distrmix_line()} and
-#'   \code{stat_distrmix_eq()}. Parameter \code{fit.seed} if not \code{NA} is used
-#'   in a call to \code{set.seed()} immediately before calling the model fit
-#'   function. As the fitting procedure makes use of the (pseudo-)random number
-#'   generator (RNG), convergence can depend on it, and in such cases setting
-#'   \code{fit.seed} to the same value in \code{\link{stat_distrmix_line}()} and in
-#'   \code{\link{stat_distrmix_eq}()} can ensure consistency, and more
-#'   generally, reproducibility.
-#'
-#'   A mixture model as described above, is fitted for \code{k >= 2}, while
-#'   \code{k == 1} is treated as a special case and a Normal distribution fitted
-#'   with function \code{\link[MASS]{fitdistr}()}. In this case the SE values
-#'   are exact estimates.
-#'
-#' @return The value returned by the statistic is a data frame, with \code{n}
-#'   rows of predicted density for each component of the mixture plus their
-#'   sum and the corresponding vector of \code{x} values. Optionally it will
-#'   also include additional values related to the model fit.
-#'
-#' @section Computed variables: \code{stat_distrmix_line()} provides the following
-#'   variables, some of which depend on the orientation:
-#'   \describe{\item{density}{predicted density values}
-#'   \item{x}{the \code{n} values for the quantiles}
-#'   \item{component}{A factor indexing the components and/or their sum}}
-#'
-#'   If \code{fm.values = TRUE} is passed then columns with diagnosis and
-#'   parameters estimates are added, with the same value in each row within a
-#'   group:
-#'   \describe{\item{converged}{\code{logical} indicating if convergence was achieved}
-#'   \item{n}{\code{numeric} the number of \code{x} values}
-#'   \item{.size}{\code{numeric} the number of \code{density} values}
-#'   \item{fm.class}{\code{character} the most derived class of the fitted model object}
-#'   \item{fm.method}{\code{character} the method, as given by the \code{ft}
-#'   field of the fitted model objects}}
-#'   This is wasteful and disabled by default, but provides a simple and robust
-#'   approach to achieve effects like colouring or hiding of the model fit line
-#'   by group depending on the outcome of model fitting.
-#'
-#' @family ggplot statistics for mixture model fits.
-#'
-#' @examples
-#' ggplot(faithful, aes(x = waiting)) +
-#'   stat_distrmix_line()
-#'
-#' # ggplot(faithful, aes(y = waiting)) +
-#' #  stat_distrmix_line(orientation = "y")
-#'
-#' ggplot(faithful, aes(x = waiting)) +
-#'   stat_distrmix_line(components = "sum")
-#'
-#' ggplot(faithful, aes(x = waiting)) +
-#'   stat_distrmix_line(components = "members")
-#'
-#' ggplot(faithful, aes(x = waiting)) +
-#'  geom_histogram(aes(y = after_stat(density)), bins = 20) +
-#'  stat_distrmix_line(aes(colour = after_stat(component),
-#'                          fill = after_stat(component)),
-#'                      geom = "area", linewidth = 1, alpha = 0.25, se = FALSE)
-#'
-#' ggplot(faithful, aes(x = waiting)) +
-#'  stat_distrmix_line(aes(colour = after_stat(component),
-#'                          fill = after_stat(component)),
-#'                      geom = "area", linewidth = 1, alpha = 0.25,
-#'                      components = "members", se = FALSE)
-#'
-#' ggplot(faithful, aes(x = waiting)) +
-#'  stat_distrmix_line(geom = "area", linewidth = 1, alpha = 0.25,
-#'                      colour = "black", outline.type = "upper",
-#'                      components = "sum", se = FALSE)
-#'
-#' # special case of no mixture
-#' ggplot(subset(faithful, waiting > 66), aes(x = waiting)) +
-#'   stat_distrmix_line(k = 1)
-#'
-#' # Inspecting the returned data using geom_debug_group()
-#' gginnards.installed <- requireNamespace("gginnards", quietly = TRUE)
-#'
-#' if (gginnards.installed)
-#'   library(gginnards)
-#'
-#' if (gginnards.installed)
-#'   ggplot(faithful, aes(x = waiting)) +
-#'     stat_distrmix_line(geom = "debug_group", components = "all")
-#'
-#' if (gginnards.installed)
-#'   ggplot(faithful, aes(x = waiting)) +
-#'     stat_distrmix_line(geom = "debug_group", components = "sum")
-#'
-#' if (gginnards.installed)
-#'   ggplot(faithful, aes(x = waiting)) +
-#'     stat_distrmix_line(geom = "debug_group", components = "members")
-#'
-#' if (gginnards.installed)
-#'   ggplot(faithful, aes(x = waiting)) +
-#'     stat_distrmix_line(geom = "debug_group", fm.values = TRUE)
+#' @rdname stat_distrmix_eq
 #'
 #' @export
 #'
 stat_distrmix_line <- function(mapping = NULL,
-                                data = NULL,
-                                geom = "line",
-                                position = "identity",
-                                ...,
-                                orientation = "x",
-                                method = "normalmixEM",
-                                se = NULL,
-                                fit.seed = NA,
-                                fm.values = FALSE,
-                                n = min(100 + 50 * k, 300),
-                                fullrange = TRUE,
-                                level = 0.95,
-                                method.args = list(),
-                                k = 2,
-                                free.mean = TRUE,
-                                free.sd = TRUE,
-                                components = "all",
-                                n.min = 10L * k,
-                                na.rm = FALSE,
-                                show.legend = NA,
-                                inherit.aes = TRUE) {
+                               data = NULL,
+                               geom = "line",
+                               position = "identity",
+                               ...,
+                               orientation = NA,
+                               method = "normalmixEM",
+                               se = NULL,
+                               quantiles = NA,
+                               fit.seed = NA,
+                               fm.values = FALSE,
+                               n = 500,
+                               fullrange = TRUE,
+                               level = 0.95,
+                               method.args = list(),
+                               k = 2,
+                               free.mean = TRUE,
+                               free.sd = TRUE,
+                               components = "all",
+                               n.min = 10L * k,
+                               na.rm = FALSE,
+                               show.legend = NA,
+                               inherit.aes = TRUE) {
 
   stopifnot("Arg 'x' should not be in 'method.args'!" =
               !any("x" %in% names(method.args)))
@@ -195,7 +46,7 @@ stat_distrmix_line <- function(mapping = NULL,
   }
 
   if (is.null(k)) {
-    k <- k
+    k <- 2
   } else if (k < 1) {
     stop("Expected k >= 1, but k = ", k)
   }
@@ -212,6 +63,7 @@ stat_distrmix_line <- function(mapping = NULL,
       method = method,
       method.name = method.name,
       se = se,
+      quantiles = quantiles,
       fit.seed = fit.seed,
       fm.values = fm.values,
       n = n,
@@ -236,10 +88,11 @@ distrmix_compute_group_fun <-
            method,
            method.name,
            se = FALSE,
+           quantiles = NA,
            fit.seed = NA,
            fm.values = FALSE,
-           n = 80,
-           fullrange = FALSE,
+           n = 500,
+           fullrange = TRUE,
            xseq = NULL,
            level = 0.95,
            method.args = list(),
@@ -249,12 +102,19 @@ distrmix_compute_group_fun <-
            components = "all",
            n.min = 10L * k,
            na.rm = FALSE,
-           flipped_aes = NA,
-           orientation = "x") {
+           flipped_aes,
+           orientation = NA) {
 
     rlang::check_installed("mixtools", reason = "to use stat_distrmix_line()")
 
     data <- ggplot2::flip_data(data, flipped_aes)
+    if (is.na(orientation)) {
+      if (flipped_aes) {
+        orientation <- "y"
+      } else {
+        orientation <- "x"
+      }
+    }
 
     if (length(unique(data$x)) < n.min) {
       message("Skipping! Fewer than 'n.min = ", n.min,
@@ -284,26 +144,23 @@ distrmix_compute_group_fun <-
     fm_params.tb <- fm_params.tb[-nrow(fm_params.tb), ]
 
     # x range used for prediction
-    if (fullrange) {
-      # ensure that the component Normals are fully predicted
-      x.range <- range(qnorm(p = 0.0005,
-                             mean = fm_params.tb[["mu"]],
-                             sd = fm_params.tb[["sigma"]],
-                             lower.tail = TRUE),
-                       qnorm(p = 0.0005,
-                             mean = fm_params.tb[["mu"]],
-                             sd = fm_params.tb[["sigma"]],
-                             lower.tail = FALSE),
-                       scales[[orientation]]$dimension())
-    } else {
-      # predict the component normals in the data range
-      x.range <- range(data[["x"]])
-    }
+    # ensure that all the component Normals are fully predicted
+    # by passing vectors of fitted parameters to qnorm()
+    pred.range <- range(qnorm(p = 0.000125 * min(k, 4),
+                              mean = fm_params.tb[["mu"]],
+                              sd = fm_params.tb[["sigma"]],
+                              lower.tail = TRUE),
+                        qnorm(p = 0.000125 * min(k, 4),
+                              mean = fm_params.tb[["mu"]],
+                              sd = fm_params.tb[["sigma"]],
+                              lower.tail = FALSE),
+                        scales[[orientation]]$dimension())
 
     k <- length(fm_params.tb[["lambda"]])
+
     prediction <- list()
     prediction[["x"]] <-
-      seq(from = x.range[1], to = x.range[2], length.out = n)
+      seq(from = pred.range[1], to = pred.range[2], length.out = n)
     prediction[["comp.sum"]] <- rep(0, n)
     for (i in 1:k) {
       comp.name <- paste("comp", i, sep = ".")
@@ -314,22 +171,42 @@ distrmix_compute_group_fun <-
       prediction[["comp.sum"]] <-
         prediction[["comp.sum"]] + prediction[[comp.name]]
     }
+
     prediction <- as.data.frame(prediction)
 
     prediction <-
       tidyr::pivot_longer(prediction,
                           cols = tidyr::starts_with("comp."),
                           names_to = "component",
-                          values_to = "density")
+                          values_to = "density") |> as.data.frame()
+
+    comp.names <- unique(prediction[["component"]])
+    lambdas <- c(1, fm_params.tb[["lambda"]])
+    names(lambdas) <- comp.names
 
     if (components == "sum") {
       selector <- which(prediction[["component"]] == "comp.sum")
       prediction <- prediction[selector, ]
+      comp.names <- "comp.sum"
     } else if (components == "members") {
       selector <- which(prediction[["component"]] != "comp.sum")
       prediction <- prediction[selector, ]
+      comp.names <- setdiff(comp.names, "comp.sum")
     } else if (components != "all") {
       warning("Ignoring bad 'components' argument: \"", components, "\"")
+    }
+
+    prediction[["quant.splits"]] <-
+      find_quantiles(density = prediction[["density"]],
+                     quantiles = quantiles,
+                     group = prediction[["component"]])
+
+    # to be able to obtain a valid cdf we constrain the range late
+    if (!fullrange) {
+      xrange <- range(data[["x"]])
+      selector <-
+        which(prediction[["x"]] >= xrange[1] & prediction[["x"]] <= xrange[2])
+      prediction <- prediction[selector, ]
     }
 
     if (fm.values) {
@@ -341,7 +218,9 @@ distrmix_compute_group_fun <-
     }
 
     prediction[["flipped_aes"]] <- flipped_aes
-    ggplot2::flip_data(prediction, flipped_aes)
+    z <- ggplot2::flip_data(prediction, flipped_aes)
+    show_colnames(z, stat.name = "stat_distrmix_line")
+    z
   }
 
 #' @rdname ggpmisc-ggproto
@@ -350,9 +229,25 @@ distrmix_compute_group_fun <-
 #' @export
 StatDistrmixLine <-
   ggplot2::ggproto("StatDistrmixLine", ggplot2::Stat,
-                   setup_params = function(data, params) {
-                     params[["flipped_aes"]] <-
-                       ggplot2::has_flipped_aes(data, params, ambiguous = TRUE)
+                   setup_params = function(self, data, params) {
+                     # temporary kludge as I cannot get has_flipped_aes() to work
+                     # unless 'orientation' is set
+                     if (is.null(params$orientation) || is.na(params$orientation)) {
+                       if ("x" %in% colnames(data)) {
+                         params$orientation <- "x"
+                       } else if ("y" %in% colnames(data)) {
+                         params$orientation <- "y"
+                       }
+                     }
+                     if (!params$orientation %in% colnames(data)) {
+                       stop("'orientation' does not match a mapped aesthetic")
+                     }
+
+                     params$flipped_aes <-
+                       has_flipped_aes(data, params,
+                                       main_is_orthogonal = FALSE,
+                                       main_is_continuous = TRUE)
+
                      params
                    },
 
@@ -361,8 +256,63 @@ StatDistrmixLine <-
                    compute_group = distrmix_compute_group_fun,
 
                    default_aes =
-                     ggplot2::aes(y = after_stat(density),
-                                  group = after_stat(component)),
-                   dropped_aes = c("weight"),
+                     ggplot2::aes(x = after_stat(density),
+                                  y = after_stat(density),
+                                  group = after_stat(component),
+                                  weight = NULL),
+                   dropped_aes = "weight",
                    required_aes = "x|y"
   )
+
+#' @rdname stat_distrmix_eq
+#'
+#' @export
+#'
+stat_distrmix_area <- function(mapping = NULL,
+                               data = NULL,
+                               geom = "area",
+                               position = "identity",
+                               ...,
+                               orientation = NA,
+                               method = "normalmixEM",
+                               se = NULL,
+                               quantiles = NA,
+                               fit.seed = NA,
+                               fm.values = FALSE,
+                               n = 500,
+                               fullrange = TRUE,
+                               level = 0.95,
+                               method.args = list(),
+                               k = 2,
+                               free.mean = TRUE,
+                               free.sd = TRUE,
+                               components = "sum",
+                               n.min = 10L * k,
+                               na.rm = FALSE,
+                               show.legend = NA,
+                               inherit.aes = TRUE) {
+
+  stat_distrmix_line(mapping = mapping,
+                     data = data,
+                     geom = geom,
+                     position = position,
+                     ... = ...,
+                     orientation = orientation,
+                     method = method,
+                     se = se,
+                     quantiles = quantiles,
+                     fit.seed = fit.seed,
+                     fm.values = fm.values,
+                     n = n,
+                     fullrange = fullrange,
+                     level = level,
+                     method.args = method.args,
+                     k = k,
+                     free.mean = free.mean,
+                     free.sd = free.sd,
+                     components = components,
+                     n.min = n.min,
+                     na.rm = na.rm,
+                     show.legend = show.legend,
+                     inherit.aes = inherit.aes)
+}

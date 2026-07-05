@@ -6,34 +6,12 @@
 #' \strong{pairwise} contrasts and generates labels based on adjusted
 #' \emph{P}-values.
 #'
-#' @param mapping The aesthetic mapping, usually constructed with
-#'   \code{\link[ggplot2]{aes}}. Only needs to be
-#'   set at the layer level if you are overriding the plot defaults.
-#' @param data A layer specific dataset, only needed if you want to override
-#'   the plot defaults.
-#' @param geom The geometric object to use to display the data.
-#' @param position The position adjustment to use for overlapping points on this
-#'   layer.
-#' @param show.legend logical. Should this layer be included in the legends?
-#'   \code{NA}, the default, includes if any aesthetics are mapped. \code{FALSE}
-#'   never includes, and \code{TRUE} always includes.
-#' @param inherit.aes If \code{FALSE}, overrides the default aesthetics, rather
-#'   than combining with them.
-#' @param ... other arguments passed on to \code{\link[ggplot2]{layer}}. This
-#'   can include aesthetics whose values you want to set, not map. See
-#'   \code{\link[ggplot2]{layer}} for more details.
-#' @param na.rm	a logical indicating whether NA values should be stripped before
-#'   the computation proceeds.
+#' @inheritParams stat_poly_eq
 #' @param formula a formula object. Using aesthetic names \code{x} and \code{y}
-#'   instead of original variable names.
-#' @param method function or character If character, "lm" (or its equivalent
-#'   "aov"), "rlm" or the name of a model fit function are accepted, possibly
-#'   followed by the fit function's \code{method} argument separated by a colon
-#'   (e.g. \code{"rlm:M"}). If a function different to \code{lm()}, it must
-#'   accept as a minimum a model formula through its first parameter, and have
-#'   formal parameters named \code{data}, \code{weights}, and \code{method}, and
-#'   return a model fit object accepted by function \code{glht()}.
-#' @param method.args named list with additional arguments.
+#'   instead of original variable names. The rhs must include a call to
+#'   \code{factor()} even if the variable mapped to the \code{x} aesthetic is
+#'   a factor! \emph{In both flipped and not flipped plots, \code{x} should be
+#'   in the rhs}.
 #' @param contrasts character vector of length one or a numeric matrix. If
 #'    character, one of "Tukey" or "Dunnet". If a matrix, one column per level
 #'    of the factor mapped to \code{x} and one row per \strong{pairwise}
@@ -43,11 +21,6 @@
 #'   \code{\link[multcomp]{summary.glht}}. Accepted values are "single-step",
 #'   "Shaffer", "Westfall", "free", "holm", "hochberg", "hommel", "bonferroni",
 #'   "BH", "BY", "fdr", "none".
-#' @param fit.seed RNG seed argument passed to \code{\link[base:Random]{set.seed}()}.
-#'   Defaults to \code{NA}, which means that \code{set.seed()} will not be
-#'   called.
-#' @param small.p logical If true, use of lower case \emph{p} instead of capital
-#'   \emph{P} as the symbol for \emph{P}-value in labels.
 #' @param adj.method.tag numeric, character or function If \code{numeric}, the
 #'   length in characters of the abbreviation of the method used to adjust
 #'   \emph{p}-values. A value of zero, adds no label and a negative value uses
@@ -55,11 +28,13 @@
 #'   \code{character} its value is used as subscript. If a \code{function}, the
 #'   value used is the value returned by the function when passed
 #'   \code{p.adjust.method} as its only argument.
-#' @param p.digits integer Number of digits after the decimal point to
-#'   use for \eqn{R^2} and \emph{P}-value in labels.
+#' @param small.p logical Flag to switch use of lower case p for \emph{p}-value.
 #' @param label.type character One of "bars", "letters" or "LETTERS", selects
 #'   how the results of the multiple comparisons are displayed. Only "bars" can
 #'   be used together with \code{contrasts = "Dunnet"}.
+#' @param p.digits integer Number of digits after the decimal point to use for
+#'   \emph{P}-value in labels. If \code{Inf}, use exponential notation with
+#'   three decimal places.
 #' @param fm.cutoff.p.value numeric [0..1] The \emph{P}-value for the main
 #'   effect of factor \code{x} in the ANOVA test for the fitted model above
 #'   which no pairwise comparisons are computed or labels generated. Be aware
@@ -72,20 +47,21 @@
 #'   labelling all pairwise contrasts tested.
 #' @param mc.critical.p.value numeric The critical \emph{P}-value used for tests
 #'   when encoded as letters.
-#' @param label.y numeric vector Values in native data units or if
-#'   \code{character}, one of "top" or "bottom". Recycled if too short and
-#'   truncated if too long.
-#' @param vstep numeric in npc units, the vertical displacement step-size
-#'   used between labels for different contrasts when \code{label.type = "bars"}.
-#' @param output.type character One of "expression", "LaTeX", "text",
-#'   "markdown" or "numeric".
-#' @param orientation character Either "x" or "y" controlling the default for
-#'   \code{formula}. \strong{Support for \code{orientation} is not yet
-#'   implemented but is planned.}
-#' @param parse logical Passed to the geom. If \code{TRUE}, the labels will be
-#'   parsed into expressions and displayed as described in \code{?plotmath}.
-#'   Default is \code{TRUE} if \code{output.type = "expression"} and
-#'   \code{FALSE} otherwise.
+#' @param bjust numeric usually with range 0..1, the justification of the labels
+#'   relative to the bars.
+#' @param label.y numeric with range 0..1 "normalized parent
+#'   coordinates" (npc units) or character if using \code{geom_text_npc()} or
+#'   \code{geom_label_npc()}. If using \code{geom_text()} or \code{geom_label()}
+#'   numeric in native data units. \emph{In flipped plots, it refers to \code{x}
+#'   rather than \code{y} position}.
+#' @param vstep numeric in npc units, the vertical displacement step-size used
+#'   between labels for different contrasts when
+#'   \code{label.type = "bars"}. \emph{In flipped plots, it increases the
+#'   \code{x} rather than \code{y} position}.
+#' @param orientation character The orientation of the layer. The default
+#'   (\code{NA}) automatically determines the orientation from the aesthetic
+#'   mapping. In the rare event that this fails it can be given explicitly by
+#'   setting orientation to either "x" or "y".
 #'
 #' @aesthetics StatMultcomp
 #'
@@ -99,22 +75,31 @@
 #'   first one) or a subset of all possible pairwise contrasts. See Meier (2022,
 #'   Chapter 3) for an accessible explanation of multiple comparisons and
 #'   contrasts with package 'multcomp', of which \code{stat_multcomp()} is
-#'   mostly a wrapper.
+#'   mostly a wrapper. It supports most model fit methods supported by function
+#'   \code{\link[multcomp]{glht}()}. The requirement is that the necessary query
+#'   functions for the class of the fitted model object are available. If not
+#'   supported, an error will be triggered by \code{glht()}. The computations
+#'   are done in two stages. First a model is fitted to all the data in a plot
+#'   panel, followed by the pairwise contrasts. A threshold \eqn{P}-value can
+#'   the set for the main effect of "treatments" as a condition to apply the
+#'   pairwise tests.
 #'
-#'   The explanatory variable mapped to the \emph{x} aesthetic must be a factor
-#'   as this creates the required grouping. Currently, contrasts that involve
-#'   more than two levels of a factor, such as the average of two treatment
-#'   levels against a control level are not supported, mainly because they
-#'   require a new geometry that I need to design, implement and add to package
-#'   'ggpp'.
+#'   One variable mapped to either \emph{x} or \emph{y} aesthetic must be a
+#'   factor, and the other variable a continuous one. Mapping a factor creates
+#'   the required grouping and determines the default orientation, i.e.,
+#'   similarly as in \code{\link[ggplot2:geom_boxplot]{stat_boxplot}()}.
 #'
 #'   Two ways of displaying the outcomes are implemented, and are selected by
-#'   `"bars"`, `"letters"` or `"LETTERS"` as argument to parameter
-#'   `label.type`. `"letters"` and `"LETTERS"` can be used only with Tukey
-#'   contrasts, as otherwise the encoding is ambiguous. As too many bars clutter
-#'   a plot, the maximum number of factor levels supported for `"bars"` together
-#'   with Tukey contrasts is five, while together with Dunnet contrasts or
-#'   contrasts defined by a numeric matrix, no limit is imposed.
+#'   `"bars"`, `"letters"` or `"LETTERS"` as argument to parameter `label.type`.
+#'   `"letters"` and `"LETTERS"` can be used only with Tukey contrasts, as
+#'   otherwise the encoding is ambiguous. As too many bars clutter a plot, the
+#'   maximum number of factor levels supported for `"bars"` together with Tukey
+#'   contrasts is five, while together with Dunnet contrasts or contrasts
+#'   defined by a numeric matrix, no limit is imposed. \code{label.y} determines
+#'   the location of the \emph{letters} labels or the position of the first
+#'   \emph{pairwise label}. If \code{label.y} is numeric and has length > 1,
+#'   values are taken as positions for successive bar labels, and recycled if
+#'   the vector is too short, ignoring \code{vstep}.
 #'
 #'   \code{stat_multcomp()} by default generates character labels ready to be
 #'   parsed as R expressions but LaTeX (use TikZ device), markdown (use package
@@ -126,35 +111,38 @@
 #'   compared factor levels, or letter labels that discriminate significantly
 #'   different groups.
 #'
+#'   \emph{Currently, contrasts that involve more than two levels of a factor,
+#'   such as the average of two treatment levels against a control level are not
+#'   supported. Similarly, flipping is not yet functional with bar labels
+#'   because of the lack of a working geom.}
+#'
 #' @inheritSection check_output_type Output types
 #'
-#' @note \code{stat_multcomp()} understands \code{x} and
-#'   \code{y}, to be referenced in the \code{formula} and \code{weight} passed
-#'   as argument to parameter \code{weights}. A factor must be mapped to
-#'   \code{x} and \code{numeric} variables to \code{y}, and, if used, to
-#'   \code{weight}. In addition, the aesthetics understood by the geom
-#'   (\code{"label_pairwise"} is the default for \code{label.type = "bars"},
-#'   \code{"text"} is the default for \code{label.type = "letters"} and for
-#'   \code{label.type = "LETTERS"}) are understood and grouping
-#'   respected.
-#'
 #' @return A data frame with one row per comparison for \code{label.type =
-#'   "bars"}, or a data frame with one row per factor \code{x} level for
-#'   \code{label.type = "letters"} and for \code{label.type = "LETTERS"}.
+#'   "bars"}, or a data frame with one row per factor level for
+#'   \code{label.type = "letters"} and \code{label.type = "LETTERS"}.
 #'   Variables (= columns) as described under \strong{Computed variables}.
 #'
+#' @inheritSection stat_poly_eq Which variables are available for mapping?
+#'
 #' @section Computed variables:
+#'
+#'   Computed variables and their names vary depending on the \code{method} used
+#'   to fit a model or the \code{output.type} in use. They can also depend for a
+#'   given \code{method} on the \code{contrasts}.
+#'
 #' If \code{output.type = "numeric"} and
 #' \code{label.type = "bars"} the returned tibble contains
 #' columns listed below. In all cases if the model fit function used does not return a value,
 #' the label is set to \code{character(0L)} and the numeric value to \code{NA}.
 #' \describe{
-#'   \item{x,x.left.tip,x.right.tip}{x position, numeric.}
-#'   \item{y}{y position, numeric.}
+#'   \item{x,xmin,xmax}{x position, numeric.}
+#'   \item{y,ymin,ymax}{y position, numeric.}
 #'   \item{coefficients}{Delta estimate from pairwise contrasts, numeric.}
 #'   \item{contrasts}{Contrasts as two levels' ordinal "numbers" separated by a dash, character.}
 #'   \item{tstat}{\emph{t}-statistic estimates for the pairwise contrasts, numeric.}
 #'   \item{p.value}{\emph{P}-value for the pairwise contrasts.}
+#'   \item{p.signif}{logical for the pairwise contrasts significance.}
 #'   \item{fm.method}{Set according \code{method} used.}
 #'   \item{fm.class}{Most derived class of the fitted model object.}
 #'   \item{fm.formula}{Formula extracted from the fitted model object if available, or the formula argument.}
@@ -175,12 +163,13 @@
 #'   \item{t.value.label}{\emph{t}-statistic estimates for the pairwise contrasts, character.}
 #'   }
 #'
-#' If \code{label.type = "letters"} or \code{label.type = "LETTERS"} the returned tibble contains
-#' columns listed below.
+#' If \code{output.type = "numeric"} and \code{label.type = "letters"} or
+#' \code{label.type = "LETTERS"} the returned tibble contains columns listed
+#' below.
 #'
 #' \describe{
-#'   \item{x,x.left.tip,x.right.tip}{x position, numeric.}
-#'   \item{y}{y position, numeric.}
+#'   \item{x,xmin,xmax}{x position, numeric.}
+#'   \item{y,ymin,ymax}{y position, numeric.}
 #'   \item{critical.p.value}{\emph{P}-value used in pairwise tests, numeric.}
 #'   \item{fm.method}{Set according \code{method} used.}
 #'   \item{fm.class}{Most derived class of the fitted model object.}
@@ -208,7 +197,11 @@
 #'   for the supported tests and the references therein for the theory
 #'   behind them.
 #'
-#' @family ggplot statistics for multiple comparisons
+#'   Please, see the articles at
+#'   \href{https://docs.r4photobiology.info/ggpmisc/}{online-only documentation}
+#'   for additional use examples and guidance.
+#'
+#' @family statistics for multiple comparison annotations
 #'
 #' @references
 #'
@@ -227,7 +220,7 @@
 #'   stat_multcomp()
 #'
 #' p1 +
-#'   stat_multcomp(adj.method.tag = 0)
+#'   stat_multcomp(adj.method.tag = FALSE)
 #'
 #' # test against a control, with first level being the control
 #' # change order of factor levels in data to set the control group
@@ -242,22 +235,10 @@
 #'
 #' # different methods to adjust the contrasts
 #' p1 +
-#'   stat_multcomp(p.adjust.method = "bonferroni")
-#'
-#' p1 +
 #'   stat_multcomp(p.adjust.method = "holm")
 #'
 #' p1 +
 #'   stat_multcomp(p.adjust.method = "fdr")
-#'
-#' # no correction, useful only for comparison
-#' p1 +
-#'   stat_multcomp(p.adjust.method = "none")
-#'
-#' # sometimes we need to expand the plotting area
-#' p1 +
-#'   stat_multcomp(geom = "text_pairwise") +
-#'   scale_y_continuous(expand = expansion(mult = c(0.05, 0.10)))
 #'
 #' # position of contrasts' bars (based on scale limits)
 #' p1 +
@@ -275,6 +256,12 @@
 #' p1 +
 #'   stat_multcomp(p.digits = 4)
 #'
+#' # highlight significant differences
+#' p1 +
+#'   stat_multcomp(aes(alpha = after_stat(p.signif)),
+#'                 alpha.target = c("text", "segment", "box.line")) +
+#'   scale_alpha_manual(values =  c(0.33, 1))
+#'
 #' # label only significant differences
 #' # but test and correct for all pairwise contrasts!
 #' p1 +
@@ -285,48 +272,38 @@
 #' p1 +
 #'   stat_multcomp(label.type = "letters")
 #'
-#' # use capital letters
-#' p1 +
-#'   stat_multcomp(label.type = "LETTERS")
-#'
-#' # location
-#' p1 +
-#'   stat_multcomp(label.type = "letters",
-#'                 label.y = "top")
-#'
-#' p1 +
-#'   stat_multcomp(label.type = "letters",
-#'                 label.y = 0)
-#'
 #' # stricter critical p-value than default used for test
 #' p1 +
 #'   stat_multcomp(label.type = "letters",
 #'                 mc.critical.p.value = 0.01)
 #'
-#' # Inspecting the returned data using geom_debug_panel()
-#' # This provides a quick way of finding out the names of the variables that
-#' # are available for mapping to aesthetics with after_stat().
+#' # justification of label in bar, and text anchor point
+#' # for a compact display
 #'
-#' gginnards.installed <- requireNamespace("gginnards", quietly = TRUE)
-#'
-#' if (gginnards.installed)
-#'   library(gginnards)
-#'
-#' if (gginnards.installed)
 #' p1 +
+#'   stat_multcomp(geom = "text_pairwise",
+#'                 arrow = grid::arrow(ends = "both",
+#'                                     length = unit(1.5, "mm")),
+#'                 bjust = 0,
+#'                 hjust = 1.05,
+#'                 vjust = 0.5,
+#'                 vstep = 0.05,
+#'                 label.y = 14,
+#'                 adj.method.tag = 0) +
+#'   expand_limits(y = 0)
+#'
+#' ## Flipping is supported
+#' p2 <- ggplot(mpg, aes(hwy, factor(cyl))) +
+#'   geom_boxplot(width = 0.33)
+#'
+#' p2 +
+#'   stat_multcomp(label.type = "letters") +
+#'   scale_y_discrete(expand = expansion(add = c(1.2, 0.5)))
+#'
+#' p2 +
 #'   stat_multcomp(label.type = "bars",
-#'                 geom = "debug_panel")
-#'
-#' if (gginnards.installed)
-#' p1 +
-#'   stat_multcomp(label.type = "letters",
-#'                 geom = "debug_panel")
-#'
-#' if (gginnards.installed)
-#' p1 +
-#'   stat_multcomp(label.type = "bars",
-#'                 output.type = "numeric",
-#'                 geom = "debug_panel")
+#'                 geom = "text_pairwise",
+#'                 size = 3)
 #'
 #' @export
 #'
@@ -335,8 +312,8 @@ stat_multcomp <- function(mapping = NULL,
                           geom = NULL,
                           position = "identity",
                           ...,
-                          orientation = "x",
-                          formula = NULL,
+                          orientation = NA,
+                          formula = y ~ factor(x),
                           method = "lm",
                           method.args = list(),
                           contrasts = "Tukey",
@@ -347,8 +324,9 @@ stat_multcomp <- function(mapping = NULL,
                           mc.critical.p.value = 0.05,
                           small.p = getOption("ggpmisc.small.p", default = FALSE),
                           adj.method.tag = 4,
-                          p.digits = 3,
+                          p.digits = NULL,
                           label.type = "bars",
+                          bjust = 0.5,
                           label.y = NULL,
                           vstep = NULL,
                           output.type = NULL,
@@ -356,7 +334,10 @@ stat_multcomp <- function(mapping = NULL,
                           parse = NULL,
                           show.legend = FALSE,
                           inherit.aes = TRUE) {
-  stopifnot("Flipping with 'orientation = y' is not supported" = orientation == "x")
+  if (!label.type %in% c("bars", "letters", "LETTERS", "numeric")) {
+    stop("Unrecognized 'label.type = ", label.type, "'.")
+  }
+
   if (is.character(contrasts)) {
     stopifnot("Character argument to 'contrasts' should be \"Tukey\" or \"Dunnet\"" =
                 all(contrasts %in% c("Tukey", "Dunnet")))
@@ -364,16 +345,31 @@ stat_multcomp <- function(mapping = NULL,
     # same default as p.adjust()
     p.adjust.method <- "holm"
   }
-  force(geom)
+
+  if (!anyNA(bjust) && is.character(bjust)) {
+    if (all(bjust %in% c("left", "bottom", "center", "centre", "middle", "right", "top"))) {
+      bjust <-
+      c(left = 0, bottom = 0, center = 0.5, centre = 0.5, middle = 0.5, right = 1, top = 1)[bjust]
+    } else {
+      warning("Invalid 'bjust' character argument: ", bjust)
+      bjust <- 0.5
+    }
+  }
+
   # dynamic defaults
   if (is.null(geom)) {
     if (label.type == "bars") {
       geom <- "label_pairwise" #"text_pairwise"
     } else if (label.type %in% c("letters", "LETTERS", "numeric")) {
       geom <- "text" # "label"
-    } else {
-      stop("Unrecognized 'label.type = ", label.type, "'.")
     }
+  }
+
+  if (is.null(p.digits)) {
+    p.crit.digits <- NA # drop trailing zeros
+    p.digits <- 3
+  } else {
+    p.crit.digits <- p.digits
   }
 
   if (label.type %in% c("letters", "LETTERS") &&
@@ -393,6 +389,21 @@ stat_multcomp <- function(mapping = NULL,
     parse <- output.type == "expression"
   }
 
+  stopifnot("Args 'formula' and/or 'data' in 'method.args'" =
+              !any(c("formula", "data") %in% names(method.args)))
+
+  if (is.character(method)) {
+    method <- trimws(method, which = "both")
+    method.name <- method
+  } else if (is.function(method)) {
+    method.name <- deparse(substitute(method))
+    if (grepl("^function[ ]*[(]", method.name[1])) {
+      method.name <- "function"
+    }
+  } else {
+    method.name <- "missing"
+  }
+
   ggplot2::layer(
     data = data,
     mapping = mapping,
@@ -404,6 +415,7 @@ stat_multcomp <- function(mapping = NULL,
     params =
       rlang::list2(formula = formula,
                    method = method,
+                   method.name = method.name,
                    method.args = method.args,
                    contrasts = contrasts,
                    p.adjust.method = p.adjust.method,
@@ -411,7 +423,9 @@ stat_multcomp <- function(mapping = NULL,
                    small.p = small.p,
                    adj.method.tag = adj.method.tag,
                    p.digits = p.digits,
+                   p.crit.digits = p.crit.digits,
                    label.type = label.type,
+                   bjust = bjust,
                    label.y = label.y,
                    fm.cutoff.p.value = fm.cutoff.p.value,
                    mc.cutoff.p.value = mc.cutoff.p.value,
@@ -435,7 +449,8 @@ stat_multcomp <- function(mapping = NULL,
 multcomp_compute_panel_fun <-
   function(data,
            scales,
-           method = "lm",
+           method,
+           method.name,
            method.args = list(),
            contrasts = "Tukey",
            p.adjust.method = "holm",
@@ -445,16 +460,18 @@ multcomp_compute_panel_fun <-
            adj.method.tag = 4,
            fit.seed = NA,
            p.digits = 3,
+           p.crit.digits = NA,
            label.type = "bars",
            fm.cutoff.p.value = 1,
            mc.cutoff.p.value = 1,
            mc.critical.p.value = 0.05,
+           bjust = 0.5,
            label.y = NULL,
            vstep = NULL,
            output.type = expression(),
            na.rm = FALSE,
+           flipped_aes = NA,
            orientation = "x") {
-    force(data)
 
     rlang::check_installed(c("multcomp", "multcompView"),
                            reason = "to use stat_multcomp()")
@@ -468,31 +485,20 @@ multcomp_compute_panel_fun <-
       decimal.mark <- "."
     }
 
-    stopifnot(!any(c("formula", "data") %in% names(method.args)))
-    # we guess formula from orientation
-    if (is.null(formula)) {
-      if (is.na(orientation) || orientation == "x") {
-        formula = y ~ factor(x)
-      } else if (orientation == "y") {
-        formula = x ~ factor(y)
-      }
-    }
-    # we guess orientation from formula
+    data <- ggplot2::flip_data(data, flipped_aes)
     if (is.na(orientation)) {
-      orientation <- unname(c(x = "y", y = "x")[as.character(formula)[2]])
-    }
-
-    if (orientation == "x") {
-      if (length(unique(data[["x"]])) < 2) {
-        return(data.frame())
-      }
-    } else if (orientation == "y") {
-      if (length(unique(data[["y"]])) < 2) {
-        return(data.frame())
+      if (flipped_aes) {
+        orientation <- "y"
+      } else {
+        orientation <- "x"
       }
     }
 
-    num.levels <- length(unique(data[[orientation]]))
+    if (length(unique(data[["x"]])) < 2) {
+      return(data.frame())
+    }
+
+    num.levels <- length(unique(data[["x"]]))
     if (length(contrasts) == 1 &&
             (contrasts == "Tukey" && num.levels > 5 && label.type == "bars")) {
       warning("Tukey contrasts with bars support at most five groups, not ",
@@ -545,71 +551,32 @@ multcomp_compute_panel_fun <-
       group.idx <- NA_integer_
     }
 
-    # If method was specified as a character string, replace with
-    # the corresponding function. Some model fit functions themselves have a
-    # method parameter accepting character strings as argument. We support
-    # these by splitting strings passed as argument at a colon.
-    if (is.character(method)) {
-      method <- switch(method,
-                       lm = "lm:qr",
-                       aov = "aov",
-                       rlm = "rlm:M",
-                       method)
-      method.name <- method
-      method <- strsplit(x = method, split = ":", fixed = TRUE)[[1]]
-      if (length(method) > 1L) {
-        fun.method <- method[2]
-        method <- method[1]
-      } else {
-        fun.method <- character()
-      }
-      method <- switch(method,
-                       lm = stats::lm,
-                       aov = stats::aov,
-                       rlm =
-                         {rlang::check_installed("MASS",
-                                                 reason = "to use method \"rlm\"");
-                           MASS::rlm},
-                       match.fun(method))
-    } else if (is.function(method)) {
-      fun.method <- character()
-      if (is.name(quote(method))) {
-        method.name <- as.character(quote(method))
-      } else {
-        method.name <- "function"
-      }
+    temp.ls <- fit_models_internal(data = data,
+                                   method = method,
+                                   method.name = method.name,
+                                   method.args = method.args,
+                                   n.min = 2,
+                                   formula = formula,
+                                   fit.seed = fit.seed,
+                                   orientation = "x") # data already flipped
+    if (!length(temp.ls) || !length(temp.ls[["fm"]])) {
+      # An empty data.frame results in no plot layer when passed to geoms
+      return(data.frame())
     }
+    fm <- temp.ls[["fm"]]
+    method.name <- temp.ls[["method.name"]] # argument or default which varies
+    method.args <- temp.ls[["method.args"]] # argument or default which varies
 
-    fun.args <- list(quote(formula),
-                     data = quote(data),
-                     weights = data[["weight"]])
-    fun.args <- c(fun.args, method.args)
-    if (length(fun.method)) {
-      fun.args[["method"]] <- fun.method
+    fm.class <- class(fm)
+    if (fm.class[1] == "aov") {
+      fm.class <- fm.class[-1]
+      class(fm) <- fm.class
     }
-
-    if (!is.na(fit.seed)) {
-      set.seed(fit.seed)
-    }
-    # some model fit functions can contain code with partial matching of names!
-    # so we silence selectively only these warnings
-    withCallingHandlers({
-      fm <- do.call(method, args = fun.args)
-      fm.class <- class(fm)
-      if (fm.class[1] == "aov") {
-        fm.class <- fm.class[-1]
-        class(fm) <- fm.class
-      }
-      fm.summary <- summary(fm)
-    }, warning = function(w) {
-      if (startsWith(conditionMessage(w), "partial match of 'coef'") ||
-          startsWith(conditionMessage(w), "partial argument match of 'contrasts'"))
-        invokeRestart("muffleWarning")
-    })
+    fm.summary <- summary(fm)
 
     # allow model formula selection by the model fit method
     # extract formula from fitted model if possible, but fall back on argument if needed
-    formula.ls <- fail_safe_formula(fm, fun.args, verbose = TRUE)
+    formula.ls <- fail_safe_formula(fm, method.args, verbose = TRUE)
 
     if ("fstatistic" %in% names(fm.summary)) {
       f.value <- fm.summary[["fstatistic"]]["value"]
@@ -639,25 +606,25 @@ multcomp_compute_panel_fun <-
       if (is.vector(contrasts)) {
         contrasts <- matrix(contrasts, nrow = 1)
       }
-      x.left.tip <- x.right.tip <- numeric(nrow(contrasts))
+      near.tip <- far.tip <- numeric(nrow(contrasts))
       for (i in 1:nrow(contrasts)) {
-        x.tips <- which(contrasts[i, ] != 0)
-        if (length(x.tips) != 2) {
+        contrast.tips <- which(contrasts[i, ] != 0)
+        if (length(contrast.tips) != 2) {
           stop("Only pairwise contrasts are currently supported.")
         }
-        x.left.tip[i] <- x.tips[1]
-        x.right.tip[i] <- x.tips[2]
+        near.tip[i] <- contrast.tips[1]
+        far.tip[i] <- contrast.tips[2]
       }
     } else if (is.character(contrasts)) {
       if (contrasts == "Tukey") {
-        x.left.tip <- switch(num.levels,
+        near.tip <- switch(num.levels,
                              NA_real_,
                              1,
                              c(1, 1, 2),
                              c(1, 1, 1, 2, 2, 3),
                              c(1, 1, 1, 1, 2, 2, 2, 3, 3, 4)
         )
-        x.right.tip <- switch(num.levels,
+        far.tip <- switch(num.levels,
                               NA_real_,
                               2,
                               c(2, 3, 3),
@@ -665,12 +632,11 @@ multcomp_compute_panel_fun <-
                               c(2, 3, 4, 5, 3, 4, 5, 4, 5, 5)
         )
       } else if (contrasts == "Dunnet") {
-        x.left.tip <- rep(1, num.levels - 1)
-        x.right.tip <- 2:num.levels
+        near.tip <- rep(1, num.levels - 1)
+        far.tip <- 2:num.levels
       }
     }
 
-    # multiple comparisons test
     if (inherits(contrasts, "mcp")) {
       linfct.arg <- contrasts
       contrasts <- "mcp object"
@@ -725,19 +691,23 @@ multcomp_compute_panel_fun <-
     }
 
     if (label.type %in% c("bars")) {
-      # Labelled bar representation of multiple contrast results.
+      # Labelled bar representation of pairwise contrast outcomes
       #
-      # We build a data frame suitable for plotting with geom_text_pairwise()
-      # or geom_label_pairwise(). We return multiple results, but map only
-      # some.
-      #
-      z <- tibble::tibble(x = (x.left.tip + x.right.tip) / 2,
-                          x.left.tip,
-                          x.right.tip,
+      text.just <- if(bjust > 0.75) {
+        "right"
+      } else if (bjust < 0.25) {
+        "left"
+      } else {
+        "center"
+      }
+      z <- tibble::tibble(x = near.tip + (far.tip - near.tip) * bjust,
+                          xmin = near.tip,
+                          xmax = far.tip,
                           coefficients = pairwise.coefficients,
                           contrasts = pairwise.contrasts,
                           tstat = pairwise.tstat,
                           p.value = pairwise.p.values,
+                          p.signif = p.value < mc.critical.p.value,
                           fm.method = method.name,
                           fm.class = fm.class[1],
                           fm.formula = formula.ls,
@@ -745,7 +715,8 @@ multcomp_compute_panel_fun <-
                           mc.adjusted = p.adjust.method,
                           mc.contrast = contrasts,
                           n = n,
-                          just = "center")
+                          just = text.just,
+                          orientation = orientation)
 
       # Drop unwanted labels
       z <- z[z[["p.value"]] <= mc.cutoff.p.value, ]
@@ -787,7 +758,7 @@ multcomp_compute_panel_fun <-
                                                 output.type = output.type,
                                                 decimal.mark = decimal.mark)
           z[["t.value.label"]][i] <- t_value_label(value = z[["tstat"]][i],
-                                                   digits = p.digits,
+                                                   digits = 3,
                                                    output.type = output.type,
                                                    decimal.mark = decimal.mark)
         }
@@ -811,17 +782,31 @@ multcomp_compute_panel_fun <-
                                       threshold = mc.critical.p.value,
                                       Letters = get(label.type),
                                       reversed = TRUE)[["Letters"]]
+
       if (adj.method.legend) {
-        p.crit.label <- p_value_label(value = mc.critical.p.value,
-                                      subscript = adj.label,
-                                      superscript = "crit",
-                                      small.p = small.p,
-                                      digits = p.digits,
-                                      output.type = output.type,
-                                      decimal.mark = decimal.mark)
+        if (is.na(p.crit.digits)) {
+          p.crit.label <- p_value_label(value = mc.critical.p.value,
+                                        subscript = adj.label,
+                                        superscript = "crit",
+                                        small.p = small.p,
+                                        digits = ifelse(mc.critical.p.value > 1e-12,
+                                                        3, Inf),
+                                        fixed = FALSE,
+                                        drop.trailing = TRUE,
+                                        output.type = output.type,
+                                        decimal.mark = decimal.mark)
+        } else {
+          p.crit.label <- p_value_label(value = mc.critical.p.value,
+                                        subscript = adj.label,
+                                        superscript = "crit",
+                                        small.p = small.p,
+                                        digits = p.crit.digits,
+                                        output.type = output.type,
+                                        decimal.mark = decimal.mark)
+        }
         z <- tibble::tibble(x = c(0.1, 1:num.levels),
-                            x.left.tip = NA_real_,
-                            x.right.tip = NA_real_,
+                            xmin = NA_real_,
+                            xmax = NA_real_,
                             critical.p.value = mc.critical.p.value,
                             fm.method = method.name,
                             fm.class = fm.class,
@@ -832,11 +817,12 @@ multcomp_compute_panel_fun <-
                             n = n,
                             letters.label = c(p.crit.label ,
                                               Letters[order(as.numeric(names(Letters)))]),
-                            just = c("inward", rep("center", length(Letters))))
+                            just = c("inward", rep("center", length(Letters))),
+                            orientation = orientation)
       } else {
         z <- tibble::tibble(x = 1:num.levels,
-                            x.left.tip = NA_real_,
-                            x.right.tip = NA_real_,
+                            xmin = NA_real_,
+                            xmax = NA_real_,
                             critical.p.value = mc.critical.p.value,
                             fm.method = method.name,
                             fm.class = fm.class,
@@ -846,7 +832,8 @@ multcomp_compute_panel_fun <-
                             mc.contrast = contrasts,
                             n = n,
                             letters.label = Letters[order(as.numeric(names(Letters)))],
-                            just = rep("center", length(Letters)))
+                            just = rep("center", length(Letters)),
+                            orientation = orientation)
       }
 
       if (output.type == "numeric") {
@@ -856,7 +843,11 @@ multcomp_compute_panel_fun <-
       }
     }
 
-    y.range <- scales$y$range$range
+    if (orientation == "x") {
+      obs.range <- scales$y$range$range
+    } else {
+      obs.range <- scales$x$range$range
+    }
 
     if (is.character(label.y)) {
       # we need to use scale limits as observations are not necessarily plotted
@@ -866,22 +857,22 @@ multcomp_compute_panel_fun <-
       }
       if (label.y == "top") {
         if (vstep == 0) {
-          z[["y"]] <- y.range[2] + (y.range[2] - y.range[1]) * 0.08
+          z[["y"]] <- obs.range[2] + (obs.range[2] - obs.range[1]) * 0.08
         } else {
-          z[["y"]] <- y.range[2] + (y.range[2] - y.range[1]) * vstep * seq_along(z[["x"]])
+          z[["y"]] <- obs.range[2] + (obs.range[2] - obs.range[1]) * vstep * seq_along(z[["x"]])
         }
       } else {
         if (vstep == 0) {
-          z[["y"]] <- y.range[1] - (y.range[2] - y.range[1]) * 0.08
+          z[["y"]] <- obs.range[1] - (obs.range[2] - obs.range[1]) * 0.08
         } else {
-          z[["y"]] <- y.range[1] - (y.range[2] - y.range[1]) * vstep * seq_along(z[["x"]])
+          z[["y"]] <- obs.range[1] - (obs.range[2] - obs.range[1]) * vstep * seq_along(z[["x"]])
         }
       }
     } else if (is.numeric(label.y)) {
       # manual locations
       if (label.type == "bars" && length(label.y) == 1) {
-        z[["y"]] <- label.y + (y.range[2] - y.range[1]) * vstep *
-          (seq_along(z[["x"]]) - 1) * sign(label.y - 0.5 * (y.range[2] + y.range[1]))
+        z[["y"]] <- label.y + (obs.range[2] - obs.range[1]) * vstep *
+          (seq_along(z[["x"]]) - 1) * sign(label.y - 0.5 * (obs.range[2] + obs.range[1]))
       } else {
         z[["y"]] <- rep_len(label.y, nrow(z))
       }
@@ -891,6 +882,13 @@ multcomp_compute_panel_fun <-
       # The data frame returned by a panel function must have a "group" column
       z[["group"]] <- -1L
     }
+
+    # this works only because we use xmin and xmax as names
+    z$flipped_aes <- flipped_aes
+    z <- ggplot2::flip_data(z, flipped_aes)
+
+    show_labels(z, stat.name = "stat_multcomp")
+
     z
   }
 
@@ -901,9 +899,20 @@ multcomp_compute_panel_fun <-
 StatMultcomp <-
   ggplot2::ggproto("StatMultcomp", ggplot2::Stat,
                    extra_params = c("na.rm", "parse"),
+                   setup_params = function(data, params) {
+                     params[["flipped_aes"]] <-
+                       ggplot2::has_flipped_aes(data = data,
+                                                params = params,
+                                                main_is_orthogonal = TRUE,
+                                                group_has_equal = TRUE,
+                                                ambiguous = FALSE)
+                     params
+                   },
                    compute_panel = multcomp_compute_panel_fun,
-                   default_aes = ggplot2::aes(xmin = after_stat(x.left.tip),
-                                              xmax = after_stat(x.right.tip),
+                   default_aes = ggplot2::aes(xmin = after_stat(ifelse(flipped_aes, NA_real_, xmin)),
+                                              xmax = after_stat(ifelse(flipped_aes, NA_real_, xmax)),
+                                              ymin = after_stat(ifelse(flipped_aes, ymin, NA_real_)),
+                                              ymax = after_stat(ifelse(flipped_aes, ymax, NA_real_)),
                                               label = after_stat(default.label),
                                               weight = 1,
                                               size = 2.5,

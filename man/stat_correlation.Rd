@@ -2,7 +2,7 @@
 % Please edit documentation in R/stat-correlation.R
 \name{stat_correlation}
 \alias{stat_correlation}
-\title{Annotate plot with correlation test}
+\title{Correlation test annotations}
 \usage{
 stat_correlation(
   mapping = NULL,
@@ -38,8 +38,8 @@ stat_correlation(
 }
 \arguments{
 \item{mapping}{The aesthetic mapping, usually constructed with
-\code{\link[ggplot2]{aes}}. Only needs to be
-set at the layer level if you are overriding the plot defaults.}
+\code{\link[ggplot2]{aes}()}. Only needs to be set at the layer level if you
+are overriding the plot defaults.}
 
 \item{data}{A layer specific dataset, only needed if you want to override the
 plot defaults.}
@@ -47,7 +47,7 @@ plot defaults.}
 \item{geom}{The geometric object to use display the data}
 
 \item{position}{The position adjustment to use for overlapping points on this
-layer}
+layer.}
 
 \item{...}{other arguments passed on to \code{\link[ggplot2]{layer}}. This
 can include aesthetics whose values you want to set, not map. See
@@ -55,8 +55,8 @@ can include aesthetics whose values you want to set, not map. See
 
 \item{method}{character One of "pearson", "kendall" or "spearman".}
 
-\item{n.min}{integer Minimum number of distinct values in the variables for
-fitting to the attempted.}
+\item{n.min}{integer Minimum number of distinct values in the explanatory
+variable (on the rhs of formula) for fitting to the attempted.}
 
 \item{alternative}{character One of "two.sided", "less" or "greater".}
 
@@ -69,9 +69,9 @@ interval. If set to \code{NA} computation of CI is skipped.}
 \item{continuity}{logical If TRUE , a continuity correction is used for
 Kendall's tau and Spearman's rho when not computed exactly.}
 
-\item{fit.seed}{RNG seed argument passed to \code{\link[base:Random]{set.seed}()}.
-Defaults to \code{NA}, which means that \code{set.seed()} will not be
-called.}
+\item{fit.seed}{RNG seed argument passed to
+\code{\link[base:Random]{set.seed}()}. Defaults to \code{NA}, indicating
+that \code{set.seed()} should not be called.}
 
 \item{small.r, small.p}{logical Flags to switch use of lower case r and p for
 coefficient of correlation (only for \code{method = "pearson"}) and
@@ -93,11 +93,11 @@ coordinates" (npc units) or character if using \code{geom_text_npc()} or
 \code{geom_label_npc()}. If using \code{geom_text()} or \code{geom_label()}
 numeric in native data units. If too short they will be recycled.}
 
-\item{hstep, vstep}{numeric in npc units, the horizontal and vertical
-displacement step-size used between labels for different groups.}
+\item{hstep, vstep}{numeric in npc units, the horizontal and vertical step
+used between labels for different groups.}
 
-\item{output.type}{character One of "expression", "LaTeX", "text", "markdown"
-or "numeric".}
+\item{output.type}{character One of "expression", "text", "markdown",
+"marquee", "latex", "latex.eqn", "latex.deqn" or "numeric".}
 
 \item{boot.R}{interger The number of bootstrap resamples. Set to zero for no
 bootstrap estimates for the CI.}
@@ -106,9 +106,9 @@ bootstrap estimates for the CI.}
 the computation proceeds.}
 
 \item{parse}{logical Passed to the geom. If \code{TRUE}, the labels will be
-parsed into expressions and displayed as described in \code{?plotmath}.
-Default is \code{TRUE} if \code{output.type = "expression"} and
-\code{FALSE} otherwise.}
+parsed into expressions and displayed as described in
+\code{\link[grDevices]{plotmath}}. Default is \code{TRUE} if
+\code{output.type = "expression"} and \code{FALSE} otherwise.}
 
 \item{show.legend}{logical. Should this layer be included in the legends?
 \code{NA}, the default, includes if any aesthetics are mapped. \code{FALSE}
@@ -120,11 +120,10 @@ define both data and aesthetics and shouldn't inherit behaviour from the
 default plot specification, e.g. \code{\link[ggplot2]{borders}}.}
 }
 \description{
-\code{stat_correlation()} applies \code{stats::cor.test()}
-  respecting grouping with \code{method = "pearson"} default but
-  alternatively using \code{"kendall"} or \code{"spearman"} methods. It
-  generates labels for correlation coefficients and p-value, coefficient of
-  determination (R^2) for method "pearson" and number of observations.
+Statistic \code{stat_correlation()} applies \code{stats::cor.test()}
+respecting grouping with \code{method = "pearson"} default but alternatively
+using \code{"kendall"} or \code{"spearman"} methods. It adds textual labels
+to a plot.
 }
 \details{
 This statistic can be used to annotate a plot with the correlation
@@ -158,6 +157,8 @@ Currently \code{coef.keep.zeros} is ignored, with trailing zeros always
   plotmath expressions (i.e., when \code{output.type = "expression"}).
 }
 \section{Computed variables}{
+
+
  If output.type is \code{"numeric"} the returned
   tibble contains the columns listed below with variations depending on the
   \code{method}. If the model fit function used does not return a value, the
@@ -191,6 +192,29 @@ To explore the computed values returned for a given input we suggest the use
 of \code{\link[gginnards]{geom_debug}} as shown in the last examples below.
 }
 
+\section{Position of labels}{
+
+  When data are grouped by mapping a factor to an aesthetic, e.g.,
+  \code{colour}, \code{shape} and/or \code{linetype} the model is fitted
+  separately to each group, and for each group a whole set of labels is
+  generated. If the argument passed to \code{label.y} is a vector of length
+  1, this value determines the position of the equation and/or other labels
+  for the first group, and the positions of the labels for the remaining
+  groups are generated by adding \code{vspace} based on the group number.
+  If the argument passed to \code{label.y} is a vector of length > 1, it is
+  used unchanged, possibly extended by recycling, ignoring \code{vstep}.
+
+  If the labels are rotated by 90 degrees then the automatic stepping is
+  best based on \code{hstep} with \code{vstep = 0}. Similarly as described
+  above, if \code{label.x} is a vector of length > 1, it is
+  used unchanged, possibly extended by recycling, ignoring \code{hstep}.
+
+  When using facets and with a grouping that does not repeat in each panel,
+  the automatic positioning in most cases will not be the desired one. Manual
+  positioning using a vector of length > 1 for \code{label.x} and/or
+  \code{label.y} is the currently available workaround.
+}
+
 \section{Output types}{
  The formatting of character strings to be displayed
 in plots are marked as mathematical equations. Depending on the geom used,
@@ -205,15 +229,40 @@ applied.
   \item{\code{"marquee"}}{The labels are encoded as character strings using markdown syntax, with 'marquee' supported spans.}
   \item{\code{"text"}}{The labels are plain ASCII character strings.}
   \item{\code{"numeric"}}{No labels are generated. This value is accepted by the statistics, but not by the label formatting functions.}
-  \item{\code{NULL}}{The value used, \code{expression}, \code{latex.eqn} or \code{markup} depends on the argument passed to \code{geom}.}}
+  \item{\code{NULL}}{The value used depends on the argument passed to \code{geom}.}}
 
 If \code{geom = "latex"} (package 'xdvir') the output type used is
 \code{"latex.eqn"}. If \code{geom = "richtext"} (package 'ggtext') or
 \code{geom = "textbox"} (package 'ggtext') the output type used is
 \code{"markdown"}. If \code{geom = "marquee"} (package 'marquee') the output
 type used is \code{"marquee"}. For all other values of \code{geom} the default
-is \code{"expression"} unless the user passes an argument. Invalid values as
-argument trigger an Error.
+is \code{"expression"}. Invalid values as argument trigger an error.
+}
+
+\section{Which variables are available for mapping?}{
+
+  Computed variables and their names can vary depending on the \code{method}
+  used to fit a model or the \code{output.type} in use. They can also depend
+  for a given \code{method} on other arguments passed when fitting a model or
+  extracting estimates and other computed values. In many cases, when values
+  are not available, the variables are filled with \code{NA} values.
+
+  In the statistics returning formatted strings for use as annotations, a
+  message is issued by default in interactive R sessions, listing the short
+  names for available formatted labels as recognized by functions
+  \code{\link{use_label}()} and \code{\link{f_use_label}()}, except when
+  \code{output.type = "numeric"} is passed, in which case the names of all
+  variables accessible by \code{after_stat()} within a call to \code{aes()}
+  are listed. This default (\code{"nicknames"}) can be changed by setting R option
+  \code{"ggpmisc.stat.vars.message"} to one of \code{"names"},
+  \code{"colnames"} or \code{"none"}.
+
+  In the statistics that plot a prediction or more generally mainly return
+  numeric variables, a message is issued by default in interactive R
+  sessions, listing the names of all variables accessible by
+  \code{after_stat()} within a call to \code{aes()} with at least some
+  non-missing values. This default (\code{"colnames"}) can be changed by
+  setting R option \code{"ggpmisc.stat.vars.message"} to \code{"none"}.
 }
 
 \examples{
@@ -279,25 +328,32 @@ ggplot(my.data, aes(x, y)) +
                    method = "spearman",
                    r.conf.level = 0.95)
 
+# f_use_label() provides additional flexibility
+ggplot(my.data, aes(x, y)) +
+  geom_point() +
+  stat_correlation(
+    f_use_label("R", "R.CI",
+      format = "\"Estimate: \"*\%s*\" with confidence \"*\%s"),
+      method = "spearman", r.conf.level = 0.95)
+
 # manually assemble and map a specific label using paste() and aes()
 ggplot(my.data, aes(x, y)) +
   geom_point() +
-  stat_correlation(aes(label = paste(after_stat(r.label),
-                                     after_stat(p.value.label),
-                                     after_stat(n.label),
-                                     sep = "*\", \"*")))
+  stat_correlation(aes(label =
+                         after_stat(
+                           paste(r.label, p.value.label, n.label,
+                                 sep = "*\", \"*"))))
 
 # manually format and map a specific label using sprintf() and aes()
 ggplot(my.data, aes(x, y)) +
   geom_point() +
-  stat_correlation(aes(label = sprintf("\%s*\" with \"*\%s*\" for \"*\%s",
-                                       after_stat(r.label),
-                                       after_stat(p.value.label),
-                                       after_stat(t.value.label))))
+  stat_correlation(aes(label =
+                         after_stat(
+                           sprintf("\%s*\" with \"*\%s*\" for \"*\%s",
+                                   r.label, p.value.label, t.value.label))))
 
 # Inspecting the returned data using geom_debug_group()
-# This provides a quick way of finding out the names of the variables that
-# are available for mapping to aesthetics with after_stat().
+# This provides a quick way of printing the returned data frame.
 
 gginnards.installed <- requireNamespace("gginnards", quietly = TRUE)
 
@@ -318,16 +374,6 @@ if (gginnards.installed)
 if (gginnards.installed)
   ggplot(my.data, aes(x, y)) +
     geom_point() +
-    stat_correlation(geom = "debug_group", method = "kendall")
-
-if (gginnards.installed)
-  ggplot(my.data, aes(x, y)) +
-    geom_point() +
-    stat_correlation(geom = "debug_group", method = "spearman")
-
-if (gginnards.installed)
-  ggplot(my.data, aes(x, y)) +
-    geom_point() +
     stat_correlation(geom = "debug_group", output.type = "numeric")
 
 if (gginnards.installed)
@@ -344,7 +390,7 @@ if (gginnards.installed)
 \seealso{
 \code{\link[stats]{cor.test}} for details on the computations.
 }
-\concept{ggplot statistics for correlation.}
+\concept{statistics for correlation-test annotation}
 \section{Aesthetics}{
 
 \code{stat_correlation()} understands the following aesthetics. Required aesthetics are displayed in bold and defaults are displayed for optional aesthetics:

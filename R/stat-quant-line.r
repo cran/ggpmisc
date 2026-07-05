@@ -1,190 +1,4 @@
-#' Predicted line from quantile regression fit
-#'
-#' Predicted values are computed and, by default, plotted. Depending on the
-#' fit method, a confidence band can be computed and plotted. The confidence
-#' band can be interpreted similarly as that produced by \code{stat_smooth()}
-#' and \code{stat_poly_line()}.
-#'
-#' @details \code{stat_quant_line()} behaves similarly to
-#'   \code{ggplot2::stat_smooth()} and \code{stat_poly_line()} but supports
-#'   fitting regressions for multiple quantiles in the same plot layer. This
-#'   statistic interprets the argument passed to \code{formula} accepting
-#'   \code{y} as well as \code{x} as explanatory variable, matching
-#'   \code{stat_quant_eq()}. While \code{stat_quant_eq()} supports only method
-#'   \code{"rq"}, \code{stat_quant_line()} and \code{stat_quant_band()} support
-#'   both \code{"rq"} and \code{"rqss"}, In the case of \code{"rqss"} the model
-#'   formula makes normally use of \code{qss()} to formulate the spline and its
-#'   constraints.
-#'
-#'   \code{\link[ggplot2]{geom_smooth}}, which is used by default, treats each
-#'   axis differently and thus is dependent on orientation. If no argument is
-#'   passed to \code{formula}, it defaults to \code{y ~ x}. Formulas with
-#'   \code{y} as explanatory variable are treated as if \code{x} was the
-#'   explanatory variable and \code{orientation = "y"}.
-#'
-#'   Package 'ggpmisc' does not define a new geometry matching this statistic as
-#'   it is enough for the statistic to return suitable \code{x}, \code{y},
-#'   \code{ymin}, \code{ymax} and \code{group} values.
-#'
-#'   The minimum number of observations with distinct values in the explanatory
-#'   variable can be set through parameter \code{n.min}. The default \code{n.min
-#'   = 3L} is the smallest usable value. However, model fits with very few
-#'   observations are of little interest and using larger values of \code{n.min}
-#'   than the default is wise.
-#'
-#'   There are multiple uses for double regression on x and y. For example, when
-#'   two variables are subject to mutual constrains, it is useful to consider
-#'   both of them as explanatory and interpret the relationship based on them.
-#'   So, from version 0.4.1 'ggpmisc' makes it possible to easily implement the
-#'   approach described by Cardoso (2019) under the name of "Double quantile
-#'   regression".
-#'
-#' @inheritParams stat_poly_line
-#'
-#' @param quantiles numeric vector Values in 0..1 indicating the quantiles.
-#' @param method function or character If character, "rq", "rqss" or the name of
-#'   a model fit function are accepted, possibly followed by the fit function's
-#'   \code{method} argument separated by a colon (e.g. \code{"rq:br"}). If a
-#'   function different to \code{rq()}, it must accept arguments named
-#'   \code{formula}, \code{data}, \code{weights}, \code{tau} and \code{method}
-#'   and return a model fit object of class \code{rq}, \code{rqs} or
-#'   \code{rqss}.
-#' @param method.args named list with additional arguments passed to
-#'   \code{rq()}, \code{rqss()} or to another function passed as argument to
-#'   \code{method}.
-#' @param se logical Passed to \code{quantreg::predict.rq()}.
-#' @param level numeric in range [0..1] Passed to \code{quantreg::predict.rq()}.
-#' @param type character Passed to \code{quantreg::predict.rq()}.
-#' @param interval character Passed to \code{quantreg::predict.rq()}.
-#'
-#' @aesthetics StatQuantLine
-#'
-#' @return The value returned by the statistic is a data frame, that will have
-#'   \code{n} rows of predicted values and and their confidence limits
-#'   \emph{for each quantile}, with quantiles creating groups, or expanding
-#'   existing groups. The variables are \code{x} and
-#'   \code{y} with \code{y} containing predicted values. In addition,
-#'   \code{quantile} and \code{quantile.f} indicate the quantile used and and
-#'   edited \code{group} preserves the original grouping adding a new "level"
-#'   for each quantile. Is \code{se = TRUE}, a confidence band is computed and
-#'   values for it returned in \code{ymax} and \code{ymin}.
-#'
-#' @inheritSection stat_poly_line Model fit methods supported
-#'
-#' @section Computed variables: `stat_quant_line()` provides the following
-#'   variables, some of which depend on the orientation:
-#'
-#'   \describe{
-#'   \item{y \strong{or} x}{predicted value}
-#'   \item{ymin \strong{or} xmin}{lower confidence limit around the fitted line}
-#'   \item{ymax \strong{or} xmax}{upper confidence limit around the fitted line}
-#'   }
-#'
-#'   If \code{fm.values = TRUE} is passed then one column with the number of
-#'   observations \code{n} used for each fit is also included, with the same
-#'   value in each row within a group. This is wasteful and disabled by default,
-#'   but provides a simple and robust approach to achieve effects like colouring
-#'   or hiding of the model fit line based on the number of observations.
-#'
-#' @references
-#' Cardoso, G. C. (2019) Double quantile regression accurately assesses
-#'   distance to boundary trade-off. Methods in ecology and evolution,
-#'   10(8), 1322-1331.
-#'
-#' @seealso \code{\link[quantreg]{rq}}, \code{\link[quantreg]{rqss}} and
-#'   \code{\link[quantreg]{qss}}.
-#'
-#' @export
-#'
-#' @examples
-#' ggplot(mpg, aes(displ, hwy)) +
-#'   geom_point() +
-#'   stat_quant_line()
-#'
-#' ggplot(mpg, aes(displ, hwy)) +
-#'   geom_point() +
-#'   stat_quant_line(quantiles = 0.5)
-#'
-#' ggplot(mpg, aes(displ, hwy)) +
-#'   geom_point() +
-#'   stat_quant_line(se = TRUE)
-#'
-#' # If you need the fitting to be done along the y-axis set the orientation
-#' ggplot(mpg, aes(displ, hwy)) +
-#'   geom_point() +
-#'   stat_quant_line(orientation = "y")
-#'
-#' ggplot(mpg, aes(displ, hwy)) +
-#'   geom_point() +
-#'   stat_quant_line(orientation = "y", se = TRUE)
-#'
-#' ggplot(mpg, aes(displ, hwy)) +
-#'   geom_point() +
-#'   stat_quant_line(formula = y ~ x)
-#'
-#' ggplot(mpg, aes(displ, hwy)) +
-#'   geom_point() +
-#'   stat_quant_line(formula = x ~ y)
-#'
-#' ggplot(mpg, aes(displ, hwy)) +
-#'   geom_point() +
-#'   stat_quant_line(formula = y ~ poly(x, 3))
-#'
-#' ggplot(mpg, aes(displ, hwy)) +
-#'   geom_point() +
-#'   stat_quant_line(formula = x ~ poly(y, 3))
-#'
-#' # Instead of rq() we can use rqss() to fit an additive model:
-#' library(quantreg)
-#'
-#' ggplot(mpg, aes(displ, hwy)) +
-#'   geom_point() +
-#'   stat_quant_line(method = "rqss",
-#'                   formula = y ~ qss(x, constraint = "D"),
-#'                   quantiles = 0.5, se = FALSE)
-#'
-#' ggplot(mpg, aes(displ, hwy)) +
-#'   geom_point() +
-#'   stat_quant_line(method = "rqss",
-#'                   formula = x ~ qss(y, constraint = "D"),
-#'                   quantiles = 0.5)
-#'
-#' ggplot(mpg, aes(displ, hwy)) +
-#'   geom_point()+
-#'   stat_quant_line(method="rqss",
-#'                   interval="confidence",
-#'                   se = TRUE,
-#'                   mapping = aes(fill = factor(after_stat(quantile)),
-#'                                 color = factor(after_stat(quantile))),
-#'                   quantiles=c(0.05,0.5,0.95))
-#'
-#' # Smooths are automatically fit to each group (defined by categorical
-#' # aesthetics or the group aesthetic) and for each facet.
-#'
-#' ggplot(mpg, aes(displ, hwy, colour = drv, fill = drv)) +
-#'   geom_point() +
-#'   stat_quant_line(method = "rqss",
-#'                   formula = y ~ qss(x, constraint = "V"),
-#'                    quantiles = 0.5)
-#'
-#' ggplot(mpg, aes(displ, hwy)) +
-#'   geom_point() +
-#'   stat_quant_line(formula = y ~ poly(x, 2)) +
-#'   facet_wrap(~drv)
-#'
-#' # Inspecting the returned data using geom_debug_group()
-#' gginnards.installed <- requireNamespace("gginnards", quietly = TRUE)
-#'
-#' if (gginnards.installed)
-#'   library(gginnards)
-#'
-#' if (gginnards.installed)
-#'   ggplot(mpg, aes(displ, hwy)) +
-#'     stat_quant_line(geom = "debug_group")
-#'
-#' if (gginnards.installed)
-#'   ggplot(mpg, aes(displ, hwy)) +
-#'     stat_quant_line(geom = "debug_group", fm.values = TRUE)
+#' @rdname stat_quant_eq
 #'
 #' @export
 #'
@@ -200,6 +14,8 @@ stat_quant_line <- function(mapping = NULL,
                             fit.seed = NA,
                             fm.values = FALSE,
                             n = 80,
+                            fullrange = FALSE,
+                            limit.to = NULL,
                             method = "rq",
                             method.args = list(),
                             n.min = 3L,
@@ -250,6 +66,10 @@ stat_quant_line <- function(mapping = NULL,
   orientation <- temp[["orientation"]]
   formula <-  temp[["formula"]]
 
+  limit.to <- check_limit_to(fullrange = fullrange,
+                             limit.to = limit.to,
+                             orientation = orientation)
+
   ggplot2::layer(
     data = data,
     mapping = mapping,
@@ -266,6 +86,7 @@ stat_quant_line <- function(mapping = NULL,
         fit.seed = fit.seed,
         fm.values = fm.values,
         n = n,
+        limit.to = limit.to,
         method = method,
         method.name = method.name,
         method.args = method.args,
@@ -292,6 +113,8 @@ quant_line_compute_group_fun <- function(data,
                                          quantiles = c(0.25, 0.5, 0.75),
                                          formula = NULL,
                                          n = 80,
+                                         limit.to = "x",
+                                         xseq = NULL,
                                          method,
                                          method.name,
                                          method.args = list(),
@@ -335,10 +158,26 @@ quant_line_compute_group_fun <- function(data,
                               na.rm = na.rm,
                               orientation = "x")
 
-  seq.indep <- seq(from = min(data[["x"]], na.rm = TRUE),
-                   to   = max(data[["x"]], na.rm = TRUE),
-                   length.out = n)
-  grid <- data.frame(x = seq.indep)
+  if (is.numeric(limit.to)) {
+    xseq <- limit.to
+    limit.to <- "none"
+  }
+
+  if (is.null(xseq)) {
+    if (grepl("x", limit.to)) {
+      xrange <- range(data[[orientation]], na.rm = TRUE)
+    } else {
+      xrange <- scales[[orientation]]$dimension()
+    }
+    if (grepl("y", limit.to)) {
+      yrange <- range(data[[c(x = "y", y = "x")[orientation]]], na.rm = TRUE)
+    } else {
+      yrange <- scales[[c(x = "y", y = "x")[orientation]]]$dimension()
+    }
+    xseq <- seq(from = xrange[1], to = xrange[2], length.out = n)
+  }
+
+  grid <- data.frame(x = xseq)
 
   preds.ls <- list()
   fms.idxs <- grep("^fm", names(fms.ls))
@@ -394,8 +233,20 @@ quant_line_compute_group_fun <- function(data,
       factor(z[["quantile"]], levels = quant.levels, labels = quant.labels)
   }
 
+  if (grepl("y", limit.to)) {
+    # with method "sma" or "ma", trimming only on x is illogical
+    selector <-
+      which(z[[c(x = "y", y = "x")[orientation]]] >= yrange[1] &
+              z[[c(x = "y", y = "x")[orientation]]] <= yrange[2])
+    z <- z[selector, ]
+  }
+
   z[["flipped_aes"]] <- flipped_aes
-  ggplot2::flip_data(z, flipped_aes)
+  z <- ggplot2::flip_data(z, flipped_aes)
+
+  show_colnames(z, stat.name = "stat_quant_line")
+
+  z
 }
 
 #' @rdname ggpmisc-ggproto

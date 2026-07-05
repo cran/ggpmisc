@@ -4,6 +4,73 @@ editor_options:
     wrap: 72
 ---
 
+# ggpmisc 1.0.0
+
+The main changes in this version are support for `orientation = "y"` in all 
+statistics, improved support for non-linear models, using ordinary or orthogonal
+least squares, the computation of the position of tail quantiles in fitted
+mixture of Normals models, and a major update of the documentation and website.
+
+- Add function `f_use_label()` similar to `use_label()` but relying on a 
+`format` to build the combined character string mapped to the `label` aesthetic.
+- Update all statistics so that they issue a message in _interactive R sessions_
+listing short names of formatted labels or full names of variables available 
+for mapping to aesthetics.
+- Update `check_poly_formula()` to issue warnings when the model formula 
+includes on-the-fly transformations in the rhs or lhs, indicating the need to 
+pass a matching argument to `eq.x.rhs` or `eq.lhs`. Fix parsing failures leading
+to wrong test outcomes in some edge cases. Detect formulas containing spline
+base functions `bs`, `ns` or `lspline` as not being regular polynomials.
+- Add `stat_spikes()` with similar functionality as `stat_peaks()` and 
+`stat_valleys()` but targeting very narrow peaks and valleys with unusually
+abrupt transitions from the baseline.
+- Support flipping of orientation and guess default `orientation` automatically
+from the aesthetic mapping in `stat_multcomp()` (**breaking** returned
+variables renamed: `x.left.tip` into `xmin` and `x.right.tip` into `xmax`).
+- Support flipping of orientation and guess default `orientation` automatically
+from the aesthetic mapping when possible in `stat_fit_tb()`,
+`stat_fit_glance()`, `stat_fit_tidy()` and `stat_fit_augment()`.
+- Add `stat_distrmix_area()` as a wrapper on `stat_distrmix_line()` with
+default for plotting the sum of component Normals as an area.
+- Guess default `orientation` automatically from the aesthetic mapping in 
+`stat_distrmix_line()`, `stat_distrmix_area()` and `stat_distrmix_eq()`.
+- Identify regions of the fitted component Normal distributions and their
+mixture delimited by arbitrary quantiles in `stat_distrmix_line()` and 
+`stat_distrmix_area()`.
+- Export function `find_quantiles()` for the identification of regions delimited
+by quantiles when mapping aesthetics in other statistics from 'ggplot2' or its
+extension packages.
+- Improve in `stat_distrmix_line()` and `stat_distrmix_area()` the 
+behaviour with `fullrange = TRUE` so that it extends the prediction to cover the
+scale range if broader, but never shrinks the range below that needed to
+encompass >= 0.999 of the probability. Plots rendered with 'ggpmisc' (>= 1.0.0)
+cover a range slightly broader than in previous versions.
+- Support methods `"nls"` and `"onls"` in `stat_poly_line()` and 
+`stat_poly_eq()`.
+- Add parameter `limit.to` to `stat_poly_line()` and `stat_ma_line()` as an 
+enhancement of parameter `fullrange` providing full control on the `newdata`
+used to compute the prediction line.
+- Add parameters `fullrange` and `limit.to` to `stat_quant_line()` and
+`stat_quant_band()` for consistency, adding previously lacking control over the
+prediction range.
+- **Breaking:** as robustness weights are just one type of posterior weights, the 
+returned variable `robustness.weights` is renamed `posterior.weights`.
+- Add support for extraction of posterior weights for models fitted with methods
+`"gls"`, (`"lme"` and `"nlme"`). These weights are NOT scaled to values in 0..1!
+- Change default from `show.legend = FALSE` to `show.legend = TRUE` in 
+`stat_fit_residuals()` and `stat_fit_deviations()`.
+- Fix **bug** in support of `smatr::ma()` and `smatr::sma()` in `stat_poly_eq()` 
+with `- 1` or `+ 0` in `formula`: $x^2$ shown instead of $x$.
+- Rewrite `find_spikes()` with changes in behaviour and formal parameters. Old
+version did not work as documented, or even usefully.
+- Streamline source of documentation using 'roxygen2' inheritance and expand
+and clarify explanations. List supported methods in tables in help pages.
+Merge help for closely related statistics.
+- Update the _User Guide_ with new/better examples and explanations including
+use of new features.
+- Update the documentation website of 'ggpmisc' editing existing and adding
+two new articles: _Non-linear model fits_ and _Multiple comparisons_.
+
 # ggpmisc 0.7.0
 
 The main changes in this version improve and expand the generation of labels,

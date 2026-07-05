@@ -10,6 +10,7 @@ stat_fit_augment(
   geom = "smooth",
   position = "identity",
   ...,
+  orientation = NA,
   method = "lm",
   method.args = list(formula = y ~ x),
   n.min = 2L,
@@ -24,22 +25,32 @@ stat_fit_augment(
 }
 \arguments{
 \item{mapping}{The aesthetic mapping, usually constructed with
-\code{\link[ggplot2]{aes}()}. Only needs
-to be set at the layer level if you are overriding the plot defaults.}
+\code{\link[ggplot2]{aes}()}. Only needs to be set at the layer level if you
+are overriding the plot defaults.}
 
-\item{data}{A layer specific dataset - only needed if you want to override
-the plot defaults.}
+\item{data}{A layer specific dataset, only needed if you want to override the
+plot defaults.}
 
 \item{geom}{The geometric object to use display the data}
 
 \item{position}{The position adjustment to use for overlapping points on this
-layer}
+layer.}
 
 \item{...}{other arguments passed on to \code{\link[ggplot2]{layer}}. This
 can include aesthetics whose values you want to set, not map. See
 \code{\link[ggplot2]{layer}} for more details.}
 
-\item{method}{character or function.}
+\item{orientation}{character Either "x" or "y" controlling the default for
+\code{formula}. The letter indicates the aesthetic considered the
+explanatory variable in the model fit.}
+
+\item{method}{function or character If character, "lm", "rlm", "lmrob",
+"lts", "gls", "ma", "sma", "segreg", "rq" or the name of a model fit
+function are accepted, possibly followed by the fit function's
+\code{method} argument separated by a colon (e.g. \code{"rlm:M"}). If a
+function is different to \code{lm()}, \code{rlm()}, \code{ltsReg()},
+\code{gls()}, \code{ma}, \code{sma}, it must have formal parameters named
+\code{formula}, \code{data}, and \code{weights}. See Details.}
 
 \item{method.args, augment.args}{list of arguments to pass to \code{method}
 and to to \code{broom::augment}.}
@@ -48,15 +59,15 @@ and to to \code{broom::augment}.}
 variable (on the rhs of formula) for fitting to the attempted.}
 
 \item{fit.seed}{RNG seed argument passed to
-\code{\link[base:Random]{set.seed}()}. Defaults to \code{NA}, which means
-that \code{set.seed()} will not be called.}
+\code{\link[base:Random]{set.seed}()}. Defaults to \code{NA}, indicating
+that \code{set.seed()} should not be called.}
 
-\item{level}{numeric Level of confidence interval to use (0.95 by default)}
+\item{level}{Level of confidence interval to use (0.95 by default).}
 
 \item{y.out}{character (or numeric) index to column to return as \code{y}.}
 
-\item{na.rm}{logical indicating whether \code{NA} values should be stripped
-before the computation proceeds.}
+\item{na.rm}{a logical indicating whether NA values should be stripped before
+the computation proceeds.}
 
 \item{show.legend}{logical. Should this layer be included in the legends?
 \code{NA}, the default, includes if any aesthetics are mapped. \code{FALSE}
@@ -67,11 +78,25 @@ than combining with them. This is most useful for helper functions that
 define both data and aesthetics and shouldn't inherit behaviour from the
 default plot specification, e.g. \code{\link[ggplot2]{borders}}.}
 }
+\value{
+A data.frame is returned, with a variable number of rows. The output
+  of \code{augment()} is returned as is, except for \code{y} which is set
+  based on \code{y.out} returned by \code{augment()} and \code{y.observed}
+  which preserves the \code{y} returned by the \code{generics::augment}
+  methods. This renaming is needed so that the geom works as expected.
+
+  To explore the values returned by this statistic, which vary depending
+  on the model fitting function and model formula we suggest the use of
+  \code{\link[gginnards]{geom_debug}}. An example is shown below.
+}
 \description{
 \code{stat_fit_augment()} fits a model and returns a "tidy"
   version of the model's data with prediction added, using \code{augmnent()}
   methods from packages 'broom', 'broom.mixed', or other sources. The
-  prediction can be added to the plot as a line.
+  prediction can be added to the plot as a line. The role played by
+  `augnebt()` is similar to that played by R's \code{fitted()},
+  \code{residuals()}, and in some cases also \code{weights()}, and
+  \code{predict()}.
 }
 \details{
 \code{stat_fit_augment()} together with
@@ -82,55 +107,160 @@ default plot specification, e.g. \code{\link[ggplot2]{borders}}.}
   automatically, for these functions the mapping of aesthetic \code{label}
   needs to be explicitly supplied in the call, and labels built on the fly.
 
-  A ggplot statistic receives as data a data frame that is not the one passed
-  as argument by the user, but instead a data frame with the variables mapped
-  to aesthetics. In other words, it respects the grammar of graphics and
-  consequently within arguments passed through \code{method.args} names of
-  aesthetics like _x_ and _y_ should be used instead of the original variable
-  names, while data is automatically passed the data frame. This helps ensure
-  that the model is fitted to the same data as plotted in other layers.
-}
-\note{
-The statistic \code{stat_fit_augment} can be used only with
-  \code{methods} that accept formulas under any formal parameter name and a
-  \code{data} argument. Use \code{ggplot2::stat_smooth()} instead of
-  \code{stat_fit_augment} in production code if the additional features are
-  not needed.
-
-Although arguments passed to parameter \code{augment.args} will be
+  Although arguments passed to parameter \code{augment.args} will be
   passed to \code{\link[generics]{augment}()} whether they are silently
-  ignored or obeyed depends on each specialization of \code{augment()}, so do
+  ignored or obeyed depends on each specialization of \code{augment()}. In
+  particular, passing `newdata` to obtain a prediction can in some cases
+  result in other statisitcs being wrongly computed! Please, do
   carefully read the documentation for the version of \code{augment()}
   corresponding to the \code{method} used to fit the model. Be aware that
   \code{se_fit = FALSE} is the default in these methods even when supported.
-}
-\section{Warning!}{
- Not all \code{augment()} method specializations are
+
+  This statistics is meant to be used in situations when all of
+  \code{\link{stat_poly_line}()}, \code{\link{stat_quant_line}()},
+  \code{\link{stat_ma_line}()}, \code{\link{stat_quant_band}()},
+  \code{\link{stat_fit_residuals}()} and \code{\link{stat_fit_fitted}()} are
+  unsuitable.
+
+  \strong{Warning!} Not all \code{augment()} method specializations are
   defined in package 'broom'. \code{augment()} specializations for mixed
   models fits of classes \code{"lme"}, \code{"nlme"}, \code{"lme4"} and many
   others are defined in package 'broom.mixed'.
 }
-
 \section{Handling of grouping}{
  \code{stat_fit_augment()} applies the function
   given by \code{method} separately to each group of observations; in
   'ggplot2' factors mapped to aesthetics generate a separate group for each
   level. Because of this, \code{stat_fit_augment()} is not useful for
   annotating plots with results from \code{t.test()} or ANOVA or ANCOVA
-  (e.g., when a factor is mapped to the _x_ or _y_ aesthetics. In such cases
-  use instead \code{stat_fit_tb()} which applies the model fitting per panel.
+  (e.g., when a factor is mapped to the \emph{x} or \emph{y} aesthetics). In
+  such cases use instead \code{stat_fit_tb()} which applies the model fitting
+  per panel.
 }
 
-\section{Computed variables}{
- The output of \code{augment()} is
-  returned as is, except for \code{y} which is set based on \code{y.out} and
-  \code{y.observed} which preserves the \code{y} returned by the
-  \code{generics::augment} methods. This renaming is needed so that the geom
-  works as expected.
+\section{Model formula and model fitting}{
 
-  To explore the values returned by this statistic, which vary depending
-  on the model fitting function and model formula we suggest the use of
-  \code{\link[gginnards]{geom_debug}}. An example is shown below.
+  A ggplot statistic receives as \code{data} a data frame that is not the one
+  passed as argument by the user, but instead a data frame with the variables
+  mapped to aesthetics. In \code{stat_poly_eq()} the compute function is
+  applied by group, each call "seeing" the subset of \code{data} for an
+  individual group. As supported models are for regression lines,
+  variables mapped to \code{x} and \code{y} should both be continuous, i.e.,
+  numeric or date time and model formulas defined using \code{x} and \code{y}
+  as variable names.
+
+  The interpretation of the argument passed to \code{formula} is enhanced
+  compared to \code{stat_smooth()}. Formulas with \code{x} as explanatory
+  variable work as in \code{stat_smooth()} but formulas with \code{y} as
+  explanatory variable are also accepted. \code{orientation} is set
+  automatically based on which explanatory variable appears in the formula.
+  Spline-based smoothers are only partially supported.
+}
+
+\section{Model fit methods supported}{
+
+  Several model fit functions are supported explicitly (see tables), and some
+  of their differences smoothed out. Compatibility is checked late, based on
+  the class of the returned fitted model object. This makes it possible to
+  use wrapper functions that do model selection or other adjustments to the
+  fit procedure on a per panel or per group basis. Moreover, if the value
+  returned as model fit object is \code{NULL} or \code{NA}, plotting is
+  skipped on a per group within panel basis.
+
+  \emph{In the case of fitted model objects of classes not explicitly
+  supported, an attempt is made to find the usual accessors and/or fitted
+  object members, and if found, either complete or partial support is
+  frequently achieved. In this case a message is issued encouraging users to
+  check the validity of the values extracted as the structure of fitted model
+  objects belonging to different classes and the values returned by their
+  accessors can vary, potentially resulting in decoding errors leading to the
+  return of wrong values for estimates.}
+
+  The argument to parameter \code{method} can be either the name of a
+  function object, possibly using double colon notation in case its package
+  is not attached, or a character string matching the function name for
+  functions in the search path. This approach makes it possible to support
+  model fit functions that are not dependencies of 'ggpmisc'. Either by
+  attaching the package where the function is defined and passing it by name
+  or as string, or using double colon notation when passing the name of the
+  function.
+
+  User-defined functions can be passed as argument to parameter \code{method}
+  as long as they have parameters \code{formula}, \code{data} \code{subset}
+  and possibly \code{weights}. Additional arguments can be passed to any
+  method as a named list through parameter \code{method.args}. As in
+  \code{\link[ggplot2:geom_smooth]{stat_smooth}()} prior \code{weights} are
+  passed to the model fit functions' \code{weights} (plural!) parameter by
+  mapping a numeric variable to plot aesthetic \code{weight} (singular!).
+
+  Tables 1 lists natively supported model fit functions, with the
+  caveat that only some 'broom' methods' specializations have been actually
+  tested with statistics from 'ggpmisc'. In addition, the statistics based
+  on 'broom' methods require the user to tailor their behaviour by passing
+  additional arguments in the call and occasionally some detective work to
+  find out the names of variables in the returned data frame as these names
+  are set by methods from 'broom'.
+
+  \strong{Table 1.} Model fit methods supported by the different statistics
+  available in package 'ggpmisc'. Column \eqn{f} indicates whether
+  computations are done by group (G) or by plot panel (P).
+  \tabular{lcl}{
+  \strong{Statistic} \tab \eqn{f} \tab \strong{Supported model fit methods} \cr
+  \code{\link{stat_poly_line}()} \tab G \tab "lm", "rlm", "lts", "sma", "ma", "gls", "nls", "onls", \emph{others with methods} \code{\link[stats]{predict}()} or \code{\link[stats]{fitted}()} \cr
+  \code{\link{stat_poly_eq}()}   \tab G \tab "lm", "rlm", "lts", "sma", "ma", "gls", "nls", "onls", \emph{others with needed accesors} \cr
+  \code{\link{stat_quant_line}()} \tab G \tab "rq", "rqss" \cr
+  \code{\link{stat_quant_band}()} \tab G \tab "rq", "rqss" \cr
+  \code{\link{stat_quant_eq}()} \tab G \tab "rq", "rqss" \cr
+  \code{\link{stat_ma_line}()} \tab G \tab "SMA", "MA", "RMA", "OLS" \cr
+  \code{\link{stat_ma_eq}()} \tab G \tab "SMA", "MA", "RMA", "OLS" \cr
+  \code{\link{stat_fit_residuals}()} \tab G \tab "lm", "rlm", "lts", "sma", "ma", "gls", "rq", "rqss", "nls", "onls", \emph{others with method} \code{\link[stats]{residuals}()} \cr
+  \code{\link{stat_fit_fitted}()} \tab G \tab "lm", "rlm", "lts", "gls", "rq", "rqss", "nls", "onls", \emph{others with method} \code{\link[stats]{fitted}()} \cr
+  \code{\link{stat_fit_deviations}()} \tab G \tab "lm", "rlm", "lts", "gls", "rq", "rqss", "nls", "onls", \emph{others with methods} \code{\link[stats]{fitted}()} and \code{\link[stats]{weights}()} \cr
+  \code{\link{stat_fit_augment}()} \tab G \tab \emph{any with 'broom' method} \code{\link[broom]{augment}()} \cr
+  \code{\link{stat_fit_glance}()} \tab G \tab \emph{any with 'broom' method} \code{\link[broom]{glance}()} \cr
+  \code{\link{stat_fit_tidy}()} \tab G \tab \emph{any with 'broom' method} \code{\link[broom]{tidy}()} \cr
+  \code{\link{stat_fit_tb}()} \tab P \tab \emph{any with 'broom' method} \code{\link[broom]{tidy}()} \cr
+  }
+
+  The single colon notation is based on parsing
+  the name and is available when passing the name of the fit method as a
+  character string. In a string such as "head:tail" the "head" gives the name
+  of the model fit function and the "tail" gives the argument to pass it's
+  \code{method} parameter. This is only a convenience, as \code{method.args}
+  can be also used. In some methods, i.e., splines, the default
+  \code{formula = y ~ x} needs to be overridden by the user.
+
+  Table 2 lists the correspondence of pre-defined \emph{method names}
+  to model fit method functions. As mentioned above, these are only
+  a subset of the model fit methods that are expected to work. When using
+  these names there is no need for users to attach additional packages but
+  the packages must be available (installed).
+
+  \strong{Table 2.} Available predefined method names, the model fit functions
+  they call, the packages where the functions reside, the class of the
+  returned fitted model object and the arguments that can be
+  passed to their \code{method} parameter using single colon notation.
+  \tabular{llll}{
+  \strong{Predefined method names} \tab \strong{Model fit methods} \tab \strong{R package} \tab \strong{Object class} \cr
+  "lm", "lm:qr" \tab \code{\link[stats]{lm}()} \tab 'stats' \tab "lm" \cr
+  "rlm", "rlm:M", "rlm:MM" \tab \code{\link[MASS]{rlm}()} \tab 'MASS' \tab "rlm" ("lm") \cr
+  "lts", "ltsReg" \tab \code{\link[robustbase]{ltsReg}()} \tab 'robustbase' \tab "lts" \cr
+  "ma", "sma", "sma:SMA", "sma:MA", "sma:OLS" \tab \code{\link[smatr]{sma}()} \tab 'smatr' \tab "ma" or "sma" \cr
+  "gls", "gls:REML", "gls:ML" \tab \code{\link[nlme]{gls}()} \tab 'nlme' \tab "gls" \cr
+  "rq", "rq:sfn", "rq:sfnc", "rq:lasso" \tab \code{\link[quantreg]{rq}()} \tab 'quantreg' \tab "rq" \cr
+  "rqss", "rqss:sfn", "rqss:sfnc", "rqss:lasso" \tab \code{\link[quantreg]{rqss}()} \tab 'quantreg' \tab "rqss" \cr
+  "SMA", "MA", "RMA", "OLS" \tab \code{\link[lmodel2]{lmodel2}()} \tab 'lmodel2' \tab ("list") \cr
+  }
+}
+
+\section{Which variables are available for mapping?}{
+
+  Computed variables and their names vary following those used in the
+  specializations of 'broom' methods. A message is issued by default in
+  interactive R sessions, listing the names of all variables accessible by
+  \code{after_stat()} within a call to \code{aes()} with at least some
+  non-missing values. This default (\code{"colnames"}) can be changed by
+  setting R option \code{"ggpmisc.stat.vars.message"} to \code{"none"}.
 }
 
 \examples{
@@ -144,26 +274,19 @@ if (broom.installed) {
   library(broom)
 }
 
-# Inspecting the returned data using geom_debug_group()
-  if (gginnards.installed) {
-    library(gginnards)
-}
-
-# Regression by panel, inspecting data
-if (broom.installed & gginnards.installed) {
-    ggplot(mtcars, aes(x = disp, y = mpg)) +
-      geom_point(aes(colour = factor(cyl))) +
-      stat_fit_augment(method = "lm",
-                       method.args = list(formula = y ~ x),
-                       geom = "debug_group",
-                       dbgfun.data = colnames)
-}
-
 # Regression by panel example
 if (broom.installed)
   ggplot(mtcars, aes(x = disp, y = mpg)) +
     geom_point(aes(colour = factor(cyl))) +
     stat_fit_augment(method = "lm",
+                     method.args = list(formula = y ~ x))
+
+# Flipped regression by panel example
+if (broom.installed)
+  ggplot(mtcars, aes(x = disp, y = mpg)) +
+    geom_point(aes(colour = factor(cyl))) +
+    stat_fit_augment(method = "lm",
+                     orientation = "y",
                      method.args = list(formula = y ~ x))
 
 if (broom.installed)
@@ -215,19 +338,32 @@ if (broom.installed)
                                         weights = quote(weight)),
                      y.out = ".resid")
 
+# Inspecting the returned data using geom_debug_group()
+  if (gginnards.installed) {
+    library(gginnards)
+}
+
+# Regression by panel, inspecting data
+if (broom.installed & gginnards.installed) {
+    ggplot(mtcars, aes(x = disp, y = mpg)) +
+      geom_point(aes(colour = factor(cyl))) +
+      stat_fit_augment(method = "lm",
+                       method.args = list(formula = y ~ x),
+                       geom = "debug_group",
+                       dbgfun.data = colnames)
+}
+
 }
 \seealso{
 Package \code{\link[broom]{broom}} for details on how the tidying of
   the result of model fits is done.
 
-Other ggplot statistics for model fits: 
-\code{\link{stat_fit_deviations}()},
-\code{\link{stat_fit_glance}()},
-\code{\link{stat_fit_residuals}()},
-\code{\link{stat_fit_tb}()},
-\code{\link{stat_fit_tidy}()}
+Other 'broom'-based statistics for model fits:
+\code{\link[=stat_fit_glance]{stat_fit_glance()}},
+\code{\link[=stat_fit_tb]{stat_fit_tb()}},
+\code{\link[=stat_fit_tidy]{stat_fit_tidy()}}
 }
-\concept{ggplot statistics for model fits}
+\concept{'broom'-based statistics for model fits}
 \section{Aesthetics}{
 
 \code{stat_fit_augment()} understands the following aesthetics. Required aesthetics are displayed in bold and defaults are displayed for optional aesthetics:

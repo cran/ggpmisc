@@ -1,137 +1,120 @@
-#' Equation, rho, AIC and BIC from quantile regression
+#' Quantile regression predictions and annotations
 #'
-#' \code{stat_quant_eq} fits a polynomial model by quantile regression and
-#' generates several labels including the equation, rho, 'AIC' and 'BIC'.
+#' Statistics \code{stat_quant_line()}, \code{stat_quant_band()} and
+#' \code{stat_quant_eq()} fit models by quantile regression. While
+#' \code{stat_quant_line()} and \code{stat_quant_band()} add prediction lines and
+#' bands, \code{stat_quant_eq()} adds textual labels to a plot.
 #'
-#' This statistic interprets the argument passed to \code{formula} differently
-#' than \code{\link[ggplot2]{stat_quantile}} accepting \code{y} as well as
-#' \code{x} as explanatory variable, matching \code{stat_quant_line()}.
+#' @details While \code{stat_poly_line()} and \code{stat_poly_eq()} fit
+#'   a single model per plot layer, \code{stat_quant_line()}, \code{stat_quant_band()}
+#'   and \code{stat_quant_eq()} can fit multiple models sharing the same
+#'   \code{method} and \code{formula} but differing in their
+#'   probability. These probabilities are passed a vector argument to parameter
+#'   \code{quantiles}.
 #'
-#' When two variables are subject to mutual constrains, it is useful to consider
-#' both of them as explanatory and interpret the relationship based on them. So,
-#' from version 0.4.1 'ggpmisc' makes it possible to easily implement the
-#' approach described by Cardoso (2019) under the name of "Double quantile
-#' regression".
+#'   \code{stat_quant_line} fits one or more quantile regressions and obtains
+#'   predictions similarly to \code{\link[ggplot2]{stat_quantile}()} from
+#'   'ggplot2', but in addition it computes confidence regions for the
+#'   prediction lines. By default each quantile is plotted as a line, with a
+#'   confidence band when \code{se = TRUE}.
 #'
-#' @inheritParams stat_quant_line
+#'   \code{stat_quant_band()} fits quantile regressions and obtains predictions
+#'   identically to \code{stat_quant_line()}. \code{stat_quant_band()} fits 2 or
+#'   3 quantiles in the same plot layer and displays the area between the
+#'   predicted regression lines for the extreme quantiles as a band.
 #'
-#' @param eq.with.lhs If \code{character} the string is pasted to the front of
-#'   the equation label before parsing or a \code{logical} (see note).
-#' @param eq.x.rhs \code{character} this string will be used as replacement for
-#'   \code{"x"} in the model equation when generating the label before parsing
-#'   it.
-#' @param coef.digits,rho.digits integer Number of significant digits to use for
-#'   the fitted coefficients and rho in labels.
-#' @param coef.keep.zeros logical Keep or drop trailing zeros when formatting
-#'   the fitted coefficients and F-value.
-#' @param decreasing logical It specifies the order of the terms in the
-#'   returned character string; in increasing (default) or decreasing powers.
-#' @param label.x,label.y \code{numeric} with range 0..1 "normalized parent
-#'   coordinates" (npc units) or character if using \code{geom_text_npc()} or
-#'   \code{geom_label_npc()}. If using \code{geom_text()} or \code{geom_label()}
-#'   numeric in native data units. If too short they will be recycled.
-#' @param hstep,vstep numeric in npc units, the horizontal and vertical step
-#'   used between labels for different groups.
-#' @param output.type character One of \code{"expression"}, \code{"LaTeX"},
-#'   \code{"text"}, \code{"markdown"} or \code{"numeric"}. In most cases,
-#'   instead of using this statistics to obtain numeric values, it is better to
-#'   use \code{stat_fit_tidy()}.
-#' @param parse logical Passed to the geom. If \code{TRUE}, the labels will be
-#'   parsed into expressions and displayed as described in \code{?plotmath}.
-#'   Default is \code{TRUE} if \code{output.type = "expression"} and
-#'   \code{FALSE} otherwise.
+#'   \code{stat_quant_eq()} fits quantile regressions and generates a set of
+#'   labels for each regression line fitted. By default the labels are formatted
+#'    as R's \code{\link[grDevices]{plotmath}} expressions, LaTeX and
+#'    markdown are also supported.
 #'
-#' @aesthetics StatQuantEq
-#'
-#' @note For backward compatibility a logical is accepted as argument for
-#'   \code{eq.with.lhs}. If \code{TRUE}, the default is used, either
-#'   \code{"x"} or \code{"y"}, depending on the argument passed to \code{formula}.
-#'   However, \code{"x"} or \code{"y"} can be substituted by providing a
-#'   suitable replacement character string through \code{eq.x.rhs}.
-#'   Parameter \code{orientation} is redundant as it only affects the default
-#'   for \code{formula} but is included for consistency with
-#'   \code{ggplot2::stat_smooth()}.
-#'
-#'   R option \code{OutDec} is obeyed based on its value at the time the plot
-#'   is rendered, i.e., displayed or printed. Set \code{options(OutDec = ",")}
-#'   for languages like Spanish or French.
-#'
-#' @details This stat can be used to automatically annotate a plot with rho or
-#'   the fitted model equation. The model fitting is done using package
-#'  'quantreg', please, consult its documentation for the
-#'   details. It supports only linear models fitted with function \code{rq()},
-#'   passing \code{method = "br"} to it, should work well with up to several
-#'   thousand observations. The rho, AIC, BIC and n annotations can be used with
-#'   any linear model formula. The fitted equation label is correctly generated
-#'   for polynomials or quasi-polynomials through the origin. Model formulas can
-#'   use \code{poly()} or be defined algebraically with terms of powers of
-#'   increasing magnitude with no missing intermediate terms, except possibly
-#'   for the intercept indicated by \code{"- 1"} or \code{"-1"} or \code{"+ 0"}
-#'   in the formula. The validity of the \code{formula} is not checked in the
-#'   current implementation. The default aesthetics sets rho as label for the
-#'   annotation.  This stat generates labels as R expressions by default but
-#'   LaTeX (use TikZ device), markdown (use package 'ggtext') and plain text are
-#'   also supported, as well as numeric values for user-generated text labels.
-#'   The value of \code{parse} is set automatically based on \code{output-type},
-#'   but if you assemble labels that need parsing from \code{numeric} output,
-#'   the default needs to be overridden. This stat only generates annotation
-#'   labels, the predicted values/line need to be added to the plot as a
-#'   separate layer using \code{\link{stat_quant_line}},
-#'   \code{\link{stat_quant_band}} or \code{\link[ggplot2]{stat_quantile}}, so
-#'   to make sure that the same model formula is used in all steps it is best to
-#'   save the formula as an object and supply this object as argument to the
-#'   different statistics.
-#'
-#'   A ggplot statistic receives as data a data frame that is not the one passed
-#'   as argument by the user, but instead a data frame with the variables mapped
-#'   to aesthetics. \code{stat_quant_eq()} mimics how \code{stat_smooth()}
-#'   works, except that only polynomials can be fitted. In other words, it
-#'   respects the grammar of graphics. This helps ensure that the model is
-#'   fitted to the same data as plotted in other layers.
-#'
-#'   Function \code{\link[quantreg]{rq}} does not support singular fits, in
-#'   contrast to \code{lm}.
+#'   \code{stat_quant_eq()}, \code{stat_quant_line()} and
+#'   \code{stat_quant_band()} support both \code{"rq"} and \code{"rqss"} as
+#'   \code{method}. In the case of \code{"rqss"} the model formula makes
+#'   normally use of \code{qss()} to formulate the spline and its constraints.
+#'   User defined functions are supported as \code{method} as long as they
+#'   accept arguments named \code{formula}, \code{data}, \code{weights},
+#'   \code{tau} and \code{method} and return a model fit object of class
+#'   \code{rq}, \code{rqs} or \code{rqss}. Such user-defined functions can
+#'   implement model selection and/or method selection, or conditionally skip
+#'   model fitting on a per data group basis.
 #'
 #'   The minimum number of observations with distinct values in the explanatory
 #'   variable can be set through parameter \code{n.min}. The default \code{n.min
-#'   = 3L} is the smallest usable value. However, model fits with very few
-#'   observations are of little interest and using larger values of \code{n.min}
-#'   than the default is usually wise.
+#'   = 10L} is a bare minimum for quantile regression. Model fits with such a
+#'   small number of observations are of little interest and using larger values
+#'   of \code{n.min} than the default is wise.
 #'
-#' @section User-defined methods: User-defined functions can be passed as
-#'   argument to \code{method}. The requirements are 1) that the signature is
-#'   similar to that of functions from package 'quantreg' and 2) that the value
-#'   returned by the function is an object belonging to class \code{"rq"}, class
-#'   \code{"rqs"}, or an atomic \code{NA} value.
+#'   There are interesting uses for \emph{double quantile regression}, i.e., a
+#'   pair of quantile regressions on \code{x} and \code{y} on the same data. For
+#'   example, when two variables are subject to mutual constrains, it is useful
+#'   to consider both of them as explanatory and interpret the relationship
+#'   based on them considered as limiting. 'ggpmisc' (>= 0.4.1) supports
+#'   \code{orientation} making it easy implement the approach described by
+#'   Cardoso (2019) under the name of "Double quantile regression".
 #'
-#'   The \code{formula} and \code{tau} used to build the equation and quantile
-#'   labels aer extracted from the returned \code{"rq"} or \code{"rqs"} object
-#'   and can safely differ from the argument passed to parameter \code{formula}
-#'   in the call to \code{stat_poly_eq()}. Thus, user-defined methods can
-#'   implement both model selection or conditional skipping of labelling.
+#' @inheritParams stat_poly_eq
+#' @param quantiles numeric vector Values in 0..1 indicating the quantiles.
+#' @param method function or character If character, "rq", "rqss" or the name of
+#'   a model fit function are accepted, possibly followed by the fit function's
+#'   \code{method} argument separated by a colon (e.g. \code{"rq:br"}). If a
+#'   function different to \code{rq()}, it must accept arguments named
+#'   \code{formula}, \code{data}, \code{weights}, \code{tau} and \code{method}
+#'   and return a model fit object of class \code{rq}, \code{rqs} or
+#'   \code{rqss}.
+#' @param method.args named list with additional arguments passed to
+#'   \code{rq()}, \code{rqss()} or to another function passed as argument to
+#'   \code{method}.
+#' @param se logical Passed to \code{quantreg::predict.rq()}.
+#' @param level numeric in range [0..1] Passed to \code{quantreg::predict.rq()}.
+#' @param type character Passed to \code{quantreg::predict.rq()}.
+#' @param interval character Passed to \code{quantreg::predict.rq()}.
 #'
-#' @references Written as an answer to question 65695409 by Mark Neal at
-#'   Stackoverflow.
+#' @param coef.digits,rho.digits integer Number of significant digits to use for
+#'   the fitted coefficients and rho in labels.
 #'
-#' @section Warning!: For the formatted equations to be valid, the fitted model
-#'   must be a polynomial, with or without intercept. If defined using
-#'   \code{poly()} the argument \code{raw = TRUE} must be passed. If defined
-#'   manually as powers of \code{x}, \strong{the terms must be in order of
-#'   increasing powers, with no missing intermediate power term.} Please, see
-#'   examples below. A check on the model is used to validate that it is a
-#'   polynomial, in most cases a warning is issued. Failing to comply with this
-#'   requirement results in the return of \code{NA} as the formatted equation.
+#' @aesthetics StatQuantEq
+#' @aesthetics StatQuantLine
+#' @aesthetics StatQuantBand
 #'
 #' @inheritSection check_output_type Output types
 #'
-#' @inheritSection stat_poly_line Model fit methods supported
+#' @inheritSection stat_poly_eq Model equation label
 #'
-#' @return A data frame, with one row per quantile and columns as described
-#'   under \strong{Computed variables}. In cases when the number of observations
-#'   is less than \code{n.min} a data frame with no rows or columns is returned
-#'   rendered as an empty/invisible plot layer.
+#' @inheritSection stat_poly_eq Position of labels
 #'
-#' @section Computed variables:
+#' @inheritSection stat_poly_eq Model formula and model fitting
+#'
+#' @inheritSection stat_poly_eq Range of the prediction line
+#'
+#' @inheritSection stat_poly_eq Model fit methods supported
+#'
+#' @return \code{stat_quant_eq()} returns a data frame, with one row per
+#'   quantile and columns as described below, while \code{stat_quant_line()}
+#'   and \code{stat_quant_band()} return a data frame, with \code{n} rows per
+#'   quantile and columns as described below. If the number of observations
+#'   is less than \code{n.min} or if the model fit method returns \code{NA} or
+#'   \code{NULL}, a data frame with no rows or columns is returned, resulting
+#'   in an empty/invisible plot layer.
+#'
+#' @inheritSection stat_poly_eq Which variables are available for mapping?
+#'
+#' @section Variables returned by \code{stat_quant_eq()}:
+#'
+#' If output.type is \code{"numeric"} the returned tibble contains columns
+#'  in addition to a modified version of the original \code{group}:
+#' \describe{
+#'   \item{x,npcx}{x position}
+#'   \item{y,npcy}{y position}
+#'   \item{coef.ls}{list containing the "coefficients" matrix from the summary of the fit object}
+#'   \item{rho, AIC, n}{numeric values extracted or computed from fit object}
+#'   \item{rq.method}{character, method used.}
+#'   \item{hjust, vjust}{Set to "inward" to override the default of the "text" geom.}
+#'   \item{quantile}{Indicating the quantile  used for the fit}
+#'   \item{quantile.f}{Factor with a level for each quantile}
+#'   \item{b_0.constant}{TRUE is polynomial is forced through the origin}
+#'   \item{b_i}{One or columns with the coefficient estimates}}
+#'
 #' If output.type different from \code{"numeric"} the returned tibble contains
 #' columns below in addition to a modified version of the original \code{group}:
 #' \describe{
@@ -149,36 +132,55 @@
 #'   \item{quantile.f}{Factor with a level for each quantile}
 #'   }
 #'
-#' If output.type is \code{"numeric"} the returned tibble contains columns
-#'  in addition to a modified version of the original \code{group}:
-#' \describe{
-#'   \item{x,npcx}{x position}
-#'   \item{y,npcy}{y position}
-#'   \item{coef.ls}{list containing the "coefficients" matrix from the summary of the fit object}
-#'   \item{rho, AIC, n}{numeric values extracted or computed from fit object}
-#'   \item{rq.method}{character, method used.}
-#'   \item{hjust, vjust}{Set to "inward" to override the default of the "text" geom.}
-#'   \item{quantile}{Indicating the quantile  used for the fit}
-#'   \item{quantile.f}{Factor with a level for each quantile}
-#'   \item{b_0.constant}{TRUE is polynomial is forced through the origin}
-#'   \item{b_i}{One or columns with the coefficient estimates}}
-#'
 #' To explore the computed values returned for a given input we suggest the use
 #' of \code{\link[gginnards]{geom_debug}} as shown in the example below.
 #'
-#' @seealso The quantile fit is done with function \code{\link[quantreg]{rq}},
-#'   please consult its documentation. This \code{stat_quant_eq} statistic can
-#'   return ready formatted labels depending on the argument passed to
-#'   \code{output.type}. This is possible because only polynomial models are
-#'   supported. For other types of models, statistics
-#'   \code{\link{stat_fit_glance}},  \code{\link{stat_fit_tidy}} and
-#'   \code{\link{stat_fit_glance}} should be used instead and the code for
-#'   construction of character strings from numeric values and their mapping to
-#'   aesthetic \code{label} needs to be explicitly supplied in the call.
+#' @section Variables returned by \code{stat_quant_line()}:
 #'
-#' @note Support for the \code{angle} aesthetic is not automatic and requires
-#'   that the user passes as argument suitable numeric values to override the
-#'   defaults for label positions.
+#'   \describe{
+#'   \item{y \strong{or} x}{predicted value}
+#'   \item{ymin \strong{or} xmin}{lower confidence limit around the fitted line}
+#'   \item{ymax \strong{or} xmax}{upper confidence limit around the fitted line}
+#'   }
+#'
+#'   If \code{fm.values = TRUE} is passed then one column with the number of
+#'   observations \code{n} used for each fit is also included, with the same
+#'   value in each row within a group. This is wasteful and disabled by default,
+#'   but provides a simple and robust approach to achieve effects like colouring
+#'   or hiding of the model fit line based on the number of observations.
+#'
+#' @section Variables returned by \code{stat_quant_band()}:
+#'
+#'   \describe{
+#'   \item{y \strong{or} x}{Regression prediction for the middle quantile, if three quantiles are passed as argument}
+#'   \item{ymin \strong{or} xmin}{Regression prediction for the smallest quantile}
+#'   \item{ymax \strong{or} xmax}{Regression prediction for the largest quantile}
+#'   }
+#'
+#'   If \code{fm.values = TRUE} is passed then one column with the number of
+#'   observations \code{n} used for each fit is also included, with the same
+#'   value in each row within a group. This is wasteful and disabled by default,
+#'   but provides a simple and robust approach to achieve effects like colouring
+#'   or hiding of the model fit line based on the number of observations.
+#'
+#' @references
+#' Cardoso, G. C. (2019) Double quantile regression accurately assesses
+#'   distance to boundary trade-off. Methods in ecology and evolution,
+#'   10(8), 1322-1331.
+#'
+#' @seealso \code{\link[quantreg]{rq}}, \code{\link[quantreg]{rqss}} and
+#'   \code{\link[quantreg]{qss}}.
+#'
+#'   Please, see the articles at
+#'   \href{https://docs.r4photobiology.info/ggpmisc/}{online-only documentation}
+#'   for additional use examples and guidance.
+#'
+#' \emph{statistics} from 'ggpmisc' for model fit annotations:
+#' \code{\link{stat_poly_eq}()}, \code{\link{stat_quant_eq}()},
+#' \code{\link{stat_ma_eq}()} and \code{\link{stat_distrmix_eq}()}, and for
+#' model fit predictions: \code{\link{stat_poly_line}()},
+#' \code{\link{stat_quant_line}()}, \code{\link{stat_quant_band}()},
+#' \code{\link{stat_ma_line}()} and \code{\link{stat_distrmix_line}()}.
 #'
 #' @import quantreg
 #'
@@ -193,7 +195,35 @@
 #'                       y2 = y * c(1, 2) + max(y) * c(0, 0.1),
 #'                       w = sqrt(x))
 #'
-#' # using defaults
+#' # Predictions as lines
+#' ggplot(my.data, aes(x, y)) +
+#'   geom_point() +
+#'   stat_quant_line()
+#'
+#' ggplot(my.data, aes(x, y)) +
+#'   geom_point() +
+#'   stat_quant_line(quantiles = 0.5, se = TRUE)
+#'
+#' # Predictions as band
+#' ggplot(my.data, aes(x, y)) +
+#'   geom_point() +
+#'   stat_quant_band()
+#'
+#' # y as explanatory variable (orientation = y)
+#' ggplot(my.data, aes(x, y)) +
+#'   geom_point() +
+#'   stat_quant_band(formula = x ~ y)
+#'
+#' # Using splines
+#' library(quantreg)
+#'
+#' ggplot(my.data, aes(x, y)) +
+#'   geom_point() +
+#'   stat_quant_line(method = "rqss",
+#'                   formula = y ~ qss(x, constraint = "D"),
+#'                   quantiles = 0.5, se = FALSE)
+#'
+#' # Adding annotations
 #' ggplot(my.data, aes(x, y)) +
 #'   geom_point() +
 #'   stat_quant_line() +
@@ -321,8 +351,9 @@
 #'   stat_quant_line(method = "rq", formula = formula,
 #'                   quantiles = c(0.05, 0.5, 0.95),
 #'                   linewidth = 0.5) +
-#'   stat_quant_eq(mapping = aes(label = paste(after_stat(grp.label), "*\": \"*",
-#'                                             after_stat(eq.label), sep = "")),
+#'   stat_quant_eq(mapping = aes(label =
+#'                             after_stat(
+#'                               paste(grp.label, "*\": \"*", eq.label, sep = ""))),
 #'                 quantiles = c(0.05, 0.5, 0.95),
 #'                 formula = formula, size = 3)
 #'
@@ -331,9 +362,9 @@
 #'   geom_point() +
 #'   stat_quant_band(method = "rq", formula = formula,
 #'                   quantiles = c(0.05, 0.5, 0.95)) +
-#'   stat_quant_eq(mapping = aes(label = sprintf("%s*\": \"*%s",
-#'                                               after_stat(grp.label),
-#'                                               after_stat(eq.label))),
+#'   stat_quant_eq(mapping = aes(label =
+#'                             after_stat(
+#'                               sprintf("%s*\": \"*%s", grp.label, eq.label))),
 #'                 quantiles = c(0.05, 0.5, 0.95),
 #'                 formula = formula, size = 3)
 #'
@@ -344,51 +375,6 @@
 #'   stat_quant_eq(label.x = "left", label.y = "top",
 #'                 formula = formula,
 #'                 quantiles = 0.5)
-#'
-#' # Inspecting the returned data using geom_debug_group()
-#' # This provides a quick way of finding out the names of the variables that
-#' # are available for mapping to aesthetics using after_stat().
-#'
-#' gginnards.installed <- requireNamespace("gginnards", quietly = TRUE)
-#'
-#' if (gginnards.installed)
-#'   library(gginnards)
-#'
-#' if (gginnards.installed)
-#'   ggplot(my.data, aes(x, y)) +
-#'     geom_point() +
-#'     stat_quant_eq(formula = formula, geom = "debug_group")
-#'
-#' \dontrun{
-#' if (gginnards.installed)
-#'   ggplot(my.data, aes(x, y)) +
-#'     geom_point() +
-#'     stat_quant_eq(mapping = aes(label = after_stat(eq.label)),
-#'                   formula = formula, geom = "debug_group",
-#'                   output.type = "markdown")
-#'
-#' if (gginnards.installed)
-#'   ggplot(my.data, aes(x, y)) +
-#'     geom_point() +
-#'     stat_quant_eq(formula = formula, geom = "debug_group", output.type = "text")
-#'
-#' if (gginnards.installed)
-#'   ggplot(my.data, aes(x, y)) +
-#'     geom_point() +
-#'     stat_quant_eq(formula = formula, geom = "debug_group", output.type = "numeric")
-#'
-#' if (gginnards.installed)
-#'   ggplot(my.data, aes(x, y)) +
-#'     geom_point() +
-#'     stat_quant_eq(formula = formula, quantiles = c(0.25, 0.5, 0.75),
-#'                   geom = "debug_group", output.type = "text")
-#'
-#' if (gginnards.installed)
-#'   ggplot(my.data, aes(x, y)) +
-#'     geom_point() +
-#'     stat_quant_eq(formula = formula, quantiles = c(0.25, 0.5, 0.75),
-#'                   geom = "debug_group", output.type = "numeric")
-#' }
 #'
 #' @export
 #'
@@ -402,7 +388,7 @@ stat_quant_eq <- function(mapping = NULL,
                           quantiles = c(0.25, 0.5, 0.75),
                           method = "rq:br",
                           method.args = list(),
-                          n.min = 3L,
+                          n.min = 10L,
                           fit.seed = NA,
                           eq.with.lhs = TRUE,
                           eq.x.rhs = NULL,
@@ -435,8 +421,8 @@ stat_quant_eq <- function(mapping = NULL,
     method.name <- "missing"
   }
 
-  if (grepl("^lm$|^lm[:]|^rlm$|^rlm[:]|^gls$|^gls[:]", method.name)) {
-    stop("Methods 'lm', 'rlm' and 'gls' not supported, please use 'stat_poly_eq()'.")
+  if (grepl("^lm$|^lm[:]|^rlm$|^rlm[:]|^gls$|^gls[:]|^sma$|^ma$", method.name)) {
+    stop("Methods 'lm', 'rlm', 'gls', 'ma' and 'sma' not supported, please use 'stat_poly_eq()'.")
   } else if (grepl("^lmodel2$|^lmodel2[:]", method.name)) {
     stop("Method 'lmodel2' not supported, please use 'stat_ma_eq()'.")
   }
@@ -461,7 +447,11 @@ stat_quant_eq <- function(mapping = NULL,
   }
 
   # is the model formula that of complete and increasing polynomial?
-  mk.eq.label <- output.type != "numeric" && check_poly_formula(formula, orientation)
+  mk.eq.label <- output.type != "numeric" &&
+    check_poly_formula(formula,
+                       orientation,
+                       check.transf.lhs = !is.character(eq.with.lhs),
+                       check.transf.rhs = !is.character(eq.x.rhs))
 
   ggplot2::layer(
     data = data,
@@ -863,6 +853,12 @@ quant_eq_compute_group_fun <- function(data,
     z[["npcx"]] <- NA_real_
     z[["y"]] <- if (rev.y.pos) rev(label.y) else label.y
     z[["npcy"]] <- NA_real_
+  }
+
+  if (output.type == "numeric") {
+    show_colnames(z, stat.name = "stat_quant_eq")
+  } else {
+    show_labels(z, stat.name = "stat_quant_eq")
   }
 
   z

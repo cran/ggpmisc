@@ -1,186 +1,6 @@
-#' Residuals from model fit as segments
+#' @rdname stat_fit_residuals
 #'
-#' \code{stat_fit_deviations} fits a linear model and returns fitted values and
-#' residuals ready to be plotted as segments.
-#'
-#' @param mapping The aesthetic mapping, usually constructed with
-#'   \code{\link[ggplot2]{aes}}. Only needs to be set at the layer level if you
-#'   are overriding the plot defaults.
-#' @param data A layer specific dataset - only needed if you want to override
-#'   the plot defaults.
-#' @param geom The geometric object to use display the data
-#' @param position The position adjustment to use for overlapping points on this
-#'   layer
-#' @param show.legend logical. Should this layer be included in the legends?
-#'   \code{NA}, the default, includes if any aesthetics are mapped. \code{FALSE}
-#'   never includes, and \code{TRUE} always includes.
-#' @param inherit.aes If \code{FALSE}, overrides the default aesthetics, rather
-#'   than combining with them. This is most useful for helper functions that
-#'   define both data and aesthetics and should not inherit behaviour from the
-#'   default plot specification, e.g. \code{\link[ggplot2]{borders}}.
-#' @param ... other arguments passed on to \code{\link[ggplot2]{layer}}. This
-#'   can include aesthetics whose values you want to set, not map. See
-#'   \code{\link[ggplot2]{layer}} for more details.
-#' @param na.rm	a logical indicating whether NA values should be stripped
-#'   before the computation proceeds.
-#' @param method function or character If character, "lm", "rlm", "lqs", "rq"
-#'   and the name of a function to be matched, possibly followed by the fit
-#'   function's \code{method} argument separated by a colon (e.g.
-#'   \code{"rq:br"}). Functions implementing methods must accept arguments to
-#'   parameters \code{formula}, \code{data}, \code{weights} and \code{method}. A
-#'   \code{fitted()} method must exist for the returned model fit object class.
-#' @param method.args named list with additional arguments.
-#' @param n.min integer Minimum number of distinct values in the explanatory
-#'   variable (on the rhs of formula) for fitting to the attempted.
-#' @param formula a "formula" object. Using aesthetic names instead of
-#'   original variable names.
-#' @param fit.seed RNG seed argument passed to \code{\link[base:Random]{set.seed}()}.
-#'   Defaults to \code{NA}, which means that \code{set.seed()} will not be
-#'   called.
-#' @param orientation character Either "x" or "y" controlling the default for
-#'   \code{formula}.
-#'
-#' @aesthetics StatFitDeviations
-#' @aesthetics StatFitFitted
-#'
-#' @details This stat can be used to automatically highlight residuals as
-#'   segments in a plot of a fitted model equation. This stat only returns the
-#'   fitted values and observations, the prediction and its confidence need to
-#'   be separately added to the plot when desired. Thus, to make sure that the
-#'   same model formula is used in all plot layers, it is best to save the
-#'   formula as an object and supply this object as argument to the different
-#'   statistics.
-#'
-#'   A ggplot statistic receives as data a data frame that is not the one passed
-#'   as argument by the user, but instead a data frame with the variables mapped
-#'   to aesthetics and NA values removed. In other words, it respects the
-#'   grammar of graphics and consequently within the model \code{formula} names
-#'   of aesthetics like $x$ and $y$ should be used instead of the original
-#'   variable names. This helps ensure that the model is fitted to the same data
-#'   as plotted in other layers.
-#'
-#' @note In the case of \code{method = "rq"} quantiles are fixed at \code{tau =
-#'   0.5} unless \code{method.args} has length > 0. Parameter \code{orientation}
-#'   is redundant as it only affects the default for \code{formula} but is
-#'   included for consistency with \code{ggplot2}.
-#'
-#' @section Computed variables: Data frame with same \code{nrow} as \code{data}
-#'   as subset for each group containing five numeric variables.
-#'
-#'   \describe{
-#'   \item{x}{x coordinates of observations}
-#'   \item{x.fitted}{x coordinates of fitted values}
-#'   \item{y}{y coordinates of observations}
-#'   \item{y.fitted}{y coordinates of fitted values}
-#'   \item{weights}{the weights passed as input to \code{lm()}, \code{rlm()}, or \code{lmrob()},
-#'   using aesthetic weight. More generally the value returned by
-#'   \code{weights()}}
-#'   \item{robustness.weights}{the "weights"
-#'   of the applied minimization criterion relative to those of OLS in
-#'   \code{rlm()}, or \code{lmrob()}}
-#'   }
-#'
-#'   To explore the values returned by this statistic we suggest the use of
-#'   \code{\link[gginnards]{geom_debug}}. An example is shown below, where one
-#'   can also see in addition to the computed values the default mapping of the
-#'   fitted values to aesthetics \code{xend} and \code{yend}.
-#'
-#' @family ggplot statistics for model fits
-#'
-#' @examples
-#' # generate artificial data
-#' library(MASS)
-#'
-#' set.seed(4321)
-#' x <- 1:100
-#' y <- (x + x^2 + x^3) + rnorm(length(x), mean = 0, sd = mean(x^3) / 4)
-#' my.data <- data.frame(x, y)
-#'
-#' # plot residuals from linear model
-#' ggplot(my.data, aes(x, y)) +
-#'   stat_poly_line(method = "lm", formula = y ~ x) +
-#'   stat_fit_deviations(method = "lm", formula = y ~ x, colour = "red") +
-#'   geom_point()
-#'
-#' # plot residuals from linear model with y as explanatory variable
-#' ggplot(my.data, aes(x, y)) +
-#'   stat_poly_line(method = "lm", formula = x ~ y) +
-#'   stat_fit_deviations(method = "lm", formula = x ~ y, colour = "red") +
-#'   geom_point()
-#'
-#' # both regressions and their deviations
-#' ggplot(my.data, aes(x, y)) +
-#'   stat_poly_line(method = "lm", formula = y ~ x) +
-#'   stat_fit_deviations(method = "lm", formula = y ~ x, colour = "red") +
-#'   stat_poly_line(method = "lm", formula = x ~ y) +
-#'   stat_fit_deviations(method = "lm", formula = x ~ y, colour = "orange") +
-#'   geom_point()
-#'
-#' # give a name to a formula
-#' my.formula <- y ~ poly(x, 3, raw = TRUE)
-#'
-#' # plot linear regression
-#' ggplot(my.data, aes(x, y)) +
-#'   stat_poly_line(method = "lm", formula = my.formula) +
-#'   stat_fit_deviations(formula = my.formula, colour = "red") +
-#'   geom_point()
-#'
-#' ggplot(my.data, aes(x, y)) +
-#'   stat_poly_line(formula = my.formula, method = "lm") +
-#'   stat_fit_deviations(formula = my.formula, method = "lm", colour = "red") +
-#'   geom_point()
-#'
-#' # plot robust regression
-#' ggplot(my.data, aes(x, y)) +
-#'   stat_poly_line(formula = my.formula, method = "rlm") +
-#'   stat_fit_deviations(formula = my.formula, method = "rlm", colour = "red") +
-#'   geom_point()
-#'
-#' # plot robust regression with weights indicated by colour
-#' my.data.outlier <- my.data
-#' my.data.outlier[6, "y"] <- my.data.outlier[6, "y"] * 10
-#' ggplot(my.data.outlier, aes(x, y)) +
-#'   stat_poly_line(method = MASS::rlm, formula = my.formula) +
-#'   stat_fit_deviations(formula = my.formula, method = "rlm",
-#'                       mapping = aes(colour = after_stat(robustness.weights)),
-#'                       show.legend = TRUE) +
-#'   scale_color_gradient(low = "red", high = "blue", limits = c(0, 1),
-#'                        guide = "colourbar") +
-#'   geom_point()
-#'
-#' # plot quantile regression (= median regression)
-#' ggplot(my.data, aes(x, y)) +
-#'   stat_quantile(formula = my.formula, quantiles = 0.5) +
-#'   stat_fit_deviations(formula = my.formula, method = "rq", colour = "red") +
-#'   geom_point()
-#'
-#' # plot quantile regression (= "quartile" regression)
-#' ggplot(my.data, aes(x, y)) +
-#'   stat_quantile(formula = my.formula, quantiles = 0.75) +
-#'   stat_fit_deviations(formula = my.formula, colour = "red",
-#'                       method = "rq", method.args = list(tau = 0.75)) +
-#'   geom_point()
-#'
-#' # inspecting the returned data with geom_debug_group()
-#' gginnards.installed <- requireNamespace("gginnards", quietly = TRUE)
-#'
-#' if (gginnards.installed)
-#'   library(gginnards)
-#'
-#' # plot, using geom_debug_group() to explore the after_stat data
-#' if (gginnards.installed)
-#'   ggplot(my.data, aes(x, y)) +
-#'     stat_poly_line(method = "lm", formula = my.formula) +
-#'     stat_fit_deviations(formula = my.formula,
-#'                         geom = "debug_group") +
-#'     geom_point()
-#'
-#' if (gginnards.installed)
-#'   ggplot(my.data.outlier, aes(x, y)) +
-#'     stat_poly_line(method = "rlm", formula = my.formula) +
-#'     stat_fit_deviations(formula = my.formula, method = "rlm",
-#'                         geom = "debug_group") +
-#'     geom_point()
+#' @family statistics for display of model fit residuals
 #'
 #' @export
 #'
@@ -196,7 +16,7 @@ stat_fit_deviations <- function(mapping = NULL,
                                 formula = NULL,
                                 fit.seed = NA,
                                 na.rm = FALSE,
-                                show.legend = FALSE,
+                                show.legend = TRUE,
                                 inherit.aes = TRUE) {
 
   if (is.character(method)) {
@@ -277,22 +97,26 @@ deviations_compute_group_fun <- function(data,
   weights.ls <- extract_weights(fm, n.row = nrow(data))
 
   if (orientation == "y") {
-    data.frame(x = data$x,
-               y = data$y,
-               x.fitted = fitted.vals,
-               y.fitted = data$y,
-               weights = weights.ls[["weight.vals"]],
-               robustness.weights = weights.ls[["rob.weight.vals"]],
-               hjust = 0)
+    z <- data.frame(x = data$x,
+                    y = data$y,
+                    x.fitted = fitted.vals,
+                    y.fitted = data$y,
+                    weights = weights.ls[["weight.vals"]],
+                    posterior.weights = weights.ls[["rob.weight.vals"]],
+                    hjust = 0)
   } else {
-    data.frame(x = data$x,
-               y = data$y,
-               x.fitted = data$x,
-               y.fitted = fitted.vals,
-               weights = weights.ls[["weight.vals"]],
-               robustness.weights = weights.ls[["rob.weight.vals"]],
-               hjust = 0)
+    z <- data.frame(x = data$x,
+                    y = data$y,
+                    x.fitted = data$x,
+                    y.fitted = fitted.vals,
+                    weights = weights.ls[["weight.vals"]],
+                    posterior.weights = weights.ls[["rob.weight.vals"]],
+                    hjust = 0)
   }
+
+  show_colnames(z, stat.name = "stat_fit_deviations")
+
+  z
 }
 
 #' @rdname ggpmisc-ggproto
@@ -310,7 +134,7 @@ StatFitDeviations <-
                    required_aes = c("x", "y")
   )
 
-#' @rdname stat_fit_deviations
+#' @rdname stat_fit_residuals
 #'
 #' @export
 #'
@@ -379,8 +203,11 @@ fitted_compute_group_fun <- function(data,
                                      n.min = 2L,
                                      formula =  y ~ x,
                                      fit.seed = NA,
-                                     orientation = "x",
-                                     return.fitted = FALSE) {
+                                     return.fitted = FALSE,
+                                     flipped_aes = NA,
+                                     orientation = "x") {
+
+  # we flip the model formula, not the data
 
   temp.ls <- fit_models_internal(data = data,
                                  method = method,
@@ -401,12 +228,19 @@ fitted_compute_group_fun <- function(data,
   fitted.vals <- extract_fitted(fm, n.row = nrow(data))
 
   if (orientation == "y") {
-    data.frame(x = fitted.vals,
-               y = data$y)
+    z <- data.frame(x = fitted.vals,
+                    y = data$y)
   } else {
-    data.frame(x = data$x,
-               y = fitted.vals)
+    z <- data.frame(x = data$x,
+                    y = fitted.vals)
   }
+
+  z$flipped_aes <- flipped_aes
+  # no need to flip the results, but we record the flipping
+
+  show_colnames(z, stat.name = "stat_fit_fitted")
+
+  z
 }
 
 #' @rdname ggpmisc-ggproto
@@ -417,7 +251,13 @@ fitted_compute_group_fun <- function(data,
 #'
 StatFitFitted <-
   ggplot2::ggproto("StatFitFitted", ggplot2::Stat,
+                   setup_params = function(data, params) {
+                     params[["flipped_aes"]] <-
+                       ggplot2::has_flipped_aes(data, params, ambiguous = TRUE)
+                     params
+                   },
                    extra_params = c("na.rm", "orientation"),
                    compute_group = fitted_compute_group_fun,
+                   dropped_aes = c("weight"),
                    required_aes = c("x", "y")
   )

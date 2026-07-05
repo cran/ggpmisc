@@ -112,6 +112,38 @@ guess_orientation <- function(orientation = NULL,
        formula = formula)
 }
 
+#' Check limit.to and fullrange arguments
+#'
+#' Implement backwards compatibility and support override of
+#' \code{fullrange} by \code{limit.to}.
+#'
+#' @inheritParams stat_poly_eq
+#'
+#' @keywords internal
+#'
+check_limit_to  <- function(fullrange, limit.to = NULL, orientation = "x") {
+  # respect fullrange for backwards compatibility and consistence with 'ggplot2'
+  # but limit.to overrides it silently if set
+  if (is.null(limit.to)) {
+    if (is.logical(fullrange)) {
+      if (fullrange) {
+        limit.to <- "none"
+      } else {
+        limit.to <- orientation
+      }
+    }
+  }
+
+  if (is.character(limit.to) &&
+      !limit.to %in% c("none", "x", "y", "xy", "yx")) {
+    stop("'limit.to' bad argument: '", limit.to,
+         "'! should be one of \"none\", \"x\", \"y\", \"xy\"")
+  } else if (is.numeric(limit.to)) {
+    limit.to <- sort(unique(na.omit(limit.to)))
+  }
+  limit.to
+}
+
 #' Safely extract the formula from an object
 #'
 #' @param fm Fitted model object or a call object.
@@ -166,7 +198,21 @@ fail_safe_formula <- function(fm,
 #' to make possible use of consistent arguments across calls to
 #' stats.
 #'
-#' @inheritParams stat_fit_residuals
+#' @param data data.frame containing the variables in the model.
+#' @param formula a formula object. Using aesthetic names \code{x} and \code{y}
+#'   instead of original variable names.
+#' @param method,method.name function and character, respectively.
+#' @param method.args named list with additional arguments. Not \code{data}
+#'   or \code{weights} which are always passed through aesthetic mappings.
+#' @param n.min integer Minimum number of distinct values in the explanatory
+#'   variable (on the rhs of formula) for fitting to the attempted.
+#' @param fit.seed RNG seed argument passed to
+#'   \code{\link[base:Random]{set.seed}()}. Defaults to \code{NA}, indicating
+#'   that \code{set.seed()} should not be called.
+#' @param orientation character Either "x" or "y" controlling the default for
+#'   \code{formula}. The letter indicates the aesthetic considered the
+#'   explanatory variable in the model fit.
+#' @param level numeric Value in 0..1 used for SMA and MA fits.
 #' @param accept.rq logical Accept quantile regression fits with 'quantreg' or
 #'   warn when encountered.
 #'
@@ -217,7 +263,10 @@ fit_models_internal <- function(data,
                      gls = "gls:REML",
                      sma = "sma:SMA",
                      ma = "sma:MA",
-                     segreg = "segreg",
+#                     segreg = "segreg",
+#                     nls = "nls",
+#                     onls = "onls",
+#                    lspline = "lspline",
                      method)
     method.name <- method
     method <- strsplit(x = method, split = ":", fixed = TRUE)[[1]]
@@ -238,6 +287,10 @@ fit_models_internal <- function(data,
                        {rlang::check_installed("quantreg",
                                                reason = "to use method \"rq\"");
                          quantreg::rq},
+                     rqss =
+                       {rlang::check_installed("quantreg",
+                                               reason = "to use method \"rqss\"");
+                         quantreg::rqss},
                      lqs =
                        {rlang::check_installed("MASS",
                                                reason = "to use method \"lqs\"");
@@ -266,6 +319,18 @@ fit_models_internal <- function(data,
                        {rlang::check_installed("segmented",
                                                reason = "to use method \"segreg\"");
                          segmented::segreg},
+                     nls =
+                       {rlang::check_installed("stats",
+                                               reason = "to use method \"nls\"");
+                         stats::nls},
+                     onls =
+                       {rlang::check_installed("onls",
+                                               reason = "to use method \"onls\"");
+                         onls::onls},
+                     lspline =
+                       {rlang::check_installed(c("stats", "lspline"),
+                                               reason = "to use method \"lspline\"");
+                        stats::lm},
                      match.fun(method))
   } else if (is.function(method)) {
     fun.method <- character()
@@ -315,10 +380,11 @@ fit_models_internal <- function(data,
   } else if (!(inherits(fm, "lm") || inherits(fm, "lmrob") ||
                inherits(fm, "gls") || inherits(fm, "lts") ||
                inherits(fm, "lqs") || inherits(fm, "sma") ||
+               inherits(fm, "nls") || # inherits(fm, "onls") ||
                accept.rq && (inherits(fm, "rq") || inherits(fm, "rqs")))) {
     message("Method \"", method.name,
             "\" did not return a ",
-            "\"lm\", \"lmrob\", \"lqs\", \"lts\", \"gls\", \"sma\", ",
+            "\"lm\", \"nls\", \"lmrob\", \"lqs\", \"lts\", \"gls\", \"sma\", ",
             ifelse(accept.rq, "\"rq\", \"rqs\"", ""),
             "object, possible failure ahead.")
   }
@@ -327,7 +393,6 @@ fit_models_internal <- function(data,
        method.args = fun.args,
        fit.seed = fit.seed)
 }
-
 
 # extract_weights ---------------------------------------------------------
 
@@ -364,13 +429,20 @@ extract_weights <- function(fm, n.row) {
   } else if (inherits(fm, "lqs")) {
     rob.weight.vals <- rep_len(NA_real_, n.row)
     weight.vals <- rep_len(1, n.row)
-  } else if (inherits(fm, "gls")|| inherits(fm, "lme")) {
-    # "weights" have to be computed
-    # ordering <- order(order(nlme::getGroups(fm)))
-    # rob.weight.vals <-
-    #   1 / nlme::getCovariate(fm$modelStruct$varStruct)[ordering]
-    rob.weight.vals <- rep_len(NA_real_, n.row)
-    # weights' argument is a "variance model"
+  } else if (inherits(fm, "gls") ||
+             inherits(fm, "lme") || inherits(fm, "nlme")) {
+    if (!is.null(fm$modelStruct$varStruct)) {
+      # "weights" have to be extracted
+      rob.weight.vals <- nlme::varWeights(fm$modelStruct$varStruct)
+      if (!is.null(nlme::getGroups(fm))) {
+        # order of weights needs to be restored
+        ordering <- order(order(nlme::getGroups(fm)))
+        rob.weight.vals <- rob.weight.vals[ordering]
+      }
+    } else {
+      rob.weight.vals <- rep(1, n.row)
+    }
+    # weights' argument is a "variance model", not prior weight values
     weight.vals <- rep_len(1, n.row)
   } else if (inherits(fm, "lm")) { # order matters as e.g. "rlm" inherits "lm"
     weight.vals <- stats::weights(fm)

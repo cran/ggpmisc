@@ -1,7 +1,5 @@
 context("stat_poly_line_lm")
 
-library(tibble)
-
 set.seed(4321)
 # generate artificial data
 x <- 1:100
@@ -130,6 +128,89 @@ test_that("poly_formulas", {
                                 geom_point() +
                                 stat_poly_line(formula = x ~ poly(y, 1))
   )
+})
+
+test_that("poly_range", {
+  vdiffr::expect_doppelganger("stat_poly_line_formula_x_fullrange_true",
+                              ggplot(my.data, aes(x, y)) +
+                                geom_point() +
+                                stat_poly_line(fullrange = TRUE) +
+                                expand_limits(y = c(-2e5, 12e5),
+                                              x = c(-20, 150))
+  )
+
+  vdiffr::expect_doppelganger("stat_poly_line_formula_x_fullrange_false",
+                              ggplot(my.data, aes(x, y)) +
+                                geom_point() +
+                                stat_poly_line(fullrange = FALSE) +
+                                expand_limits(y = c(-2e5, 12e5),
+                                              x = c(-20, 150))
+  )
+
+  vdiffr::expect_doppelganger("stat_poly_line_formula_y_fullrange_true",
+                              ggplot(my.data, aes(x, y)) +
+                                geom_point() +
+                                stat_poly_line(formula = y ~ x, fullrange = TRUE) +
+                                expand_limits(y = c(-2e5, 12e5),
+                                              x = c(-20, 150))
+  )
+
+  vdiffr::expect_doppelganger("stat_poly_line_formula_y_fullrange_false",
+                              ggplot(my.data, aes(x, y)) +
+                                geom_point() +
+                                stat_poly_line(formula = y ~ x, fullrange = FALSE) +
+                                expand_limits(y = c(-2e5, 12e5),
+                                              x = c(-20, 150))
+  )
+
+  vdiffr::expect_doppelganger("stat_poly_line_formula_x_limit_to_none",
+                              ggplot(my.data, aes(x, y)) +
+                                geom_point() +
+                                stat_poly_line(limit.to = "none") +
+                                expand_limits(y = c(-2e5, 12e5),
+                                              x = c(-20, 150))
+  )
+
+  vdiffr::expect_doppelganger("stat_poly_line_formula_y_limit_to_x",
+                              ggplot(my.data, aes(x, y)) +
+                                geom_point() +
+                                stat_poly_line(limit.to = "x") +
+                                expand_limits(y = c(-2e5, 12e5),
+                                              x = c(-20, 150))
+  )
+
+  vdiffr::expect_doppelganger("stat_poly_line_formula_y_limit_to_y",
+                              ggplot(my.data, aes(x, y)) +
+                                geom_point() +
+                                stat_poly_line(limit.to = "y") +
+                                expand_limits(y = c(-2e5, 12e5),
+                                              x = c(-20, 150))
+  )
+
+  vdiffr::expect_doppelganger("stat_poly_line_formula_y_limit_to_xy",
+                              ggplot(my.data, aes(x, y)) +
+                                geom_point() +
+                                stat_poly_line(limit.to = "xy") +
+                                expand_limits(y = c(-2e5, 12e5),
+                                              x = c(-20, 150))
+  )
+
+  vdiffr::expect_doppelganger("stat_poly_line_formula_y_limit_to_10_110",
+                              ggplot(my.data, aes(x, y)) +
+                                geom_point() +
+                                stat_poly_line(limit.to = 10:110) +
+                                expand_limits(y = c(-2e5, 12e5),
+                                              x = c(-20, 120))
+  )
+
+  vdiffr::expect_doppelganger("stat_poly_line_formula_y_limit_to_110",
+                              ggplot(my.data, aes(x, y)) +
+                                geom_point() +
+                                stat_poly_line(limit.to = 110,
+                                               geom = "pointrange") +
+                                expand_limits(y = c(-2e5, 12e5),
+                                              x = c(-20, 120))
+  )
 
 })
 
@@ -209,6 +290,42 @@ test_that("poly_methods", {
                                 geom_point() +
                                 stat_poly_line(formula = y ~ poly(x, 2),
                                                method = nlme::gls)
+  )
+
+  vdiffr::expect_doppelganger("stat_poly_line_ma_chr",
+                              ggplot(my.data, aes(x, y)) +
+                                geom_point() +
+                                stat_poly_line(formula = y ~ x,
+                                               method = "ma")
+  )
+
+  vdiffr::expect_doppelganger("stat_poly_line_ma_fun",
+                              ggplot(my.data, aes(x, y)) +
+                                geom_point() +
+                                stat_poly_line(formula = y ~ x,
+                                               method = smatr::ma)
+  )
+
+  vdiffr::expect_doppelganger("stat_poly_line_sma_chr",
+                              ggplot(my.data, aes(x, y)) +
+                                geom_point() +
+                                stat_poly_line(formula = y ~ x,
+                                               method = "sma")
+  )
+
+  vdiffr::expect_doppelganger("stat_poly_line_sma_fun",
+                              ggplot(my.data, aes(x, y)) +
+                                geom_point() +
+                                stat_poly_line(formula = y ~ x,
+                                               method = smatr::sma)
+  )
+
+  library(lspline)
+  vdiffr::expect_doppelganger("stat_poly_line_lspline_fun",
+                              ggplot(my.data, aes(x, y)) +
+                                geom_point() +
+                                stat_poly_line(method = "lm",
+                                               formula = y ~ lspline(x, knots = c(25, 65)))
   )
 
   vdiffr::expect_doppelganger("stat_poly_line_empty_fm",

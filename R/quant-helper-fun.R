@@ -3,7 +3,7 @@
 #' Factored out code used in both stat_quant_line(), stat_quant_band()
 #' and stat_quant_eq().
 #'
-#' @inheritParams stat_quant_line
+#' @inheritParams stat_quant_eq
 #' @param fit.by.quantile logical If TRUE return a separate fitted model
 #'   object for each quantile as needed for predictions with confidence bands.
 #'
@@ -16,6 +16,8 @@
 #' @details
 #' This function does the model fitting and returns a fitted model object. It
 #' decodes the method, sorts the quantiles and does the fit.
+#'
+#' @family model-fitting helper functions
 #'
 #' @examples
 #'

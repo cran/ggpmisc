@@ -12,7 +12,7 @@
 
 <meta name="author" content="Pedro J. Aphalo" />
 
-<meta name="date" content="2026-03-23" />
+<meta name="date" content="2026-07-05" />
 
 <title>Fitted-Model-Based Annotations :: Cheat Sheet</title>
 
@@ -341,9 +341,9 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 
 <h1 class="title toc-ignore">Fitted-Model-Based Annotations :: Cheat
 Sheet</h1>
-<h3 class="subtitle">‘ggpmisc’ 0.7.0</h3>
+<h3 class="subtitle">‘ggpmisc’ 1.0.0</h3>
 <h4 class="author">Pedro J. Aphalo</h4>
-<h4 class="date">2026-03-23</h4>
+<h4 class="date">2026-07-05</h4>
 
 
 <div id="TOC">
@@ -354,6 +354,8 @@ Sheet</h1>
 models</a></li>
 <li><a href="#anova-or-summary-tables" id="toc-anova-or-summary-tables">ANOVA or summary tables</a></li>
 <li><a href="#multiple-comparisons" id="toc-multiple-comparisons">Multiple comparisons</a></li>
+<li><a href="#aesthetic-mappings" id="toc-aesthetic-mappings">Aesthetic
+mappings</a></li>
 <li><a href="#peaks-and-valleys" id="toc-peaks-and-valleys">Peaks and
 valleys</a></li>
 <li><a href="#volcano-and-quadrant-plots" id="toc-volcano-and-quadrant-plots">Volcano and quadrant plots</a></li>
@@ -364,25 +366,72 @@ functions</a></li>
 
 <div id="basics" class="section level2">
 <h2>Basics</h2>
-<p><strong>ggpmisc</strong> is based on the <strong>grammar of
-graphics</strong> implemented in <strong>ggplot2</strong>, the idea that
-you can build every graph from the same components: a
-<strong>data</strong> set, a <strong>coordinate system</strong>, and
-<strong>geoms</strong>—visual marks that represent data points. If you
-are not already familiar with this grammar and <strong>ggplot2</strong>
-you should visit the <a href="https://rstudio.github.io/cheatsheets/html/data-visualization.html"><strong>ggplot2</strong>
+<p><strong>ggpmisc</strong> follows the <strong>grammar of
+graphics</strong> implemented in <strong>ggplot2</strong>, based on the
+idea that many different data visualizations can be built by combining
+the same components: a <strong>data</strong> set, a <strong>coordinate
+system</strong>, and <strong>geoms</strong>—visual marks that represent
+data or summaries derived from data. These elements are complemented by
+<strong>stats</strong> that compute data summaries to be passed to
+<strong>geoms</strong> and <strong>scales</strong> that describe the
+mapping of data into graphical elements.</p>
+<p>There are multiple variations of each element of the grammar,
+providing a vocabulary. Thus, the grammar allows us to ‘speak/write’ a
+graph from composable elements, instead of being limited to a predefined
+set of charts. ‘ggpmisc’ adds new <strong>stats</strong> and
+<strong>scales</strong>, expanding the vocabulary while remaining
+consistent with the grammar. ‘ggpmisc’ relies on <strong>geoms</strong>
+from packages <a href="https://docs.r4photobiology.info/ggpmisc/">‘ggpmisc’</a> and <a href="https://ggplot2.tidyverse.org/">‘ggplot2’</a> for its defaults,
+while also compatible with <strong>geoms</strong> from other R packages
+including <a href="https://wilkelab.org/ggtext/">‘ggtext’</a>, <a href="https://marquee.r-lib.org/">‘marquee’</a>, <a href="https://www.stat.auckland.ac.nz/~paul/Reports/dvir/xdvir/xdvir.html">‘xdvir’</a>,
+<a href="https://ggrepel.slowkow.com/">‘ggrepel’</a> and <a href="https://gganimate.com/">‘gganimate’</a>.</p>
+<p>If you are not already familiar with the grammar of graphics and
+<strong>ggplot2</strong> you should visit the <a href="https://rstudio.github.io/cheatsheets/html/data-visualization.html"><strong>ggplot2</strong>
 Cheat Sheet</a> first, and afterwards come back to this Cheat Sheet.</p>
-<p>Differently to <strong>ggplot2</strong>, no geometries with the new
-stats as default are provided. The plot layers described here are always
-added with a <em>stat</em>, and when necessary, their default
-<code>geom</code> argument can be overridden. The default <em>geoms</em>
-for the statistics described below are from packages
-<strong>ggplot2</strong> and <strong>ggpp</strong>.</p>
+<p>Differently to <strong>ggplot2</strong>, no matching geometries with
+the new stats as their default are provided. The plot layers described
+here are always added with a <em>stat</em>, and when necessary, their
+default <code>geom</code> argument overridden.</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">library</span>(ggpmisc)</span></code></pre></div>
 <p>Most of the layer functions in <strong>ggpmisc</strong> aim at making
 it easier to add to plots information derived from model fitting, tests
-of significance and some summaries. All layer functions work as expected
-with groups and facets.</p>
+of significance or statistical summaries. All the <strong>stats</strong>
+from ‘ggpmisc’ do computations by data <em>group</em> except for
+<code>stat_fit_tb()</code> and <code>stat_multcomp()</code> that do
+computations by plot <em>panel</em>.</p>
+<p>The statistics that return predicted values for regressions return
+<code>x</code> and <code>y</code> where one of the variables is a
+sequence of numbers for the explanatory variables and the other contains
+the predictions based on them; depending on the <code>orientation</code>
+or <code>formula</code>, <code>ymin</code> and <code>ymax</code>, or
+<code>xmin</code> and <code>xmax</code>, give the lower and upper
+confidence limits for the fitted line or curve.</p>
+<p>The statistics returning fitted or residual values return these
+values as variables <code>y.fitted</code> or <code>x.fitted</code>,
+<code>y.resid</code> or <code>x.resid</code>, <code>weights</code> and
+<code>posterior.weights</code>. Variables <code>x</code> and
+<code>y</code> contain the observed values. When present,
+<code>weights</code> are the <em>prior</em> weights, and
+<code>posterior.weights</code> are posterior weights, those actually
+used by the model fit function, possibly computed by it.</p>
+<p>The statistics that return text labels for annotating plots, return
+in <code>x</code> and <code>y</code> as coordinates of the text or label
+annotaions the values passed as arguments to parameters
+<code>label.x</code> and <code>label.y</code>, or values computed based
+on them. The character strings are returned as variables with names
+ending in <code>.label</code>. These variables can be used in mappings
+created with <code>aes()</code>, <code>use_label()</code> and
+<code>f_use_labels()</code>. The difference is that
+<code>use_label()</code> and <code>f_use_label()</code> accept short
+names for the labels, recognize them as computed by a stat and combine
+them into a single character string. For example,
+<code>use_label(&quot;eq&quot;, &quot;R2&quot;, &quot;n&quot;, sep = &quot;, &quot;)</code> is equivalent to
+<code>aes(label = paste(after_stat(&quot;eq.label&quot;, &quot;rr.label&quot;, &quot;n.label), sep = &quot;, &quot;)</code>,
+saving some typing. Numeric values for the parameter estimates are also
+returned, making possible 1) to assemble labels in user code within a
+call to <code>aes()</code> and 2) to map outcomes to additional
+aesthetics such as <code>fontface</code> or <code>colour</code> based on
+a threshold.</p>
 </div>
 <div id="correlation" class="section level2">
 <h2>Correlation</h2>
@@ -399,66 +448,112 @@ adding an annotation to the plot.</li>
 a plot layer with one or more curves and confidence band(s), and one
 that annotates the plot with the fitted model equation and/or other
 parameter estimates. These depend on the type of fitted model and
-include <span class="math inline">\(R^2\)</span>, <span class="math inline">\(F\)</span>, <span class="math inline">\(P\)</span>, <span class="math inline">\(AIC\)</span>, <span class="math inline">\(BIC\)</span>, and <span class="math inline">\(n\)</span>. The curve plotting stats are similar
-to <code>ggplot2::stat_smooth()</code> but the ones for textual
+include <span class="math inline">\(R^2\)</span>, <span class="math inline">\(F\)</span>, <span class="math inline">\(P\)</span>, <span class="math inline">\(AIC\)</span>, <span class="math inline">\(BIC\)</span>, <span class="math inline">\(n\)</span>, and in many cases also the
+fitted-model equation. The curve plotting stats fulfil a role similar to
+<code>ggplot2::stat_smooth()</code> while the statistics for textual
 annotations have no equivalent in ‘ggplot2’.</p>
 <ul>
-<li><p><code>stat_poly_line()</code> and <code>stat_poly_line()</code>
-are the pair supporting a broader set of model fit functions: e.g.,
-linear models (OLS, resistant and robust), linear splines, general
-linear model (gls), major axis (MA) and standardised major axis (SMA)
-regression, etc.</p></li>
+<li><p><code>stat_poly_line()</code> and <code>stat_poly_eq()</code>
+support <em>a broad set of model fit functions</em>: e.g., linear models
+(OLS, resistant and robust), general linear model (gls), linear splines,
+cubic splines, additive models (gam), major axis (MA) and standardised
+major axis (SMA) regression, etc. The fitted model equation is
+automatically generated for regular polynomials, and can be assembled in
+user code for other model formulas.</p></li>
 <li><p><code>stat_quant_line()</code>, <code>stat_quant_band()</code>
-and <code>stat_quant_eq()</code> support quantile regression (using
-‘quantreg’).</p></li>
+and <code>stat_quant_eq()</code> support <em>quantile regression</em>
+based on both polynomials and smoothing splines (using ‘quantreg’). The
+fitted model equation is automatically generated for regular
+polynomials, and can be assembled in user code for other model formulas.
+Prior and posterior weights are returned.</p></li>
 <li><p><code>stat_ma_line()</code> and <code>stat_ma_eq()</code> support
-major axis (MA), standardised major axis (SMA) and ranged major axis
-(RMA) regression (using ‘lmodel2’).</p></li>
-<li><p><code>stat_fit_augment()</code> works with model fit functions
-supported by <code>broom::augment()</code> methods including non-linear
-models.</p></li>
-<li><p><code>stat_fit_tidy()</code> works with model fit functions
-supported by <code>broom::tidy()</code> methods including non-linear
-models.</p></li>
+<em>major axis (MA), standardised major axis (SMA) and ranged major axis
+(RMA) regression</em> (using ‘lmodel2’). The fitted model equation is
+automatically generated for regular polynomials, and can be assembled in
+user code for other model formulas. Prior and posterior weights are
+returned.</p></li>
+<li><p><code>stat_distrmix_line()</code>,
+<code>stat_distrmix_area()</code> and <code>stat_distrmix_eq()</code>
+support fitting of <em>univariate Normal-distribution mixture
+models</em> or a of <em>a single Normal distribution</em>. The fitted
+model equation is automatically. The areas delimited by quantiles of the
+fitted distribution are tagged.</p></li>
 <li><p><code>stat_fit_fitted()</code> and
-<code>stat_fit_deviations()</code> can be used to highlight the fitted
-values and their distance to the observations in a scatterplot in
-combination with the statistics above.</p></li>
+<code>stat_fit_deviations()</code> can be used to plot the fitted values
+and to display them as segments between predicted and observed values
+(deviations), respectively. Prior and posterior weights are
+returned.</p></li>
 <li><p><code>stat_fit_residuals()</code> can be used to create
-consistent plots of residuals for many different model fit
-functions.</p></li>
-<li><p><code>stat_distrmix_line()</code> and
-<code>stat_distrmix_eq()</code> support univariate Normal distribution
-mixture models.</p></li>
+consistent plots of residuals for a wide range of model fit functions.
+Prior and posterior weights are returned.</p></li>
+<li><p><code>stat_fit_augment()</code> (<code>broom::glance()</code>,
+similar to R’s <code>fitted()</code> plus <code>residuals()</code> and
+possibly plus <code>weights()</code> and/or <code>predict()</code>)
+works with model fit functions supported by
+<code>broom::augment()</code> methods including non-linear models.
+Provides an alternative to <code>stat_poly_line()</code> for an even
+broader range of model fit functions. It only returns numeric
+values.</p></li>
+<li><p><code>stat_fit_tidy()</code> (<code>broom::tidy()</code>, similar
+to R’s <code>summary()</code>) works with model fit functions supported
+by <code>broom::tidy()</code> methods including non-linear models.
+Provides numeric values from which equation labels can be created for an
+even broader range of model fit functions than those supported by
+<code>stat_poly_eq()</code>. <code>broom::tidy()</code> is similar to
+R’s <code>summary()</code> for fitted models. It only returns numeric
+values.</p></li>
+<li><p><code>stat_fit_glance()</code> (<code>broom::glance()</code>,
+similar to R’s <code>anova()</code>) works with model fit functions
+supported by <code>broom::glance()</code> methods including non-linear
+models. Provides an alternative to <code>stat_poly_eq()</code> for an
+even broader range of model fit functions. It only returns numeric
+values.</p></li>
 </ul>
 </div>
 <div id="anova-or-summary-tables" class="section level2">
 <h2>ANOVA or summary tables</h2>
 <ul>
 <li><code>stat_fit_tb()</code> fits any model supported by a
-<code>broom::tidy()</code> method. Adds an ANOVA or Summary table. Which
-columns are included and their naming can be set by the user.</li>
+<code>broom::tidy()</code> method. Adds an ANOVA or Summary table as a
+plot inset. Which columns and rows are included and their naming can be
+set by the user. The formatting of the table can be changed in part with
+aesthetic mappings and with table themes.</li>
 </ul>
 </div>
 <div id="multiple-comparisons" class="section level2">
 <h2>Multiple comparisons</h2>
 <ul>
-<li><code>stat_multcomp()</code> fits a model, computes ANOVA and
-subsequently calls functions from package ‘multcomp’ to test the
-significance of Tukey, Dunnet or arbitrary sets of pairwise contrasts,
-with a choice of the adjustment method for the <em>P</em>-values.
-Significance of differences can be indicated with letters, asterisks or
-<em>P</em>-values. Sizes of differences are also computed and available
-for user-assembled labels.</li>
+<li><code>stat_multcomp()</code> fits a model, computes an ANOVA or
+equivalent and subsequently calls functions from package ‘multcomp’ to
+test the significance of Tukey, Dunnet or arbitrary sets of pairwise
+contrasts, with a choice of the adjustment method for the
+<em>P</em>-values. Significance of differences can be indicated with
+letters, asterisks or <em>P</em>-values. Sizes of differences are also
+computed and available for user-assembled labels.</li>
+</ul>
+</div>
+<div id="aesthetic-mappings" class="section level2">
+<h2>Aesthetic mappings</h2>
+<ul>
+<li>Functions <code>use_label()</code> and <code>f_use_label()</code>
+combine together labels generated by the stats as formatted
+<code>character</code> strings and map the combined
+<code>character</code> string to the <code>label</code> aesthetic.</li>
 </ul>
 </div>
 <div id="peaks-and-valleys" class="section level2">
 <h2>Peaks and valleys</h2>
+<p>Formatted character labels are returned both for <code>x</code> and
+<code>y</code> coordinates. Both <code>numeric</code>, time and dates
+can be mapped to <code>x</code> (or <code>y</code> with
+<code>orientation = &quot;y&quot;</code>).</p>
 <ul>
 <li><p><code>stat_peaks()</code> finds and labels peaks (= global or
 local maxima).</p></li>
 <li><p><code>stat_valleys()</code> finds and labels valleys (= global or
 local minima).</p></li>
+<li><p><code>stat_spikes()</code> finds and labels very narrow and
+prominent peaks and valleys (local disturbances).</p></li>
 </ul>
 </div>
 <div id="volcano-and-quadrant-plots" class="section level2">
@@ -468,14 +563,28 @@ of the many genes labelled based on the ternary outcome from a
 statistical test. Data are usually, in addition transformed. ‘ggpmisc’
 provides several variations on continuous, colour, fill and shape
 scales, with defaults set as needed. Scales support log fold-change
-(<code>logFC</code>), false discovery ratio (<code>FDR</code>),
-<em>P</em>-value (<code>Pvalue</code>) and binary or ternary test
-outcomes (<code>outcome</code>).</p>
+(<code>logFC</code>) on multiple logarithm bases both for input and for
+output, false discovery ratio (<code>FDR</code>), <em>P</em>-value
+(<code>Pvalue</code>) and binary or ternary test outcomes
+(<code>outcome</code>).</p>
+<ul>
+<li><p>Discrete manual scales: <code>scale_colour_outcome()</code>,
+<code>scale_fill_outcome()</code>,
+<code>scale_shape_outcome()</code>.</p></li>
+<li><p>Continuous scales: <code>scale_x_logFC()</code>,
+<code>scale_y_logFC()</code>, <code>scale_colour_logFC()</code>,
+<code>scale_fill_logFC()</code>.</p></li>
+<li><p>Continuous scales: <code>scale_x_Pvalue()</code>,
+<code>scale_y_Pvalue()</code>, <code>scale_x_FDR()</code>,
+<code>scale_y_FDR()</code>.</p></li>
+</ul>
 </div>
 <div id="utility-functions" class="section level2">
 <h2>Utility functions</h2>
-<p>Most of the functions used to generate formatted labels in layers and
-scales are also exported.</p>
+<p>Most of the functions used to generate formatted labels in the
+statistics and scales listed above are also exported. However, several
+of them now have equivalents in recent versions of R package
+‘scales’.</p>
 <hr />
 <p>Learn more at <a href="https://docs.r4photobiology.info/ggpmisc/">docs.r4photobiology.info/ggpmisc/</a>.</p>
 <hr />

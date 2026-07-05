@@ -1,34 +1,12 @@
-#' @title Annotate plot with correlation test
+#' Correlation test annotations
 #'
-#' @description \code{stat_correlation()} applies \code{stats::cor.test()}
-#'   respecting grouping with \code{method = "pearson"} default but
-#'   alternatively using \code{"kendall"} or \code{"spearman"} methods. It
-#'   generates labels for correlation coefficients and p-value, coefficient of
-#'   determination (R^2) for method "pearson" and number of observations.
+#' Statistic \code{stat_correlation()} applies \code{stats::cor.test()}
+#' respecting grouping with \code{method = "pearson"} default but alternatively
+#' using \code{"kendall"} or \code{"spearman"} methods. It adds textual labels
+#' to a plot.
 #'
-#' @param mapping The aesthetic mapping, usually constructed with
-#'   \code{\link[ggplot2]{aes}}. Only needs to be
-#'   set at the layer level if you are overriding the plot defaults.
-#' @param data A layer specific dataset, only needed if you want to override the
-#'   plot defaults.
-#' @param geom The geometric object to use display the data
-#' @param position The position adjustment to use for overlapping points on this
-#'   layer
-#' @param show.legend logical. Should this layer be included in the legends?
-#'   \code{NA}, the default, includes if any aesthetics are mapped. \code{FALSE}
-#'   never includes, and \code{TRUE} always includes.
-#' @param inherit.aes If \code{FALSE}, overrides the default aesthetics, rather
-#'   than combining with them. This is most useful for helper functions that
-#'   define both data and aesthetics and shouldn't inherit behaviour from the
-#'   default plot specification, e.g. \code{\link[ggplot2]{borders}}.
-#' @param ... other arguments passed on to \code{\link[ggplot2]{layer}}. This
-#'   can include aesthetics whose values you want to set, not map. See
-#'   \code{\link[ggplot2]{layer}} for more details.
-#' @param na.rm	a logical indicating whether NA values should be stripped before
-#'   the computation proceeds.
+#' @inheritParams stat_poly_eq
 #' @param method character One of "pearson", "kendall" or "spearman".
-#' @param n.min integer Minimum number of distinct values in the variables for
-#'   fitting to the attempted.
 #' @param alternative character One of "two.sided", "less" or "greater".
 #' @param exact logical Whether an exact p-value should be computed. Used for
 #'   Kendall's tau and Spearman's rho.
@@ -36,9 +14,6 @@
 #'   interval. If set to \code{NA} computation of CI is skipped.
 #' @param continuity logical If TRUE , a continuity correction is used for
 #'   Kendall's tau and Spearman's rho when not computed exactly.
-#' @param fit.seed RNG seed argument passed to \code{\link[base:Random]{set.seed}()}.
-#'   Defaults to \code{NA}, which means that \code{set.seed()} will not be
-#'   called.
 #' @param small.r,small.p logical Flags to switch use of lower case r and p for
 #'   coefficient of correlation (only for \code{method = "pearson"}) and
 #'   p-value.
@@ -50,20 +25,8 @@
 #'   \code{Inf}, use exponential notation with three decimal places.
 #' @param CI.brackets character vector of length 2. The opening and closing
 #'   brackets used for the CI label.
-#' @param label.x,label.y \code{numeric} with range 0..1 "normalized parent
-#'   coordinates" (npc units) or character if using \code{geom_text_npc()} or
-#'   \code{geom_label_npc()}. If using \code{geom_text()} or \code{geom_label()}
-#'   numeric in native data units. If too short they will be recycled.
-#' @param hstep,vstep numeric in npc units, the horizontal and vertical
-#'   displacement step-size used between labels for different groups.
-#' @param output.type character One of "expression", "LaTeX", "text", "markdown"
-#'   or "numeric".
 #' @param boot.R interger The number of bootstrap resamples. Set to zero for no
 #'   bootstrap estimates for the CI.
-#' @param parse logical Passed to the geom. If \code{TRUE}, the labels will be
-#'   parsed into expressions and displayed as described in \code{?plotmath}.
-#'   Default is \code{TRUE} if \code{output.type = "expression"} and
-#'   \code{FALSE} otherwise.
 #'
 #' @aesthetics StatCorrelation
 #'
@@ -91,9 +54,15 @@
 #'   \code{x} and \code{y} should both be continuous scales rather than
 #'   discrete.
 #'
+#' @inheritSection stat_poly_eq Position of labels
+#'
 #' @inheritSection check_output_type Output types
 #'
-#' @section Computed variables: If output.type is \code{"numeric"} the returned
+#' @inheritSection stat_poly_eq Which variables are available for mapping?
+#'
+#' @section Computed variables:
+#'
+#'  If output.type is \code{"numeric"} the returned
 #'   tibble contains the columns listed below with variations depending on the
 #'   \code{method}. If the model fit function used does not return a value, the
 #'   variable is set to \code{NA_real_}.
@@ -131,6 +100,8 @@
 #'   plotmath expressions (i.e., when \code{output.type = "expression"}).
 #'
 #' @seealso \code{\link[stats]{cor.test}} for details on the computations.
+#'
+#' @family statistics for correlation-test annotation
 #'
 #' @examples
 #' # generate artificial data
@@ -195,25 +166,32 @@
 #'                    method = "spearman",
 #'                    r.conf.level = 0.95)
 #'
+#' # f_use_label() provides additional flexibility
+#' ggplot(my.data, aes(x, y)) +
+#'   geom_point() +
+#'   stat_correlation(
+#'     f_use_label("R", "R.CI",
+#'       format = "\"Estimate: \"*%s*\" with confidence \"*%s"),
+#'       method = "spearman", r.conf.level = 0.95)
+#'
 #' # manually assemble and map a specific label using paste() and aes()
 #' ggplot(my.data, aes(x, y)) +
 #'   geom_point() +
-#'   stat_correlation(aes(label = paste(after_stat(r.label),
-#'                                      after_stat(p.value.label),
-#'                                      after_stat(n.label),
-#'                                      sep = "*\", \"*")))
+#'   stat_correlation(aes(label =
+#'                          after_stat(
+#'                            paste(r.label, p.value.label, n.label,
+#'                                  sep = "*\", \"*"))))
 #'
 #' # manually format and map a specific label using sprintf() and aes()
 #' ggplot(my.data, aes(x, y)) +
 #'   geom_point() +
-#'   stat_correlation(aes(label = sprintf("%s*\" with \"*%s*\" for \"*%s",
-#'                                        after_stat(r.label),
-#'                                        after_stat(p.value.label),
-#'                                        after_stat(t.value.label))))
+#'   stat_correlation(aes(label =
+#'                          after_stat(
+#'                            sprintf("%s*\" with \"*%s*\" for \"*%s",
+#'                                    r.label, p.value.label, t.value.label))))
 #'
 #' # Inspecting the returned data using geom_debug_group()
-#' # This provides a quick way of finding out the names of the variables that
-#' # are available for mapping to aesthetics with after_stat().
+#' # This provides a quick way of printing the returned data frame.
 #'
 #' gginnards.installed <- requireNamespace("gginnards", quietly = TRUE)
 #'
@@ -234,16 +212,6 @@
 #' if (gginnards.installed)
 #'   ggplot(my.data, aes(x, y)) +
 #'     geom_point() +
-#'     stat_correlation(geom = "debug_group", method = "kendall")
-#'
-#' if (gginnards.installed)
-#'   ggplot(my.data, aes(x, y)) +
-#'     geom_point() +
-#'     stat_correlation(geom = "debug_group", method = "spearman")
-#'
-#' if (gginnards.installed)
-#'   ggplot(my.data, aes(x, y)) +
-#'     geom_point() +
 #'     stat_correlation(geom = "debug_group", output.type = "numeric")
 #'
 #' if (gginnards.installed)
@@ -255,8 +223,6 @@
 #'   ggplot(my.data, aes(x, y)) +
 #'     geom_point() +
 #'     stat_correlation(geom = "debug_group", output.type = "LaTeX")
-#'
-#' @family ggplot statistics for correlation.
 #'
 #' @export
 #'
@@ -614,6 +580,12 @@ cor_test_compute_fun <- function(data,
     z$npcx <- NA_real_
     z$y <- label.y
     z$npcy <- NA_real_
+  }
+
+  if (output.type == "numeric") {
+    show_colnames(z, stat.name = "stat_correlation")
+  } else {
+    show_labels(z, stat.name = "stat_correlation")
   }
 
   z

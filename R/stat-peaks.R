@@ -1,9 +1,12 @@
 #' Local maxima (peaks) or minima (valleys)
 #'
-#' \code{stat_peaks} finds at which x positions the global y maximun or local y
-#' maxima are located. \code{stat_valleys} finds at which x positions the global
-#' y minimum or local y minima located. They both support filtering of relevant
-#' peaks. \strong{Axis flipping is supported.}
+#' \code{stat_peaks()} tags or extracts rows in \code{data} containing local
+#' or global maxima of \code{y}.
+#' \code{stat_valleys} tags or extracts rows in \code{data} containing local
+#' or global minima of \code{y}. They make it
+#' easy to highlight and label peaks and valleys based on their \code{x} and/or \code{y}
+#' coordinates. Orientations flipping as well as dates and times are
+#' supported.
 #'
 #' @inheritParams find_peaks
 #'
@@ -27,14 +30,15 @@
 #'   \code{\link[ggplot2]{layer}} for more details.
 #' @param na.rm	a logical value indicating whether NA values should be stripped
 #'   before the computation proceeds.
-#' @param label.fmt,x.label.fmt,y.label.fmt character  strings giving a format
+#' @param label.fmt,x.label.fmt,y.label.fmt character strings giving a format
 #'   definition for construction of character strings labels with function
 #'   \code{\link{sprintf}} from \code{x} and/or \code{y} values.
 #' @param extract.peaks,extract.valleys If \code{TRUE} only the rows containing
 #'   peaks or valleys are returned. If \code{FALSE} the whole of \code{data} is
-#'   returned but with labels set to \code{NA} in rows not containing peaks or
-#'   valleys. If \code{NULL}, the default, \code{TRUE}, is used unless the geom
-#'   name passed as argument is \code{"text_repel"} or \code{"label_repel"}.
+#'   returned but with labels set to \code{""} in rows not containing peaks or
+#'   valleys. If \code{NULL}, the default, \code{TRUE}, is used unless the
+#'   argument passed to \code{geom} is \code{"text_repel"}, \code{"label_repel"}
+#'   or \code{"marquee_repel"}.
 #' @param orientation character The orientation of the layer can be set to
 #'   either \code{"x"}, the default, or \code{"y"}.
 #'
@@ -47,33 +51,38 @@
 #'
 #' @section Computed and copied variables in the returned data frame:
 #' \describe{
-#'   \item{x}{x-value at the peak (or valley) as numeric}
-#'   \item{y}{y-value at the peak (or valley) as numeric}
-#'   \item{x.label}{x-value at the peak (or valley) formatted as character}
-#'   \item{y.label}{y-value at the peak (or valley) formatted as character}
+#'   \item{x}{x-value at the peak (or valley) as numeric.}
+#'   \item{y}{y-value at the peak (or valley) as numeric.}
+#'   \item{x.label}{x-value at the peak (or valley) formatted as character.}
+#'   \item{y.label}{y-value at the peak (or valley) formatted as character.}
+#'   \item{is.peak/is.valley}{logical vector, \code{TRUE} at peaks or valleys.}
 #' }
 #'
 #' @inherit find_peaks details
 #'
-#' @note \code{stat_peaks} and \code{stat_valleys} work nicely together with
-#'   geoms \code{geom_text_repel} and \code{geom_label_repel} from package
-#'   \code{\link[ggrepel]{ggrepel}} to solve the problem of overlapping labels
-#'   by displacing them. To discard overlapping labels use \code{check_overlap =
-#'   TRUE} as argument to \code{geom_text}.
+#' @section Label positioning and formatting: \code{stat_peaks()},
+#'   \code{stat_valleys()} and \code{stat_spikes()} work nicely together with
+#'   geoms \code{geom_text_repel()}, \code{geom_label_repel()}, and
+#'   \code{geom_marquee_repel()} from package \code{\link[ggrepel]{ggrepel}} to
+#'   solve the problem of overlapping labels by displacing them. If using
+#'   \code{geom_text()}, discard overlapping labels using
+#'   \code{check_overlap = TRUE}.
 #'
-#'   By default the labels are character values ready to be added as is, but
-#'   with a suitable \code{label.fmt} labels suitable for parsing by the geoms
-#'   (e.g. into expressions containing Greek letters or super or subscripts) can
-#'   be also easily obtained.
+#'   By default the labels are character values ready to be ploted as plain
+#'   text, but with a suitable \code{label.fmt} argument, labels formatted as
+#'   \code{\link[grDevices]{plotmath}} expressions, markdown or LaTeX can be
+#'   created (e.g., containing Greek letters or super or subscripts, maths or
+#'   colour) can be generated for use with geoms from packages 'marquee',
+#'   'ggtext' and 'xdvir'.
 #'
-#'   These stats use \code{geom_point} by default as
-#'   it is the geom most likely to work well in almost any situation.
-#'   The default aesthetics set by these stats allow their direct use with
-#'   \code{geom_text}, \code{geom_label}, \code{geom_line}, \code{geom_rug},
-#'   \code{geom_hline} and \code{geom_vline}.
+#'   The default is \code{geom = "point"} it is likely to work well in almost
+#'   any situation. The default aesthetics mappings set by these stats allow
+#'   their direct use with \code{geom_text()}, \code{geom_label()},
+#'   \code{geom_line()}, \code{geom_rug()}, \code{geom_hline()} and
+#'   \code{geom_vline()} by just passing an argument to \code{geom}.
 #'
-#' @seealso \code{\link{find_peaks}}, for the functions used to located the
-#'   peaks and valleys.
+#' @seealso \code{\link{find_spikes}()} for a function suitable for very
+#'   narrow and steep peaks and valleys.
 #'
 #' @examples
 #' # lynx and Nile are time.series objects recognized by
@@ -203,7 +212,7 @@ stat_peaks <- function(mapping = NULL,
                        local.reference = "median",
                        strict = FALSE,
                        label.fmt = NULL,
-                       x.label.fmt = NULL,
+                       x.label.fmt = label.fmt,
                        y.label.fmt = NULL,
                        extract.peaks = NULL,
                        na.rm = FALSE,
@@ -228,7 +237,6 @@ stat_peaks <- function(mapping = NULL,
         local.threshold = local.threshold,
         local.reference = local.reference,
         strict = strict,
-        label.fmt = label.fmt,
         x.label.fmt = x.label.fmt,
         y.label.fmt = y.label.fmt,
         extract.peaks = extract.peaks,
@@ -253,22 +261,12 @@ peaks_compute_group_fun <- function(data,
                                     local.threshold = NULL,
                                     local.reference = "median",
                                     strict = FALSE,
-                                    label.fmt = NULL,
                                     x.label.fmt = NULL,
                                     y.label.fmt = NULL,
                                     extract.peaks = TRUE,
                                     flipped_aes = FALSE) {
   data <- ggplot2::flip_data(data, flipped_aes)
-  if (!is.null(label.fmt)) {
-    warning("Use of parameter 'label.format' is deprecated, ",
-            "use parameters 'x.label.format' and 'y.label.format' instead.")
-    if (is.null(x.label.fmt)) {
-      x.label.fmt <- label.fmt
-    }
-    if (is.null(y.label.fmt)) {
-      y.label.fmt <- label.fmt
-    }
-  } else if (is.null(y.label.fmt)) {
+  if (is.null(y.label.fmt)) {
     y.label.fmt <- "%.4g"
   }
   if (inherits(scales$x, "ScaleContinuousDatetime")) {
@@ -334,10 +332,14 @@ peaks_compute_group_fun <- function(data,
     peaks.df[["y.label"]] <- ifelse(peaks.df$is.peak,
                                     sprintf(y.label.fmt, peaks.df[["y"]]),
                                     "")
-    peaks.df
+    z <- peaks.df
   } else {
-    data.frame()
+    z <- data.frame()
   }
+
+  show_labels(z, stat.name = "stat_peaks")
+
+  z
 }
 
 # Define here to avoid a note in check as the imports are not seen by checks
@@ -354,22 +356,12 @@ valleys_compute_group_fun <- function(data,
                                       local.threshold = NULL,
                                       local.reference = "median",
                                       strict = FALSE,
-                                      label.fmt = NULL,
                                       x.label.fmt = NULL,
                                       y.label.fmt = NULL,
                                       extract.valleys = TRUE,
                                       flipped_aes = FALSE) {
   data <- ggplot2::flip_data(data, flipped_aes)
-  if (!is.null(label.fmt)) {
-    warning("Use of parameter 'label.format' is deprecated, ",
-            "use parameters 'x.label.format' and 'y.label.format' instead.")
-    if (is.null(x.label.fmt)) {
-      x.label.fmt <- label.fmt
-    }
-    if (is.null(y.label.fmt)) {
-      y.label.fmt <- label.fmt
-    }
-  } else if (is.null(y.label.fmt)) {
+  if (is.null(y.label.fmt)) {
     y.label.fmt <- "%.4g"
   }
   if (inherits(scales$x, "ScaleContinuousDatetime")) {
@@ -434,10 +426,14 @@ valleys_compute_group_fun <- function(data,
     valleys.df[["y.label"]] <- ifelse(valleys.df$is.valley,
                                       sprintf(y.label.fmt, valleys.df[["y"]]),
                                       "")
-    valleys.df
+    z <- valleys.df
   } else {
-    data.frame()
+    z <- data.frame()
   }
+
+  show_labels(z, stat.name = "stat_valleys")
+
+  z
 }
 
 #' \code{Stat*} Objects
@@ -462,12 +458,6 @@ StatPeaks <-
   ggplot2::ggproto("StatPeaks", ggplot2::Stat,
                    setup_params = function(data, params) {
                      params$flipped_aes <- ggplot2::has_flipped_aes(data, params)
-
-                     has_x <- !(is.null(data$x) && is.null(params$x))
-                     has_y <- !(is.null(data$y) && is.null(params$y))
-                     if (!has_x || !has_y) {
-                       rlang::abort("stat_peaks() requires both x and y aesthetics.")
-                     }
                      params
                    },
                    extra_params = c("na.rm", "orientation"),
@@ -494,7 +484,7 @@ stat_valleys <- function(mapping = NULL,
                          local.reference = "median",
                          strict = FALSE,
                          label.fmt = NULL,
-                         x.label.fmt = NULL,
+                         x.label.fmt = label.fmt,
                          y.label.fmt = NULL,
                          extract.valleys = NULL,
                          na.rm = FALSE,
@@ -518,7 +508,6 @@ stat_valleys <- function(mapping = NULL,
         local.threshold = local.threshold,
         local.reference = local.reference,
         strict = strict,
-        label.fmt = label.fmt,
         x.label.fmt = x.label.fmt,
         y.label.fmt = y.label.fmt,
         extract.valleys = extract.valleys,
@@ -539,13 +528,6 @@ StatValleys <-
   ggplot2::ggproto("StatValleys", ggplot2::Stat,
                    setup_params = function(data, params) {
                      params$flipped_aes <- ggplot2::has_flipped_aes(data, params)
-
-                     has_x <- !(is.null(data$x) && is.null(params$x))
-                     has_y <- !(is.null(data$y) && is.null(params$y))
-                     if (!has_x || !has_y) {
-                       rlang::abort("stat_valleys() requires both x and y aesthetics.")
-                     }
-
                      params
                    },
                    extra_params = c("na.rm", "orientation"),
